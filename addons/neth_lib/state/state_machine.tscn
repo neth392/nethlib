@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://ic5t1whfx58v"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/state/state_machine.gd" id="1_1448g"]
+
+[node name="StateMachine" type="Node"]
+script = ExtResource("1_1448g")

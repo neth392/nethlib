@@ -15,4 +15,4 @@ config/features=PackedStringArray("4.2", "Forward Plus")
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/neth_lib2/plugin.cfg")
+enabled=PackedStringArray()
