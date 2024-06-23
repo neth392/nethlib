@@ -13,6 +13,10 @@ config_version=5
 config/name="nethlib"
 config/features=PackedStringArray("4.2", "Forward Plus")
 
+[autoload]
+
+PlatformManager="*res://addons/neth_lib/platform/platform_manager.tscn"
+
 [editor_plugins]
 
-enabled=PackedStringArray()
+enabled=PackedStringArray("res://addons/neth_lib/plugin.cfg")

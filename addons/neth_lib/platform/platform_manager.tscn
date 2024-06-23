@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://b6wltio4nhus3"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/platform/platform_manager.gd" id="1_vj08l"]
+[ext_resource type="Resource" uid="uid://c0jixbpyxqxt" path="res://addons/neth_lib/platform/default/steam_platform.tres" id="2_t4dvo"]
+
+[node name="PlatformManager" type="Node"]
+script = ExtResource("1_vj08l")
+_platforms = Array[Resource("res://addons/neth_lib/platform/platform.gd")]([ExtResource("2_t4dvo")])
