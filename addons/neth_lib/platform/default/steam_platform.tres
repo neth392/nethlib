@@ -1,7 +1,0 @@
-[gd_resource type="Resource" script_class="Platform" load_steps=2 format=3 uid="uid://c0jixbpyxqxt"]
-
-[ext_resource type="Script" path="res://addons/neth_lib/platform/platform.gd" id="1_0vu38"]
-
-[resource]
-script = ExtResource("1_0vu38")
-id = &"Steam"

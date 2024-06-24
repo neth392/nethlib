@@ -1,0 +1,7 @@
+[gd_scene load_steps=3 format=3 uid="uid://dex4ftprfw1nq"]
+
+[ext_resource type="PackedScene" uid="uid://bce1e3dfawliw" path="res://addons/neth_lib/platform/platform_handler.tscn" id="1_6risi"]
+[ext_resource type="Script" path="res://addons/neth_lib/platform/default/steam/steam_platform_handler.gd" id="2_4o3d8"]
+
+[node name="SteamPlatformHandler" instance=ExtResource("1_6risi")]
+script = ExtResource("2_4o3d8")

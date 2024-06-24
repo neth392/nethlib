@@ -5,7 +5,7 @@ class_name State extends Node
 
 ## Emitted by this [State] to notify the [StateMachine] that a transition
 ## to another [State] is requested. Should not be emitted manually, instead
-## use [method State.request_transition]
+## use [method request_transition]
 signal _transition_requested(target_state: State, data: Variant)
 
 ## Internal variable used to block transitions in _state_exited
@@ -41,3 +41,7 @@ func _state_entered(data: Variant) -> void:
 ## Called as this state is exited.
 func _state_exited() -> void:
 	pass
+
+
+func _to_string() -> String:
+	return "State(%s)" % name

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Platform" load_steps=4 format=3 uid="uid://c0jixbpyxqxt"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/platform/default/steam/steam_platform_detector.gd" id="1_2bpbe"]
+[ext_resource type="Script" path="res://addons/neth_lib/platform/platform.gd" id="2_hvk6y"]
+[ext_resource type="PackedScene" uid="uid://dex4ftprfw1nq" path="res://addons/neth_lib/platform/default/steam/steam_platform_handler.tscn" id="2_kn48h"]
+
+[resource]
+script = ExtResource("2_hvk6y")
+id = &"steam"
+detector_script = ExtResource("1_2bpbe")
+handler_scene = ExtResource("2_kn48h")

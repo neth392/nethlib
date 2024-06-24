@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://ce7lq582pgke4"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/audio/audio_streamer.gd" id="1_pe8qi"]
+
+[node name="AudioStreamer" type="Node"]
+script = ExtResource("1_pe8qi")

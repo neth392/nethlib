@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://y3m1bghxf1lt"]
+
+[ext_resource type="PackedScene" uid="uid://bpxtgam4wtbhr" path="res://addons/neth_lib/provider/conditional_provider.tscn" id="1_26c1t"]
+[ext_resource type="Script" path="res://addons/neth_lib/provider/conditional_scene_provider.gd" id="1_efoyh"]
+
+[node name="ConditionalSceneProvider" instance=ExtResource("1_26c1t")]
+script = ExtResource("1_efoyh")
+conditional_scenes = Array[Resource("res://addons/neth_lib/provider/conditional_scene.gd")]([])
+add_on_ready = false
+on_ready_parent = NodePath("")
+auto_queue_free = true
+keep_references = false
+allow_multiple = false
+error_on_multiple = false

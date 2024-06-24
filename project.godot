@@ -16,6 +16,7 @@ config/features=PackedStringArray("4.2", "Forward Plus")
 [autoload]
 
 PlatformManager="*res://addons/neth_lib/platform/platform_manager.tscn"
+AudioStreamer="*res://addons/neth_lib/audio/audio_streamer.tscn"
 
 [editor_plugins]
 
