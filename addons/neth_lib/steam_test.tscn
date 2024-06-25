@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://diblg7rsc2we0"]
-
-[ext_resource type="Script" path="res://addons/neth_lib/steam_test.gd" id="1_wfa1b"]
-
-[node name="SteamTest" type="Node"]
-script = ExtResource("1_wfa1b")
