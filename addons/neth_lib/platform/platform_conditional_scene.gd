@@ -1,7 +1,7 @@
 ## A [ConditionalScene] implementation whose [member ConditionalScene.predicate]
 ## only returns true if the [member platform] is active.
 @tool
-class_name PlatformScene extends ConditionalScene
+class_name PlatformConditionalScene extends ConditionalScene
 
 ## The [PlatformReference] 
 @export var platform: PlatformReference = PlatformReference.new():

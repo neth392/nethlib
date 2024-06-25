@@ -6,9 +6,9 @@
 [node name="ConditionalSceneProvider" instance=ExtResource("1_26c1t")]
 script = ExtResource("1_efoyh")
 conditional_scenes = Array[Resource("res://addons/neth_lib/provider/conditional_scene.gd")]([])
-add_on_ready = false
-on_ready_parent = NodePath("")
-auto_queue_free = true
-keep_references = false
-allow_multiple = false
-error_on_multiple = false
+instantiate_on_ready = true
+await_parent_ready = false
+free_provider_after = false
+keep_instantiated_nodes = false
+add_to_tree = false
+add_to_parent = NodePath("")

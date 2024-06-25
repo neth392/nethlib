@@ -18,6 +18,10 @@ config/features=PackedStringArray("4.2", "Forward Plus")
 PlatformManager="*res://addons/neth_lib/platform/platform_manager.tscn"
 AudioStreamer="*res://addons/neth_lib/audio/audio_streamer.tscn"
 
+[debug]
+
+gdscript/warnings/untyped_declaration=2
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/neth_lib/plugin.cfg")

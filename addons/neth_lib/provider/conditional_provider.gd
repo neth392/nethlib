@@ -1,3 +1,4 @@
+## Abstract class meant to be extended.
 @tool
 class_name ConditionalProvider extends Node
 
@@ -22,7 +23,7 @@ static var _default_caller: Callable = func(predicate: Callable): return predica
 @export var error_on_multiple: bool = true
 
 
-func _validate_property(property):
+func _validate_property(property: Dictionary) -> void:
 	if allow_multiple && property.name == "error_on_multiple":
 		property.usage = PROPERTY_USAGE_NONE
 
@@ -36,7 +37,8 @@ func _get_references() -> Array:
 ## a [Callable] that is provided the [member ConditionalReference.predicate] as
 ## the argument, and should call that callable (with whatever expected params)
 ## and return the returned value. The returned [Array] contains all [Object](s)
-## that meet the conditions.
+## that meet the conditions. The default value simply calls [member ConditionalReference.predicate]
+## with no arguments.
 func _provide(predicate_caller: Callable = _default_caller) -> Array[Object]:
 	var references: Array = _get_references()
 	
