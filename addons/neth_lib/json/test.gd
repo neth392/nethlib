@@ -28,3 +28,5 @@ class TestRes extends Resource:
 	var ffloat: float
 	var vec2: Vector2 = Vector2()
 	var vec3: Vector3 = Vector3()
+	var sub_resource: TestRes
+	var dictonry: Dictionary

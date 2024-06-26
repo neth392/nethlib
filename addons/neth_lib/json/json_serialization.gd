@@ -62,20 +62,22 @@ func deserialize_into(instance: Variant, json_dictionary: Dictionary) -> void:
 ## through this method as their own object, and that dictionary value will be the struct.[br]
 ## [Array] properties must be statically typed, and elements must be either a native value 
 ## or supported by a [JSONSerializer].[br]
-## TODO dictionary 
+## TODO dictionary
 func serialize_object(object: Object, property_struct: Dictionary) -> Dictionary:
 	assert(object != null, "object is null")
 	assert(property_struct != null, "property_struct is null")
 	assert(!property_struct.is_empty(), "property_struct is empty")
 	
 	var serialized: Dictionary = {}
-	_serialize_object(object, property_struct, serialized)
+	_serialize_object(func(prop_name): return object.get(prop_name), property_struct, serialized)
 	return serialized
 
 
-func _serialize_object(object: Object, property_struct: Dictionary, current_dict: Dictionary) -> void:
+# Internal function. Only note is [param getter] allows submitting either an [Object]
+# or [Dictionary] for this function.
+func _serialize_object(getter: Callable, property_struct: Dictionary, current_dict: Dictionary) -> void:
 	for property_name: String in property_struct:
-		var value: Variant = object.get(property_name)
+		var value: Variant = getter.call(property_name)
 		
 		# Check if the value is null
 		if value == null:
@@ -99,10 +101,22 @@ func _serialize_object(object: Object, property_struct: Dictionary, current_dict
 			var array: Array = value as Array
 			assert(array.is_typed(), "array (%s) is not typed, untyped arrays are not supported" \
 			% property_name)
-			array.get_typed_builtin()
+			if array.is_empty():
+				current_dict[property_name] = []
+				continue
+			# TODO figure this out, parse first element?
 			continue
 		
 		if type == TYPE_DICTIONARY:
+			# TODO figure this out; how will the structs work?
+			continue
+			var dictionary: Dictionary = value as Dictionary
+			if dictionary.is_empty():
+				current_dict[property_name] = {}
+				continue
+			var sub_dict: Dictionary = {}
+			_serialize_object(func(prop_name): return dictionary[prop_name], dictionary, sub_dict)
+			current_dict[property_name] = sub_dict
 			continue
 		
 		var serializer: JSONSerializer = get_serializer(value)
@@ -111,11 +125,9 @@ func _serialize_object(object: Object, property_struct: Dictionary, current_dict
 			continue
 		
 		if sub_struct is Dictionary:
-			assert(value is Object, "sub_struct defined but value (%s) not of type Object " + \
-			"for property (%s)" % [value, property_name])
 			var sub_dict: Dictionary = {}
+			_serialize_object(func(prop_name): return value.get(prop_name), sub_struct, sub_dict)
 			current_dict[property_name] = sub_dict
-			_serialize_object(value, sub_struct, sub_dict)
 			continue
 		
 		push_error("unable to parse property (%s) with value (%s)" % [property_name, value])
