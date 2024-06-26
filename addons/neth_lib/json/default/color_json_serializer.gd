@@ -1,46 +1,45 @@
 extends JSONSerializer
 
-func _can_serialize(variant) -> bool:
-	return variant is Color
+func _can_serialize(instance) -> bool:
+	return instance is Color
 
 
-func _serialize(variant: Color) -> Dictionary:
-	
+func _serialize(instance: Color) -> Dictionary:
 	return {
-		"r": variant.r,
-		"g": variant.g,
-		"b": variant.b,
-		"a": variant.a,
-		"r8": variant.r8,
-		"g8": variant.g8,
-		"b8": variant.b8,
-		"a8": variant.a8,
-		"h": variant.h,
-		"s": variant.s,
-		"v": variant.v,
+		"r": instance.r,
+		"g": instance.g,
+		"b": instance.b,
+		"a": instance.a,
+		"r8": instance.r8,
+		"g8": instance.g8,
+		"b8": instance.b8,
+		"a8": instance.a8,
+		"h": instance.h,
+		"s": instance.s,
+		"v": instance.v,
 	}
 
 
-func _deserialize_into(instance: Color, json_dictionary: Dictionary):
-	assert(json_dictionary["r"] is float, "r is not a float")
-	assert(json_dictionary["g"] is float, "b is not a float")
-	assert(json_dictionary["b"] is float, "b is not a float")
-	assert(json_dictionary["a"] is float, "a is not a float")
-	assert(json_dictionary["r8"] is int, "r8 is not a int")
-	assert(json_dictionary["g8"] is int, "g8 is not a int")
-	assert(json_dictionary["b8"] is int, "b8 is not a int")
-	assert(json_dictionary["a8"] is int, "a8 is not a int")
-	assert(json_dictionary["h"] is float, "h is not a float")
-	assert(json_dictionary["s"] is float, "s is not a float")
-	assert(json_dictionary["v"] is float, "v is not a float")
-	instance.r = json_dictionary["r"]
-	instance.g = json_dictionary["g"]
-	instance.b = json_dictionary["b"]
-	instance.a = json_dictionary["a"]
-	instance.r8 = json_dictionary["r8"]
-	instance.g8 = json_dictionary["g8"]
-	instance.b8 = json_dictionary["b8"]
-	instance.a8 = json_dictionary["a8"]
-	instance.h = json_dictionary["h"]
-	instance.s = json_dictionary["s"]
-	instance.v = json_dictionary["v"]
+func _deserialize_into(instance: Color, serialized: Dictionary):
+	assert(serialized["r"] is float, "r is not a float")
+	assert(serialized["g"] is float, "b is not a float")
+	assert(serialized["b"] is float, "b is not a float")
+	assert(serialized["a"] is float, "a is not a float")
+	assert(serialized["r8"] is int, "r8 is not a int")
+	assert(serialized["g8"] is int, "g8 is not a int")
+	assert(serialized["b8"] is int, "b8 is not a int")
+	assert(serialized["a8"] is int, "a8 is not a int")
+	assert(serialized["h"] is float, "h is not a float")
+	assert(serialized["s"] is float, "s is not a float")
+	assert(serialized["v"] is float, "v is not a float")
+	instance.r = serialized["r"]
+	instance.g = serialized["g"]
+	instance.b = serialized["b"]
+	instance.a = serialized["a"]
+	instance.r8 = serialized["r8"]
+	instance.g8 = serialized["g8"]
+	instance.b8 = serialized["b8"]
+	instance.a8 = serialized["a8"]
+	instance.h = serialized["h"]
+	instance.s = serialized["s"]
+	instance.v = serialized["v"]
