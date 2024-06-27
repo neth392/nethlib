@@ -3,6 +3,8 @@
 ## a [JSONSerializer].
 class_name NativeJSONSerializer extends JSONSerializer
 
+const ID: StringName = &"Native"
+
 static var _native_types: Array[Variant.Type] = [
 		TYPE_NIL,
 		TYPE_BOOL,
@@ -17,12 +19,20 @@ static var _native_types: Array[Variant.Type] = [
 	]
 
 
+static func is_wrapped_native(wrapped_value: Dictionary) -> bool:
+	return wrapped_value.get("type") == ID
+
+
 static func is_type_native(type: Variant.Type) -> bool:
 	return _native_types.has(type)
 
 
 static func is_native(instance: Variant) -> bool:
 	return is_type_native(typeof(instance))
+
+
+func _init() -> void:
+	super._init(ID, DeserializeMode.DESERIALIZE)
 
 
 func _get_priority() -> int:
@@ -37,5 +47,5 @@ func _serialize(instance) -> Variant:
 	return instance
 
 
-func _deserialize_into(instance, serialized) -> void:
-	push_error("can't deserialize into a native type")
+func _deserialize(serialized) -> Variant:
+	return serialized

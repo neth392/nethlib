@@ -1,5 +1,10 @@
 extends JSONSerializer
 
+
+func _init() -> void:
+	super._init(&"Color", DeserializeMode.BOTH)
+
+
 func _can_serialize(instance) -> bool:
 	return instance is Color
 
@@ -20,7 +25,11 @@ func _serialize(instance: Color) -> Dictionary:
 	}
 
 
-func _deserialize_into(instance: Color, serialized: Dictionary):
+func _deserialize(serialized: Dictionary) -> Color:
+	return _deserialize_into(Color(), serialized)
+
+
+func _deserialize_into(instance: Color, serialized: Dictionary) -> Color:
 	assert(serialized["r"] is float, "r is not a float")
 	assert(serialized["g"] is float, "b is not a float")
 	assert(serialized["b"] is float, "b is not a float")
@@ -43,3 +52,4 @@ func _deserialize_into(instance: Color, serialized: Dictionary):
 	instance.h = serialized["h"]
 	instance.s = serialized["s"]
 	instance.v = serialized["v"]
+	return instance

@@ -1,15 +1,15 @@
 extends JSONSerializer
 
 
+func _init() -> void:
+	super._init(&"Array", DeserializeMode.BOTH)
+
+
 func _can_serialize(instance) -> bool:
 	return instance is Array
 
 
-func _can_deserialize_into(instance, serialized) -> bool:
-	return instance is Array
-
-
-func _serialize(instance: Array) -> Variant:
+func _serialize(instance: Array) -> Array:
 	assert(instance.is_typed(), "Array (%s) is not explicitly typed, Array's must " + \
 	"be explicitly typed for deserialization purposes" % instance)
 	
@@ -18,8 +18,7 @@ func _serialize(instance: Array) -> Variant:
 	var serializer: JSONSerializer
 	if !native:
 		if type == TYPE_DICTIONARY:
-			
-		pass
+			pass
 	
 	var serialized: Array = []
 	
