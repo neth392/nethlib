@@ -2,7 +2,7 @@ extends Node
 
 func _ready() -> void:
 	
-	var test: TestJSONObject = TestJSONObject.new()
+	var test: JSONTestObject = JSONTestObject.new()
 	test.color = Color(0.3, 0.3, 0.2, 0.99)
 	test.vec2 = Vector2(6.0, 9.0)
 	test.vec3 = Vector3(1.0, 2.0, 3.0)
@@ -10,8 +10,21 @@ func _ready() -> void:
 	test.str_dont_serialize = "dont seriliz me :)"
 	test.iint = 55555
 	test.ffloat = 9.12345678
+	test.sub_object = JSONTestObject.new()
 	
-	print(JSON.stringify(JSONSerialization.serialize(test)))
+	test.sub_object.color = Color(0.555,0.420,0.392,.392)
+	test.sub_object.vec2 = Vector2(24.0, 14.0)
+	test.sub_object.vec3 = Vector3(-1.0, -2.0, -3.0)
+	test.str = "Sub object string!"
+	
+	JSONSerialization.add_serializer(JSONTestObject.Serializer.new())
+	var json: String = JSONSerialization.stringify(test)
+	print(json)
+	print("")
+	
+	var new_test: JSONTestObject = JSONTestObject.new()
+	JSONSerialization.parse_into(new_test, json)
+	print(new_test)
 	
 	#var tr: Test.TestRes = Test.TestRes.new()
 	#tr.ffloat = 4.20

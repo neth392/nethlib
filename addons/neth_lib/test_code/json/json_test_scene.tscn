@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://hi4rriwkakoo"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/test_code/json/json_test_scene.gd" id="1_bmkek"]
+
+[node name="JSONTestScene" type="Node"]
+script = ExtResource("1_bmkek")

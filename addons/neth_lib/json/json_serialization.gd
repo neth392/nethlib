@@ -89,36 +89,74 @@ func serialize(variant: Variant) -> Dictionary:
 	assert(serialized != null, "serialized is null for variant (%s), serializer (%s)" \
 	% [variant, serializer])
 	
-	assert(_native_types.has(typeof(serialized)), "serialized (%s) typeof (%s) not natively " + \
-	"supported by JSON.stringify, serializer: %s" % [serialized, typeof(serialized), serializer])
+	assert(_native_types.has(typeof(serialized)), """serialized (%s) type not natively 
+	supported by JSON.stringify, serializer: %s""" % [str(serialized), str(serializer)])
 	
 	return wrap_value(serializer, serialized)
 
 
-## Deserializes the [param wrapped_value] into the specified [param instance].
-func deserialize_into(instance: Variant, wrapped_value: Dictionary) -> void:
-	assert(instance != null, "instance is null")
-	
+## Deserializes the [param wrapped_value] and creates & returns a new instance of the type.
+func deserialize(wrapped_value: Dictionary) -> Variant:
 	assert(wrapped_value != null, "wrapped_value is null")
 	
-	assert(!NativeJSONSerializer.is_native(instance), "instance (%s) is native and " + \
-	"can't be deserialized into")
-	
-	if OS.is_debug_build():
-		# Ensure serializers match up from instance type & wrapped type
-		var instance_serializer: JSONSerializer = get_serializer(instance)
-		var wrapped_serializer: JSONSerializer = get_wrapped_serializer(wrapped_value)
-		assert(instance_serializer != null, "no serializer for instance (%s)" % instance)
-		assert(wrapped_serializer != null, "no serializer found for wrapped_value (%s)" \
-		% wrapped_value)
-		assert(instance_serializer == wrapped_serializer, "serializer (%s) of instance (%s) " + \
-		"does not match serializer (%s) of wrapped_value (%s)" \
-		% [instance_serializer, instance, wrapped_serializer, wrapped_value])
-	
-	var serializer: JSONSerializer = get_serializer(instance)
-	
-	assert(!(serializer is NativeJSONSerializer), "native instance (%s) can not " + \
-	"be deserialized into" % instance)
+	var serializer: JSONSerializer = get_wrapped_serializer(wrapped_value)
+	assert(serializer != null, "no serializer for wrapped_value (%s)" % wrapped_value)
+	assert(serializer.has_deserialize_func(), "serializer (%s) for wrapped_value (%s) " + \
+	"does not support deserialize" % [serializer, wrapped_value])
 	
 	var unwrapped_value: Variant = unwrap_value(wrapped_value)
-	serializer._deserialize_into(instance, unwrapped_value)
+	return serializer._deserialize(unwrapped_value)
+
+
+## Deserializes the [param wrapped_value] into the specified [param instance].[br]
+## Returns the [param instance] after it was deserialized into.
+func deserialize_into(instance: Variant, wrapped_value: Dictionary) -> Variant:
+	assert(instance != null, "instance is null")
+	assert(wrapped_value != null, "wrapped_value is null")
+	
+	assert(!NativeJSONSerializer.is_native(instance), ("instance (%s) is native and " + \
+	"can't be deserialized into") % instance)
+	
+	
+	var serializer: JSONSerializer = get_serializer(instance)
+	assert(serializer != null, "no serializer for instance (%s)" % instance)
+	assert(serializer.has_deserialize_into_func(), ("serializer (%s) for instance (%s) " + \
+	"does not support deserialize_into") % [serializer, instance])
+	
+	# In debug, ensure serializers match up from instance type & wrapped type
+	if OS.is_debug_build():
+		var wrapped_serializer: JSONSerializer = get_wrapped_serializer(wrapped_value)
+		assert(wrapped_serializer != null, "no serializer found for wrapped_value (%s)" \
+		% wrapped_value)
+		assert(serializer == wrapped_serializer, ("serializer (%s) of instance (%s) " + \
+		"does not match serializer (%s) of wrapped_value (%s)") % [serializer, instance, \
+		 wrapped_serializer, wrapped_value])
+	
+	var unwrapped_value: Variant = unwrap_value(wrapped_value)
+	return serializer._deserialize_into(instance, unwrapped_value)
+
+
+## Helper function to call [method serialize] with the [param variant]
+## and then call [method JSON.stringify] with the returned value. The JSON supported
+## [String] is then returned.
+func stringify(variant: Variant) -> String:
+	assert(variant != null, "variant is null")
+	var serialized: Dictionary = serialize(variant)
+	return JSON.stringify(serialized)
+
+
+## Helper function to call [method JSON.parse_string] with [param wrapped_json_string], and then
+## send the resulting [Variant] to [method deserialize]. The result of deserialize is returned.
+func parse(wrapped_json_string: String) -> Variant:
+	var parsed: Variant = JSON.parse_string(wrapped_json_string)
+	assert(parsed is Dictionary, "parsed result of JSON is not of type Dictionary: %s" % wrapped_json_string)
+	return deserialize(parsed as Dictionary)
+
+
+## Helper function to call [method JSON.parse_string] with [param wrapped_json_string] , and then
+## send the resulting [Variant] and [param instance] to [method deserialize_into].
+## [param instance] is returned after it was deserialized into.
+func parse_into(instance: Variant, wrapped_json_string: String) -> Variant:
+	var parsed: Variant = JSON.parse_string(wrapped_json_string)
+	assert(parsed is Dictionary, "parsed result of JSON is not of type Dictionary: %s" % wrapped_json_string)
+	return deserialize_into(instance, parsed as Dictionary)

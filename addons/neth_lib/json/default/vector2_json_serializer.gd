@@ -2,27 +2,23 @@ extends JSONSerializer
 
 
 func _init():
-	super._init(&"Vector2", DeserializeMode.BOTH)
+	super._init(&"Vector2", DeserializeMode.DESERIALIZE)
 
 
 func _can_serialize(instance) -> bool:
 	return instance is Vector2
 
 
-func _serialize(instance: Vector2) -> Dictionary:
+func _serialize(instance: Variant) -> Variant:
+	assert(instance is Vector2, "instance not of type Vector2")
 	return {
 		"x": instance.x,
 		"y": instance.y,
 	}
 
 
-func _deserialize(serialized: Dictionary) -> Vector2:
-	return _deserialize_into(Vector2(), serialized)
-
-
-func _deserialize_into(instance: Vector2, serialized: Dictionary) -> Vector2:
+func _deserialize(serialized: Variant) -> Variant:
+	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	assert(serialized["x"] is float, "x is not a float")
 	assert(serialized["y"] is float, "y is not a float")
-	instance.x = serialized["x"]
-	instance.y = serialized["y"]
-	return instance
+	return Vector2(serialized["x"], serialized["y"])

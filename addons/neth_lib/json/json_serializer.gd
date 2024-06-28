@@ -52,15 +52,16 @@ func _serialize(instance: Variant) -> Variant:
 
 ## Deserializes the [param serialized] by constructing a new instance of the
 ## supported type. The newly created type is then returned.
-func _deserialize(serialized: Variant):
+func _deserialize(serialized: Variant) -> Variant:
 	assert(false, "_deserialize not supported")
 	return null
 
 
 ## Deserializes [i]into[/i] the specified [param instance] from the [param serialized].
 ## Returns the [param instance].
-func _deserialize_into(instance: Variant, serialized: Variant):
+func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 	assert(false, "_deserialize_into not supported")
+	return null
 
 
 func _to_string() -> String:

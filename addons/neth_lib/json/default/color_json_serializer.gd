@@ -2,14 +2,15 @@ extends JSONSerializer
 
 
 func _init() -> void:
-	super._init(&"Color", DeserializeMode.BOTH)
+	super._init(&"Color", DeserializeMode.DESERIALIZE)
 
 
 func _can_serialize(instance) -> bool:
 	return instance is Color
 
 
-func _serialize(instance: Color) -> Dictionary:
+func _serialize(instance: Variant) -> Variant:
+	assert(instance is Color, "instance not of type Color")
 	return {
 		"r": instance.r,
 		"g": instance.g,
@@ -25,31 +26,29 @@ func _serialize(instance: Color) -> Dictionary:
 	}
 
 
-func _deserialize(serialized: Dictionary) -> Color:
-	return _deserialize_into(Color(), serialized)
-
-
-func _deserialize_into(instance: Color, serialized: Dictionary) -> Color:
+func _deserialize(serialized: Variant) -> Variant:
+	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	assert(serialized["r"] is float, "r is not a float")
 	assert(serialized["g"] is float, "b is not a float")
 	assert(serialized["b"] is float, "b is not a float")
 	assert(serialized["a"] is float, "a is not a float")
-	assert(serialized["r8"] is int, "r8 is not a int")
-	assert(serialized["g8"] is int, "g8 is not a int")
-	assert(serialized["b8"] is int, "b8 is not a int")
-	assert(serialized["a8"] is int, "a8 is not a int")
+	assert(serialized["r8"] is int || serialized["r8"] is float, "r8 is not a int/float")
+	assert(serialized["g8"] is int || serialized["g8"] is float, "g8 is not a int/float")
+	assert(serialized["b8"] is int || serialized["b8"] is float, "b8 is not a int/float")
+	assert(serialized["a8"] is int || serialized["a8"] is float, "a8 is not a int/float")
 	assert(serialized["h"] is float, "h is not a float")
 	assert(serialized["s"] is float, "s is not a float")
 	assert(serialized["v"] is float, "v is not a float")
-	instance.r = serialized["r"]
-	instance.g = serialized["g"]
-	instance.b = serialized["b"]
-	instance.a = serialized["a"]
-	instance.r8 = serialized["r8"]
-	instance.g8 = serialized["g8"]
-	instance.b8 = serialized["b8"]
-	instance.a8 = serialized["a8"]
-	instance.h = serialized["h"]
-	instance.s = serialized["s"]
-	instance.v = serialized["v"]
-	return instance
+	var color: Color = Color()
+	color.r = serialized["r"]
+	color.g = serialized["g"]
+	color.b = serialized["b"]
+	color.a = serialized["a"]
+	color.r8 = serialized["r8"]
+	color.g8 = serialized["g8"]
+	color.b8 = serialized["b8"]
+	color.a8 = serialized["a8"]
+	color.h = serialized["h"]
+	color.s = serialized["s"]
+	color.v = serialized["v"]
+	return color

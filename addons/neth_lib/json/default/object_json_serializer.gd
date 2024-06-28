@@ -1,5 +1,18 @@
 class_name ObjectJSONSerializer extends JSONSerializer
 
+## How to handle properties from [member _property_names] that are either
+## not found in serialized data or have a null value.
+enum IfMissing {
+	## Ignore that it is missing and continue on.
+	IGNORE,
+	## Set the property to null in the object.
+	SET_NULL,
+	## Push a warning.
+	WARN,
+	## Throw an error (dangerous).
+	ERROR,
+}
+
 ## Returns an [Array] of [StringName]s for ALL of the [param object]'s properties.
 static func for_all_properties(object: Object) -> Array[StringName]:
 	var prop_names: Array[StringName] = []
@@ -7,24 +20,32 @@ static func for_all_properties(object: Object) -> Array[StringName]:
 		prop_names.append(property.name as StringName)
 	return prop_names
 
-var _property_names: Array[StringName]
+var _property_names: Dictionary
 var _remaps: Dictionary
 
-func _init(_id: StringName, _deserialize_mode: DeserializeMode):
+func _init(_id: StringName, _deserialize_mode: DeserializeMode = DeserializeMode.DESERIALIZE_INTO):
 	super._init(_id, _deserialize_mode)
 	_property_names = _get_property_names()
+	if OS.is_debug_build():
+		for property_name in _property_names:
+			assert(property_name is String || property_name is StringName, ("property_name (%s) " + \
+			"not of type String or StringName") % property_name)
+			assert(_property_names[property_name] is IfMissing, ("value for property_name (%s) " + \
+			" not of type IfMissing") % property_name)
 	_remaps = _get_deserialization_remaps()
 	assert(!_property_names.is_empty(), "_property_names is empty")
 
 
-func _serialize(instance: Object) -> Dictionary:
-	assert(instance != null, "variant is null")
+func _serialize(instance: Variant) -> Variant:
+	assert(instance != null, "instance is null")
+	assert(instance is Object, "instance not of type object")
+	var object: Object = instance as Object
 	var serialized: Dictionary = {}
 	for property_name: StringName in _property_names:
-		assert(property_name in instance, "property (%s) not found in instance (%s)" \
-		% [property_name, instance])
+		assert(property_name in object, "property (%s) not found in object (%s)" \
+		% [property_name, object])
 		
-		var value: Variant = instance.get(property_name)
+		var value: Variant = object.get(property_name)
 		
 		# Check if the value is null
 		if value == null:
@@ -37,9 +58,11 @@ func _serialize(instance: Object) -> Dictionary:
 	return serialized
 
 
-func _deserialize_into(instance: Object, serialized: Dictionary):
+func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 	assert(instance != null, "instance is null")
 	assert(serialized != null, "serialized is null")
+	assert(instance is Object, "instance not of type Vector3")
+	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	
 	# Sort object properties into a [Dictionary] for quick access
 	var object_properties: Dictionary = {}
@@ -48,23 +71,36 @@ func _deserialize_into(instance: Object, serialized: Dictionary):
 	
 	# Iterate expected properties
 	for property_name: StringName in _property_names:
-		assert(property_name in instance, "property (%s) not found in instance (%s)" \
+		assert(property_name in instance, "property (%s) not found in object (%s)" \
 		% [property_name, instance])
 		
 		var serialized_name: StringName = property_name
+		var missing: bool = false
+		
 		# Utilize remaps to check for changed property names
 		while !serialized.has(serialized_name):
 			if !_remaps.has(serialized_name):
-				assert(false, "property_name (%s) or serialized_name (%s) not found " +\
-				"in _remaps (%s)" % [serialized_name, serialized_name, _remaps])
-				return
+				missing = true
+				break
 			serialized_name = _remaps[serialized_name]
 		
 		# Retrieve the wrapped value
-		var wrapped_value: Variant = serialized.get(serialized_name)
+		var wrapped_value: Variant = null if missing else serialized.get(serialized_name)
+		
+		# Property is missing or null
+		if missing || wrapped_value == null:
+			var what_to_do: IfMissing = _property_names[property_name]
+			if what_to_do == IfMissing.SET_NULL:
+				instance.set(property_name, null)
+			elif what_to_do == IfMissing.WARN:
+				push_warning("property_name (%s) missing in serialied: %s" % [property_name, serialized])
+			elif what_to_do == IfMissing.ERROR:
+				push_error("property_name (%s) missing in serialied: %s" % [property_name, serialized])
+			continue
+		
 		assert(wrapped_value != null, "wrapped_value is null for serialized_name (%s)" % serialized_name)
-		assert(wrapped_value is Dictionary, "wrapped_value (%s) is not of type Dictionary" + \
-		" for serialized_name (%s)" % [wrapped_value, serialized_name])
+		assert(wrapped_value is Dictionary, """wrapped_value (%s) is not of type Dictionary \
+		for serialized_name (%s)""" % [wrapped_value, serialized_name])
 		
 		# Unwrap the value
 		var unwrapped_value: Variant = JSONSerialization.unwrap_value(wrapped_value)
@@ -74,8 +110,8 @@ func _deserialize_into(instance: Object, serialized: Dictionary):
 			instance.set(property_name, null)
 			continue
 		
-		assert(object_properties.has(property_name), "property_name (%s) not found " + \
-		"in object (%s)'s property list" % [property_name, instance])
+		assert(object_properties.has(property_name), """property_name (%s) not found \
+		in object (%s)'s property list""" % [property_name, instance])
 		var property: Dictionary = object_properties[property_name]
 		
 		var serializer: JSONSerializer = JSONSerialization.get_wrapped_serializer(wrapped_value)
@@ -84,34 +120,33 @@ func _deserialize_into(instance: Object, serialized: Dictionary):
 		# In debug, ensure wrapped's serializer matches serializer of the existing property value
 		if OS.is_debug_build() && existing_property != null:
 			var prop_serializer = JSONSerialization.get_serializer(existing_property)
-			assert(prop_serializer == serializer, "existing_property (%s)'s serializer (%s) " + \
-			"!= unwrapped value (%s)'s serializer (%s)" % [existing_property, prop_serializer, 
+			assert(prop_serializer == serializer, ("existing_property (%s)'s serializer (%s) " + \
+			"!= unwrapped value (%s)'s serializer (%s)") % [existing_property, prop_serializer, 
 			wrapped_value, serializer])
-		
-		# Handle natives by directly setting the property
-		if serializer is NativeJSONSerializer:
-			instance.set(property_name, serializer._deserialize(unwrapped_value))
-			continue
 		
 		# Property exists, ensure the serialiazation type matches & check if it can be deserialized into
 		if existing_property != null && serializer.has_deserialize_into_func():
+			print(property_name + ": existing_property=" + str(existing_property))
+			print(property_name + ": deserialize into serializer=" + str(serializer))
 			serializer._deserialize_into(existing_property, unwrapped_value)
 			continue
 		
-		assert(serializer.has_deserialize_func(), "serializer (%s) for property_name (%s) doesn't" + \
-		" support _deserialize() & no value is set to deserialize into" % [serializer, property_name])
+		assert(serializer.has_deserialize_func(), ("serializer (%s) for property_name (%s) doesn't" + \
+		" support _deserialize() & no value is set to deserialize into") % [serializer, property_name])
 		var deserialized: Variant = serializer._deserialize(unwrapped_value)
 		instance.set(property_name, deserialized)
+		print(" ")
 	
 	return instance
 
 
-## Must be overridden to return an [Array] of [StringName]s representing
-## the names of properties that are to be serialized & deserialized.[br]
+## Must be overridden to return an [Dictionary] of [StringName]s keys representing
+## the names of properties that are to be serialized & deserialized. Values
+## are [enum IfMissing], true if the value is required, false if optional.[br]
 ## For performance reasons, it is important the [StringName]s are explicitly
 ## defined as it speeds up the many [method Object.get] calls this serializer uses.
-func _get_property_names() -> Array[StringName]:
-	return []
+func _get_property_names() -> Dictionary:
+	return {}
 
 
 ## Can be overridden to return a [Dictionary] in the format of 

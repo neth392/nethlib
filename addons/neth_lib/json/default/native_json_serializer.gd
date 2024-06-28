@@ -19,10 +19,6 @@ static var _native_types: Array[Variant.Type] = [
 	]
 
 
-static func is_wrapped_native(wrapped_value: Dictionary) -> bool:
-	return wrapped_value.get("type") == ID
-
-
 static func is_type_native(type: Variant.Type) -> bool:
 	return _native_types.has(type)
 
@@ -39,13 +35,13 @@ func _get_priority() -> int:
 	return 1
 
 
-func _can_serialize(instance) -> bool:
+func _can_serialize(instance: Variant) -> bool:
 	return is_native(instance)
 
 
-func _serialize(instance) -> Variant:
+func _serialize(instance: Variant) -> Variant:
 	return instance
 
 
-func _deserialize(serialized) -> Variant:
+func _deserialize(serialized: Variant) -> Variant:
 	return serialized
