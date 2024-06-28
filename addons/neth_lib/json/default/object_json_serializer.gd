@@ -126,8 +126,6 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 		
 		# Property exists, ensure the serialiazation type matches & check if it can be deserialized into
 		if existing_property != null && serializer.has_deserialize_into_func():
-			print(property_name + ": existing_property=" + str(existing_property))
-			print(property_name + ": deserialize into serializer=" + str(serializer))
 			serializer._deserialize_into(existing_property, unwrapped_value)
 			continue
 		
@@ -135,7 +133,6 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 		" support _deserialize() & no value is set to deserialize into") % [serializer, property_name])
 		var deserialized: Variant = serializer._deserialize(unwrapped_value)
 		instance.set(property_name, deserialized)
-		print(" ")
 	
 	return instance
 
