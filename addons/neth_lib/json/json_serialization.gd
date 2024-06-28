@@ -25,6 +25,7 @@ func _ready() -> void:
 	add_serializer(preload("./default/vector2_json_serializer.gd").new())
 	add_serializer(preload("./default/vector3_json_serializer.gd").new())
 	add_serializer(preload("./default/color_json_serializer.gd").new())
+	add_serializer(preload("./default/array_json_serializer.gd").new())
 
 
 ## Constructs & returns a new JSON-parsable [Dictionary] containing a "type" key
@@ -81,7 +82,7 @@ func get_wrapped_serializer(wrapped_serialized: Dictionary) -> JSONSerializer:
 ## native types)
 func serialize(variant: Variant) -> Dictionary:
 	assert(variant != null, "variant is null")
-	assert(get_serializer(variant) != null, "no serializer for variant (%s)" % variant)
+	assert(get_serializer(variant) != null, "no serializer for variant (%s)" % str(variant))
 	
 	var serializer: JSONSerializer = get_serializer(variant)
 	var serialized: Variant = serializer._serialize(variant)
@@ -89,8 +90,8 @@ func serialize(variant: Variant) -> Dictionary:
 	assert(serialized != null, "serialized is null for variant (%s), serializer (%s)" \
 	% [variant, serializer])
 	
-	assert(_native_types.has(typeof(serialized)), """serialized (%s) type not natively 
-	supported by JSON.stringify, serializer: %s""" % [str(serialized), str(serializer)])
+	assert(_native_types.has(typeof(serialized)), ("serialized (%s) type not natively 
+	supported by JSON.stringify, serializer: %s") % [serialized, serializer])
 	
 	return wrap_value(serializer, serialized)
 
@@ -101,8 +102,8 @@ func deserialize(wrapped_value: Dictionary) -> Variant:
 	
 	var serializer: JSONSerializer = get_wrapped_serializer(wrapped_value)
 	assert(serializer != null, "no serializer for wrapped_value (%s)" % wrapped_value)
-	assert(serializer.has_deserialize_func(), "serializer (%s) for wrapped_value (%s) " + \
-	"does not support deserialize" % [serializer, wrapped_value])
+	assert(serializer.has_deserialize_func(), ("serializer (%s) for wrapped_value (%s) " + \
+	"does not support deserialize") % [serializer, wrapped_value])
 	
 	var unwrapped_value: Variant = unwrap_value(wrapped_value)
 	return serializer._deserialize(unwrapped_value)

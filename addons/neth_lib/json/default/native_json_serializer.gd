@@ -3,8 +3,6 @@
 ## a [JSONSerializer].
 class_name NativeJSONSerializer extends JSONSerializer
 
-const ID: StringName = &"Native"
-
 static var _native_types: Array[Variant.Type] = [
 		TYPE_NIL,
 		TYPE_BOOL,
@@ -19,16 +17,12 @@ static var _native_types: Array[Variant.Type] = [
 	]
 
 
-static func is_type_native(type: Variant.Type) -> bool:
-	return _native_types.has(type)
-
-
 static func is_native(instance: Variant) -> bool:
-	return is_type_native(typeof(instance))
+	return _native_types.has(typeof(instance))
 
 
 func _init() -> void:
-	super._init(ID, DeserializeMode.DESERIALIZE)
+	super._init(&"Native", DeserializeMode.DESERIALIZE)
 
 
 func _get_priority() -> int:
@@ -40,8 +34,15 @@ func _can_serialize(instance: Variant) -> bool:
 
 
 func _serialize(instance: Variant) -> Variant:
-	return instance
+	return {
+		"v_type": typeof(instance),
+		"value": instance
+	}
 
 
 func _deserialize(serialized: Variant) -> Variant:
-	return serialized
+	assert(serialized is Dictionary, "serialized (%s) not of type Dictionary" % serialized)
+	assert(serialized.has("v_type"), "serialized (%s) does not have key v_type" % serialized)
+	assert(serialized.has("value"), "serialized (%s) does not have key value" % serialized)
+	var value: Variant = serialized["value"]
+	return null if value == null else type_convert(value, serialized["v_type"])

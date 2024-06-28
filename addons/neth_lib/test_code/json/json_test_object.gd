@@ -8,16 +8,20 @@ var vec2: Vector2 = Vector2(99, 99)
 var vec3: Vector3 
 var color: Color
 var dictionary: Dictionary
-var sub_object: JSONTestObject
+var generic_array: Array = [1.0, 2.0, 3.0]
+var typed_array: Array[String] = []
+var sub_object: JSONTestObject 
 
 func _to_string() -> String:
-	return "color " + str(color) + "\n" + \
+	return "\ncolor " + str(color) + "\n" + \
 	"vec2: " + str(vec2) + "\n" + \
 	"vec3: " + str(vec3) + "\n" + \
 	"str: " + str(str) + "\n" + \
 	"iint: " + str(iint) + "\n" + \
 	"ffloat: " + str(ffloat) + "\n" + \
-	"sub_object:\n\n " + str(sub_object)
+	"generic_array: " + str(generic_array) + "\n" + \
+	"typed_array: \n" + str(typed_array) + "\n" + \
+	"sub_object: " + str(sub_object) + "\n"
 
 class Serializer extends ObjectJSONSerializer:
 	
@@ -39,4 +43,6 @@ class Serializer extends ObjectJSONSerializer:
 			&"vec3": IfMissing.SET_NULL,
 			&"color": IfMissing.SET_NULL,
 			&"sub_object": IfMissing.SET_NULL,
+			&"typed_array": IfMissing.SET_NULL,
+			&"generic_array": IfMissing.SET_NULL,
 		}

@@ -1,3 +1,8 @@
+## Abstract [JSONSerializer] implementation that is meant to be extended
+## for each specific object type that needs to be serialized/deserialized.[br]
+## In inheriting classes, it is crucial to use [code]super._init(...)[/code],
+## and inherit [method _get_properties]. Optionally [method _get_remaps] can be
+## implemented as well.
 class_name ObjectJSONSerializer extends JSONSerializer
 
 ## How to handle properties from [member _property_names] that are either
@@ -25,7 +30,7 @@ var _remaps: Dictionary
 
 func _init(_id: StringName, _deserialize_mode: DeserializeMode = DeserializeMode.DESERIALIZE_INTO):
 	super._init(_id, _deserialize_mode)
-	_property_names = _get_property_names()
+	_property_names = _get_properties()
 	if OS.is_debug_build():
 		for property_name in _property_names:
 			assert(property_name is String || property_name is StringName, ("property_name (%s) " + \
@@ -93,14 +98,17 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 			if what_to_do == IfMissing.SET_NULL:
 				instance.set(property_name, null)
 			elif what_to_do == IfMissing.WARN:
-				push_warning("property_name (%s) missing in serialied: %s" % [property_name, serialized])
+				push_warning("property_name (%s) missing in serialied: %s" \
+				% [property_name, serialized])
 			elif what_to_do == IfMissing.ERROR:
-				push_error("property_name (%s) missing in serialied: %s" % [property_name, serialized])
+				push_error("property_name (%s) missing in serialied: %s" \
+				% [property_name, serialized])
 			continue
 		
-		assert(wrapped_value != null, "wrapped_value is null for serialized_name (%s)" % serialized_name)
-		assert(wrapped_value is Dictionary, """wrapped_value (%s) is not of type Dictionary \
-		for serialized_name (%s)""" % [wrapped_value, serialized_name])
+		assert(wrapped_value != null, "wrapped_value is null for serialized_name (%s)" \
+		% serialized_name)
+		assert(wrapped_value is Dictionary, ("wrapped_value (%s) is not of type Dictionary " + \
+		"for serialized_name (%s)") % [wrapped_value, serialized_name])
 		
 		# Unwrap the value
 		var unwrapped_value: Variant = JSONSerialization.unwrap_value(wrapped_value)
@@ -110,8 +118,8 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 			instance.set(property_name, null)
 			continue
 		
-		assert(object_properties.has(property_name), """property_name (%s) not found \
-		in object (%s)'s property list""" % [property_name, instance])
+		assert(object_properties.has(property_name), ("property_name (%s) not found \
+		in object (%s)'s property list") % [property_name, instance])
 		var property: Dictionary = object_properties[property_name]
 		
 		var serializer: JSONSerializer = JSONSerialization.get_wrapped_serializer(wrapped_value)
@@ -142,7 +150,7 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 ## are [enum IfMissing], true if the value is required, false if optional.[br]
 ## For performance reasons, it is important the [StringName]s are explicitly
 ## defined as it speeds up the many [method Object.get] calls this serializer uses.
-func _get_property_names() -> Dictionary:
+func _get_properties() -> Dictionary:
 	return {}
 
 

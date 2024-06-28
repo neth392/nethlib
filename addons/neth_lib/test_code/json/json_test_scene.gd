@@ -1,5 +1,6 @@
 extends Node
 
+
 func _ready() -> void:
 	
 	var test: JSONTestObject = JSONTestObject.new()
@@ -10,16 +11,24 @@ func _ready() -> void:
 	test.str_dont_serialize = "dont seriliz me :)"
 	test.iint = 55555
 	test.ffloat = 9.12345678
-	test.sub_object = JSONTestObject.new()
+	test.generic_array = [1, 5.3, "hi!", "hello!"]
 	
-	test.sub_object.color = Color(0.555,0.420,0.392,.392)
-	test.sub_object.vec2 = Vector2(24.0, 14.0)
-	test.sub_object.vec3 = Vector3(-1.0, -2.0, -3.0)
-	test.str = "Sub object string!"
+	var sub_object = JSONTestObject.new()
+	sub_object.str = "im a sub object"
+	sub_object.ffloat = 21.5
+	sub_object.iint = 12
+	
+	test.typed_array = [sub_object, sub_object, sub_object]
+	
+	#test.sub_object.color = Color(0.555,0.420,0.392,.392)
+	#test.sub_object.vec2 = Vector2(24.0, 14.0)
+	#test.sub_object.vec3 = Vector3(-1.0, -2.0, -3.0)
+	#test.str = "Sub object string!"
 	
 	JSONSerialization.add_serializer(JSONTestObject.Serializer.new())
 	var json: String = JSONSerialization.stringify(test)
-	
+	print(json)
+	print("")
 	
 	var new_test: JSONTestObject = JSONTestObject.new()
 	JSONSerialization.parse_into(new_test, json)
