@@ -34,7 +34,7 @@ class Serializer extends ObjectJSONSerializer:
 	func _deserialize(serialized: Variant) -> Variant:
 		return _deserialize_into(JSONTestObject.new(), serialized)
 	
-	func _get_property_names() -> Dictionary:
+	func _get_properties() -> Dictionary:
 		return {
 			&"str": IfMissing.SET_NULL,
 			&"iint": IfMissing.SET_NULL,

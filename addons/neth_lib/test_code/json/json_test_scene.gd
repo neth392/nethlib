@@ -26,7 +26,8 @@ func _ready() -> void:
 	#test.str = "Sub object string!"
 	
 	JSONSerialization.add_serializer(JSONTestObject.Serializer.new())
-	var json: String = JSONSerialization.stringify(test)
+	#var json: String = JSONSerialization.stringify(test)
+	var json = FileAccess.get_file_as_string("res://addons/neth_lib/test_code/json/test.json")
 	print(json)
 	print("")
 	

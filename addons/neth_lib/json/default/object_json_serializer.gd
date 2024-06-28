@@ -5,7 +5,7 @@
 ## implemented as well.
 class_name ObjectJSONSerializer extends JSONSerializer
 
-## How to handle properties from [member _property_names] that are either
+## How to handle properties from [member _properties] that are either
 ## not found in serialized data or have a null value.
 enum IfMissing {
 	## Ignore that it is missing and continue on.
@@ -25,20 +25,20 @@ static func for_all_properties(object: Object) -> Array[StringName]:
 		prop_names.append(property.name as StringName)
 	return prop_names
 
-var _property_names: Dictionary
+var _properties: Dictionary
 var _remaps: Dictionary
 
 func _init(_id: StringName, _deserialize_mode: DeserializeMode = DeserializeMode.DESERIALIZE_INTO):
 	super._init(_id, _deserialize_mode)
-	_property_names = _get_properties()
+	_properties = _get_properties()
 	if OS.is_debug_build():
-		for property_name in _property_names:
+		for property_name in _properties:
 			assert(property_name is String || property_name is StringName, ("property_name (%s) " + \
 			"not of type String or StringName") % property_name)
-			assert(_property_names[property_name] is IfMissing, ("value for property_name (%s) " + \
+			assert(_properties[property_name] is IfMissing, ("value for property_name (%s) " + \
 			" not of type IfMissing") % property_name)
 	_remaps = _get_deserialization_remaps()
-	assert(!_property_names.is_empty(), "_property_names is empty")
+	assert(!_properties.is_empty(), "_properties is empty")
 
 
 func _serialize(instance: Variant) -> Variant:
@@ -46,7 +46,7 @@ func _serialize(instance: Variant) -> Variant:
 	assert(instance is Object, "instance not of type object")
 	var object: Object = instance as Object
 	var serialized: Dictionary = {}
-	for property_name: StringName in _property_names:
+	for property_name: StringName in _properties:
 		assert(property_name in object, "property (%s) not found in object (%s)" \
 		% [property_name, object])
 		
@@ -75,7 +75,7 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 		object_properties[property.name] = property
 	
 	# Iterate expected properties
-	for property_name: StringName in _property_names:
+	for property_name: StringName in _properties:
 		assert(property_name in instance, "property (%s) not found in object (%s)" \
 		% [property_name, instance])
 		
@@ -94,7 +94,7 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 		
 		# Property is missing or null
 		if missing || wrapped_value == null:
-			var what_to_do: IfMissing = _property_names[property_name]
+			var what_to_do: IfMissing = _properties[property_name]
 			if what_to_do == IfMissing.SET_NULL:
 				instance.set(property_name, null)
 			elif what_to_do == IfMissing.WARN:
