@@ -19,8 +19,7 @@ func _ready() -> void:
 	
 	JSONSerialization.add_serializer(JSONTestObject.Serializer.new())
 	var json: String = JSONSerialization.stringify(test)
-	print(json)
-	print("")
+	
 	
 	var new_test: JSONTestObject = JSONTestObject.new()
 	JSONSerialization.parse_into(new_test, json)
