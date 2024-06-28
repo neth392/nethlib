@@ -6,7 +6,7 @@ func _init() -> void:
 
 
 func _can_serialize(instance) -> bool:
-	return instance is Color
+	return typeof(instance) == TYPE_COLOR
 
 
 func _serialize(instance: Variant) -> Variant:

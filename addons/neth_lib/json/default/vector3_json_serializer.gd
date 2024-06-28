@@ -6,7 +6,7 @@ func _init():
 
 
 func _can_serialize(instance) -> bool:
-	return instance is Vector3
+	return typeof(instance) == TYPE_VECTOR3
 
 
 func _serialize(instance: Variant) -> Variant:

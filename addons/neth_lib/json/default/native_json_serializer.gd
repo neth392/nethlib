@@ -35,14 +35,14 @@ func _can_serialize(instance: Variant) -> bool:
 
 func _serialize(instance: Variant) -> Variant:
 	return {
-		"v_type": typeof(instance),
-		"value": instance
+		"t": typeof(instance),
+		"v": instance
 	}
 
 
 func _deserialize(serialized: Variant) -> Variant:
 	assert(serialized is Dictionary, "serialized (%s) not of type Dictionary" % serialized)
-	assert(serialized.has("v_type"), "serialized (%s) does not have key v_type" % serialized)
-	assert(serialized.has("value"), "serialized (%s) does not have key value" % serialized)
-	var value: Variant = serialized["value"]
-	return null if value == null else type_convert(value, serialized["v_type"])
+	assert(serialized.has("t"), "serialized (%s) does not have key t" % serialized)
+	assert(serialized.has("v"), "serialized (%s) does not have key v" % serialized)
+	var value: Variant = serialized["v"]
+	return null if value == null else type_convert(value, serialized["t"])

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bbh6h3tsonvks"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/json/json_file.gd" id="1_e06ol"]
+
+[node name="JSONFile" type="Node"]
+script = ExtResource("1_e06ol")

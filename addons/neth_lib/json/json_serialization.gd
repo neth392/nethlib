@@ -26,24 +26,25 @@ func _ready() -> void:
 	add_serializer(preload("./default/vector3_json_serializer.gd").new())
 	add_serializer(preload("./default/color_json_serializer.gd").new())
 	add_serializer(preload("./default/array_json_serializer.gd").new())
+	add_serializer(preload("./default/dictionary_json_serializer.gd").new())
 
 
 ## Constructs & returns a new JSON-parsable [Dictionary] containing a "type" key
 ## with value of the [member JSONSerializer.id] of the [param serializer], and a
-## "value" key with value as the [param serialized_value]. Will only be JSON parsable
+## "v" key with value as the [param serialized_value]. Will only be JSON parsable
 ## if the [param serialized_value] is natively supported by Godot's JSON.
 func wrap_value(serializer: JSONSerializer, serialized_value: Variant) -> Dictionary:
 	return {
-		"type": serializer.id,
-		"value": serialized_value,
+		"t": serializer.id,
+		"v": serialized_value,
 	}
 
 ## Unwraps & returns the value from the [param wrapped_value] assuming it was created
 ## via [method wrap_value].
 func unwrap_value(wrapped_value: Dictionary) -> Variant:
 	assert(wrapped_value != null, "wrapped_value is null")
-	assert(wrapped_value.has("value"), "wrapped_value (%s) does not have 'value' key" % wrapped_value)
-	return wrapped_value.value
+	assert(wrapped_value.has("v"), "wrapped_value (%s) does not have 'v' key" % wrapped_value)
+	return wrapped_value.v
 
 
 func add_serializer(serializer: JSONSerializer) -> void:
@@ -69,11 +70,11 @@ func get_serializer(variant: Variant) -> JSONSerializer:
 
 ## Returns the [JSONSerializer] for use with deserializing the [param variant].
 func get_wrapped_serializer(wrapped_serialized: Dictionary) -> JSONSerializer:
-	assert(wrapped_serialized.has("type"), "'type' key not found in wrapped_serialized (%s)" \
+	assert(wrapped_serialized.has("t"), "'t' key not found in wrapped_serialized (%s)" \
 	% wrapped_serialized)
-	assert(_serializers_by_id.has(wrapped_serialized.type), "no JSONSerializer with " + \
-	"type id (%s) found" % wrapped_serialized.type)
-	var type: StringName = wrapped_serialized.type
+	assert(_serializers_by_id.has(wrapped_serialized.t), "no JSONSerializer with " + \
+	"type id (%s) found" % wrapped_serialized.t)
+	var type: StringName = wrapped_serialized.t
 	return _serializers_by_id[type] as JSONSerializer
 
 

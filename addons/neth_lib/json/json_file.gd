@@ -1,4 +1,4 @@
-class_name JSONFile extends Resource
+class_name JSONFile extends Node
 
 var path: String
 

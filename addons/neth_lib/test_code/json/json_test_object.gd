@@ -21,7 +21,8 @@ func _to_string() -> String:
 	"ffloat: " + str(ffloat) + "\n" + \
 	"generic_array: " + str(generic_array) + "\n" + \
 	"typed_array: \n" + str(typed_array) + "\n" + \
-	"sub_object: " + str(sub_object) + "\n"
+	"sub_object: " + str(sub_object) + "\n" + \
+	"dictionary: " + str(dictionary) + "\n"
 
 class Serializer extends ObjectJSONSerializer:
 	
@@ -45,4 +46,5 @@ class Serializer extends ObjectJSONSerializer:
 			&"sub_object": IfMissing.SET_NULL,
 			&"typed_array": IfMissing.SET_NULL,
 			&"generic_array": IfMissing.SET_NULL,
+			&"dictionary": IfMissing.IGNORE,
 		}

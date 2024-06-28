@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://d1urhhe0p5fwe"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/json/json_provider.gd" id="1_kpb43"]
+
+[node name="JSONProvider" type="Node"]
+script = ExtResource("1_kpb43")

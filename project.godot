@@ -23,6 +23,10 @@ JSONSerialization="*res://addons/neth_lib/json/json_serialization.tscn"
 
 gdscript/warnings/untyped_declaration=2
 
+[editor]
+
+run/main_run_args="--release"
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/neth_lib/plugin.cfg")
