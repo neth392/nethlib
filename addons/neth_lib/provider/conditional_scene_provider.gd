@@ -68,7 +68,7 @@ signal auto_added_to_tree(node: Node)
 		add_to_parent = value
 		update_configuration_warnings()
 
-var _instantiated_nodes: Array[Node] = []
+var _instantiated_nodes: Array[WeakRef] = []
 
 func _ready() -> void:
 	if Engine.is_editor_hint() || !instantiate_on_ready:
@@ -94,8 +94,7 @@ func _ready() -> void:
 	
 	if !free_provider_after && keep_instantiated_nodes:
 		for node: Node in nodes:
-			_instantiated_nodes.append(node)
-			node.tree_exiting.connect(_on_node_exiting.bind(node))
+			_instantiated_nodes.append(weakref(node))
 	
 	for node: Node in nodes:
 		auto_instantiated.emit(node)
@@ -163,7 +162,11 @@ func provide() -> Array[PackedScene]:
 ## It is null if [member add_on_ready] or  [member keep_instantiated_nodes] are false, 
 ## or if there was no [ConditionalSceneReference] that met the conditions.
 func get_instantiated_nodes() -> Array[Node]:
-	return _instantiated_nodes
+	var nodes: Array[Node] = []
+	for ref: WeakRef in _instantiated_nodes:
+		if ref.get_ref() is Node:
+			nodes.append(ref.get_ref() as Node)
+	return nodes
 
 
 ## Manually calls [method provide], and instantiates all of the returned [PackedScene](s), 
@@ -176,8 +179,3 @@ func instantiate() -> Array[Node]:
 		var node: Node = scene.instantiate()
 		nodes.append(node)
 	return nodes
-
-
-func _on_node_exiting(node: Node) -> void:
-	if node.is_queued_for_deletion():
-		_instantiated_nodes.erase(node)

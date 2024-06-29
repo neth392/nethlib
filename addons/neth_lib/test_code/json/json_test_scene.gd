@@ -6,6 +6,7 @@ func _ready() -> void:
 	
 	JSONSerialization.add_serializer(JSONTestObject.Serializer.new())
 	
+	
 	for i in 100:
 		_test()
 	

@@ -5,7 +5,7 @@ class_name NethLibPlugin extends EditorPlugin
 func _enter_tree():
 	add_autoload_singleton("PlatformManager", "platform/platform_manager.tscn")
 	add_autoload_singleton("AudioStreamer", "audio/audio_streamer.tscn")
-	add_autoload_singleton("JSONSerialization", "json/json_serialization.tscn")
+	add_autoload_singleton("JSONSerialization", "json/serialize/json_serialization.tscn")
 
 
 func _exit_tree():
