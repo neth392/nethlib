@@ -4,3 +4,4 @@
 
 [node name="JSONFile" type="Node"]
 script = ExtResource("1_e06ol")
+absolute_path = null

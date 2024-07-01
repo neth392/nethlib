@@ -1,7 +1,9 @@
-[gd_scene load_steps=2 format=3 uid="uid://c1p36r8xh1r1"]
+[gd_scene load_steps=3 format=3 uid="uid://b6u13dgdxsc76"]
 
 [ext_resource type="Script" path="res://addons/neth_lib/json/json_directory.gd" id="1_ffl1x"]
+[ext_resource type="PackedScene" uid="uid://bbh6h3tsonvks" path="res://addons/neth_lib/json/json_file.tscn" id="1_p7km2"]
 
-[node name="JSONDirectory" type="Node"]
+[node name="JSONDirectory" instance=ExtResource("1_p7km2")]
 script = ExtResource("1_ffl1x")
-path = null
+absolute_directory_path = ""
+current_file_name = ""
