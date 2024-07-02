@@ -25,8 +25,10 @@ static func for_all_properties(object: Object) -> Array[StringName]:
 		prop_names.append(property.name as StringName)
 	return prop_names
 
+
 var _properties: Dictionary
 var _remaps: Dictionary
+
 
 func _init(_id: StringName, _deserialize_mode: DeserializeMode = DeserializeMode.DESERIALIZE_INTO):
 	super._init(_id, _deserialize_mode)

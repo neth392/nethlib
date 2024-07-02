@@ -2,6 +2,5 @@
 
 [ext_resource type="Script" path="res://addons/neth_lib/json/json_file.gd" id="1_e06ol"]
 
-[node name="JSONFile" type="Node"]
+[node name="JSONFile" type="Node" groups=["nethlib_json_file"]]
 script = ExtResource("1_e06ol")
-absolute_path = null
