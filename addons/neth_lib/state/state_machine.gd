@@ -24,8 +24,8 @@ func _ready() -> void:
 	
 	# Transition to the default state if one is set
 	if default_state != null:
-		assert(get_children().has(default_state), "default_state (%s) not a child " +\
-		"of this StateMachine" % default_state)
+		assert(get_children().has(default_state), ("default_state (%s) not a child " +\
+		"of this StateMachine") % default_state)
 		transition_to(default_state)
 
 
@@ -58,8 +58,8 @@ func deactivate() -> void:
 ## to the target state's [method State._state_entered] function.
 func transition_to(target_state: State, data: Variant = null) -> void:
 	assert(target_state != null, "target_state is null")
-	assert(get_children().has(target_state), "target_state (%s) not a child of " +\
-	"this StateMachine" % target_state)
+	assert(get_children().has(target_state), ("target_state (%s) not a child of " +\
+	"this StateMachine") % target_state)
 	
 	if _current_state != null:
 		_disable_current_state()
@@ -103,8 +103,8 @@ func _disable_current_state() -> void:
 	_current_state._block_transitions = false
 	
 	# Ensure state didn't transition in _state_exited
-	assert(_current_state == _state, "_state_exited of %s transitioned to a " +\
-	"new state" % _state)
+	assert(_current_state == _state, ("_state_exited of %s transitioned to a " +\
+	"new state") % _state)
 	
 	_current_state = null
 

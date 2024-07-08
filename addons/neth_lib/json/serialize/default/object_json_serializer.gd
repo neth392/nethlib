@@ -30,7 +30,7 @@ var _properties: Dictionary
 var _remaps: Dictionary
 
 
-func _init(_id: StringName, _deserialize_mode: DeserializeMode = DeserializeMode.DESERIALIZE_INTO):
+func _init(_id: StringName, _deserialize_mode: DeserializeMode = DeserializeMode.BOTH):
 	super._init(_id, _deserialize_mode)
 	_properties = _get_properties()
 	if OS.is_debug_build():
@@ -63,6 +63,12 @@ func _serialize(instance: Variant) -> Variant:
 		serialized[property_name] = serialized_value
 	
 	return serialized
+
+
+func _deserialize(serialized: Variant) -> Variant:
+	var instance: Object = _create_instance()
+	assert(instance != null, "_create_instance() returnd null")
+	return _deserialize_into(instance, serialized)
 
 
 func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
@@ -145,6 +151,12 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 		instance.set(property_name, deserialized)
 	
 	return instance
+
+
+## Must be overridden to return a new instance of the object that is used in
+## [method _deserialize].
+func _create_instance() -> Object:
+	return null
 
 
 ## Must be overridden to return an [Dictionary] of [StringName]s keys representing
