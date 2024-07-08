@@ -13,10 +13,6 @@ config_version=5
 config/name="nethlib"
 config/features=PackedStringArray("4.2", "Forward Plus")
 
-[audio]
-
-buses/default_bus_layout="res://addons/neth_lib/test.tres"
-
 [autoload]
 
 PlatformManager="*res://addons/neth_lib/platform/platform_manager.tscn"
