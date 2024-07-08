@@ -6,4 +6,3 @@
 script = ExtResource("1_pe8qi")
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
-bus = &"2test3"
