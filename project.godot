@@ -17,6 +17,7 @@ config/features=PackedStringArray("4.2", "Forward Plus")
 
 PlatformManager="*res://addons/neth_lib/platform/platform_manager.tscn"
 AudioStreamer="*res://addons/neth_lib/audio/audio_streamer.tscn"
+AudioBusHelper="*res://addons/neth_lib/audio/audio_bus_helper.tscn"
 JSONSerialization="*res://addons/neth_lib/json/serialize/json_serialization.tscn"
 
 [debug]

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dxplps2btrovg"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/ui/button/button_audio_player.gd" id="1_ol36a"]
+
+[node name="ButtonAudioPlayer" type="Node"]
+script = ExtResource("1_ol36a")
