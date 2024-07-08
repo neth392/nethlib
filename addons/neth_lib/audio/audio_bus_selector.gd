@@ -4,7 +4,7 @@
 class_name AudioBusSelector extends Resource
 
 ## The name of the audio bus to use.
-@export var audio_bus_name: String:
+@export var audio_bus_name: String = "Master":
 	set(value):
 		audio_bus_name = value
 		index = AudioServer.get_bus_index(audio_bus_name)
@@ -12,18 +12,20 @@ class_name AudioBusSelector extends Resource
 
 ## The index of the [member audio_bus_name] in the [AudioServer]. -1 if the
 ## [member audio_bus_name] does not exist.
-var index: int
+@export var index: int = 0
 
 
 func _validate_property(property: Dictionary) -> void:
 	if property.name == "audio_bus_name":
 		property.hint = PROPERTY_HINT_ENUM
 		property.hint_string = ",".join(AudioBusHelper.get_bus_names())
+	if property.name == "index":
+		property.usage = PROPERTY_USAGE_NO_EDITOR
 
 
 ## Returns true if the set audio bus exists, false if not.
 func exists() -> bool:
-	return index != -1
+	return AudioServer.get_bus_index(audio_bus_name) == index
 
 
 func _to_string() -> String:

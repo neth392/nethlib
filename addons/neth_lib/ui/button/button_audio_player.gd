@@ -2,7 +2,13 @@
 class_name ButtonAudioPlayer extends Node
 
 @export var audio_stream: AudioStream
-@export var audio_bus: AudioBusSelector = AudioBusSelector.new()
+@export var audio_bus: AudioBusSelector = AudioBusSelector.new():
+	set(value):
+		if value == null:
+			audio_bus = AudioBusSelector.new()
+		else:
+			audio_bus = value
+
 @export var from_position: float = 0.0
 
 func _ready() -> void:

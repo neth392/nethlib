@@ -1,6 +1,13 @@
-[gd_scene load_steps=2 format=3 uid="uid://dxplps2btrovg"]
+[gd_scene load_steps=4 format=3 uid="uid://dxplps2btrovg"]
 
 [ext_resource type="Script" path="res://addons/neth_lib/ui/button/button_audio_player.gd" id="1_ol36a"]
+[ext_resource type="Script" path="res://addons/neth_lib/audio/audio_bus_selector.gd" id="2_gkkgl"]
+
+[sub_resource type="Resource" id="Resource_02j7b"]
+script = ExtResource("2_gkkgl")
+audio_bus_name = "Master"
+index = 0
 
 [node name="ButtonAudioPlayer" type="Node"]
 script = ExtResource("1_ol36a")
+audio_bus = SubResource("Resource_02j7b")
