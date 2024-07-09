@@ -6,6 +6,9 @@ class_name JSONFile extends Node
 ## The absolute path of the file.
 @export var absolute_path: String
 
+## Default [JSONConnector]s to be added.
+@export var default_connectors: Array[JSONConnector] = []
+
 var _connectors_by_key: Dictionary = {}
 
 func _ready() -> void:
@@ -14,6 +17,9 @@ func _ready() -> void:
 	assert(!absolute_path.is_empty(), "absolute_path is empty")
 	assert(absolute_path.ends_with(".json"), "absolute_path extension is not .json")
 	assert(absolute_path.is_absolute_path(), "absolute_path not absolute")
+	for connector: JSONConnector in default_connectors:
+		assert(connector != null, "null JSONConnector found in default_connectors")
+		add_connector(connector)
 
 
 func _get_configuration_warnings() -> PackedStringArray:
