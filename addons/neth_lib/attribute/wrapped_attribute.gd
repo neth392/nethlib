@@ -10,13 +10,17 @@ signal value_hit_minimum(old_value: float)
 ## the [member value] value before it hit the minimum.
 signal value_hit_maximum(old_value: float)
 
-## Emitted when the [member minimum] instance is set to a different instance, or null. 
-## The [param old_minimum] is the previously used instance.
-signal minimum_changed(old_minimum: Attribute)
+## Emitted when the [member minimum]'s [member Attribute.value] changes, or the
+## [member minimum] instance changes to a new [Attribute] with a different value.[br]
+## [param had_old_minimum] is true if there was a minimum previously, and if true
+## [param old_minimum] is the old minimum, otherwise it is 0.0.
+signal minimum_value_changed(had_old_minimum: bool ,old_minimum: float)
 
-## Emitted when the [member maximum] instance is set to a different instance, or null. 
-## The [param old_maximum] is the previously used instance.
-signal maximum_changed(old_maximum: Attribute)
+## Emitted when the [member maximum]'s [member Attribute.value] changes, or the
+## [member maximum] instance changes to a new [Attribute] with a different value.[br]
+## [param had_old_maximum] is true if there was a maximum previously, and if true
+## [param old_maximum] is the old maximum, otherwise it is 0.0.
+signal maximum_value_changed(had_old_maximum: bool, old_maximum: float)
 
 ## If true, [member minimum] can be null meaning there is no minimum. If false, an assertion
 ## will be called on [method Node._ready] to ensure it isn't null & an error will
@@ -53,12 +57,12 @@ signal maximum_changed(old_maximum: Attribute)
 		if is_inside_tree() && minimum != null:
 			SignalUtil.connect_safely(minimum.value_changed, _on_minimum_value_changed)
 		
-		# Check if it changed
-		if minimum != old_minimum:
-			minimum_changed.emit(old_minimum)
+		# Emit the change
+		var new_value = null if minimum == null else minimum.value
+		var old_value = null if old_minimum == null else old_minimum.value
+		if new_value != old_value:
+			minimum_value_changed.emit(old_minimum != null, old_value if old_value != null else 0.0)
 		
-		# Notify of minimum change to make sure value is within range still
-		_on_minimum_value_changed(0.0)
 		update_configuration_warnings()
 
 
@@ -98,12 +102,12 @@ signal maximum_changed(old_maximum: Attribute)
 		if is_inside_tree() && maximum != null:
 			SignalUtil.connect_safely(maximum.value_changed, _on_maximum_value_changed)
 		
-		# Check if it changed
-		if maximum != old_maximum:
-			maximum_changed.emit(old_maximum)
+		# Emit the change
+		var new_value = null if maximum == null else maximum.value
+		var old_value = null if old_maximum == null else old_maximum.value
+		if new_value != old_value:
+			maximum_value_changed.emit(old_maximum != null, old_value if old_value != null else 0.0)
 		
-		# Notify of maximum change to make sure value is within range still
-		_on_maximum_value_changed(0.0)
 		update_configuration_warnings()
 
 
@@ -163,9 +167,11 @@ func _on_maximum_value_changed(old_maximum_value: float) -> void:
 	# TODO: Test if this is works on initialization
 	if maximum != null && value > maximum.value:
 		value = maximum.value
+	maximum_value_changed.emit(true, old_maximum_value)
 
 
 func _on_minimum_value_changed(old_minimum_value: float) -> void:
 	# TODO: Test if this is works on initialization
 	if minimum != null && value < minimum.value:
 		value = minimum.value
+	minimum_value_changed.emit(true, old_minimum_value)
