@@ -5,24 +5,25 @@ class_name AttributeEffect extends Resource
 ## Default value for all fields that applies no modification to an [Attribute].
 const NO_MODIFIER = 0.0
 
-## How the effect applies when duplicate instances are added to an [Attribute].
-enum StackMode {
-	## Denies the application of the new [AttributeEffect], meaning it is not stackable.
-	DENY,
-	## Keeps the configured [member value] of the [AttributeEffect] stack as if there
-	## was only one active, and resets the [member AppliedAttributeEffect.remaining_duration]
-	## to [member duration_in_seconds] if 
-	KEEP_VALUE_RESET_DURATION,
-	## Adds to the duration of the existing [AttributeEffect].
-	## If the [member duration_type] is not [enum DurationType.HAS_DURATION] then
-	## nothing happens.
-	KEEP_VALUE_ADD_DURATION,
-	## Adds the configured values to the 
-	ADD_VALUE_KEEP_DURATION,
-	## Resets the duration
-	ADD_VALUE_RESET_DURATION,
-	## TODO
-	ADD_VALUE_ADD_DURATION,
+## Determines how [member value] is stacked.
+enum ValueStacking {
+	## Ignores value when stacking, as if there was only 1 instance of this 
+	## [AttributeEffect] applied.
+	IGNORE,
+	## Adds all of the values of the [AttributeEffect]s of each stacked instance
+	## and 
+	ADD,
+}
+
+## Determines how [member duration_in_seconds] is stacked, only applicable if
+## [member duration_type] is [enum DurationType.HAS_DURATION].
+enum DurationStacking {
+	## Ignores duration during stacking.
+	IGNORE,
+	## Resets the duration to [member duration_in_seconds].
+	RESET,
+	## Adds to the existing duration of the [AppliedAttributeEffect].
+	ADD,
 }
 
 ## Short for CalculationType; determines the calculations used when applying
@@ -96,6 +97,9 @@ enum PeriodType {
 @export var period_curve: Curve = Curve.new()
 
 @export_group("Stacking")
+
+## If true, this [AttributeEffect] can be stacked.
+@export var stackable: bool = false
 
 ## The [StackMode] to use when duplicate [AttributeEffect]s are found.
 @export var stack_mode: StackMode = StackMode.REPLACE
