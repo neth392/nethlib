@@ -3,8 +3,6 @@ extends PlatformHandler
 
 func _ready():
 	var initialized: Dictionary = Steam.steamInitEx(false)
-	if OS.is_debug_build():
-		return # TODO remove this.
 	
 	print_debug("[STEAM] Did Steam initialize?: %s" % initialized)
 	# In case it does fail, let's find out why and null the steam_api object
