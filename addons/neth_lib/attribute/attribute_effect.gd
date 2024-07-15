@@ -2,11 +2,36 @@
 @tool
 class_name AttributeEffect extends Resource
 
-## Default value for all fields that applies no modification to an [Attribute].
-const NO_MODIFIER = 0.0
+## Short for CalculationType; determines the calculations used when applying
+## this [AttributeEffect]'s properties to an [Attribute].
+enum ValueCalcType {
+	## Adds [member value] to [member Attribute.value] when applied.
+	ADD_TO,
+	## Subtracts the [member value] from [member Attribute.value] when applied.
+	SUBTRACT_FROM,
+	## Multiplies [member Attribute.value] by [member value] when applied.
+	MULTIPLY_BY,
+	## Divides [member Attribute.value] by [member value] when applied.
+	DIVIDE_BY,
+	## Overrides the [member Attribute.value] with [member value] as long as
+	## [member override_priority] is the greatest out of all other [AttributeEffect]s
+	## who have a value_calc_type of OVERRIDE.
+	OVERRIDE,
+}
+
+## Determines how this effect can be stacked on an [Attribute], if at all.
+enum StackMode {
+	## Stacking is not allowed.
+	DENY,
+	## Attribute effects are seperate, a new [AppliedAttributeEffect] is created
+	## for every instance added to an [Attribute].
+	SEPERATE,
+	## Attribute effects are combined into one [AppliedAttributeEffect].
+	COMBINE,
+}
 
 ## Determines how [member value] is stacked.
-enum ValueStacking {
+enum ValueStackMode {
 	## Ignores value when stacking, as if there was only 1 instance of this 
 	## [AttributeEffect] applied.
 	IGNORE,
@@ -17,7 +42,7 @@ enum ValueStacking {
 
 ## Determines how [member duration_in_seconds] is stacked, only applicable if
 ## [member duration_type] is [enum DurationType.HAS_DURATION].
-enum DurationStacking {
+enum DurationStackMode {
 	## Ignores duration during stacking.
 	IGNORE,
 	## Resets the duration to [member duration_in_seconds].
@@ -26,20 +51,10 @@ enum DurationStacking {
 	ADD,
 }
 
-## Short for CalculationType; determines the calculations used when applying
-## this [AttributeEffect]'s properties to an [Attribute].
-enum CalcType {
-	## Adds to the value of the respective [Attribute] property.
-	ADD,
-	## Multiplies the base value of the respective [Attribute] property, 
-	MULTIPLY_BASE,
-	## Overrides the value
-	OVERRIDE,
-}
-
 ## Determines how the effect is applied time-wise.
 enum DurationType {
-	## The effect is applied to an [Attribute] instantly
+	## The effect is immediately applied to an [Attribute] and does not remain
+	## stored on it.
 	INSTANT,
 	## The effect is applied to an [Attribute] and remains until it is explicitly
 	## removed.
@@ -49,22 +64,18 @@ enum DurationType {
 	HAS_DURATION,
 }
 
-## Determines what type of method is used to apply the effect during its [enum DurationType].
-enum PeriodType {
-	## Effect is applied every x second
-	INTERVAL,
-	## The period is applied from a [Curve], where the X value is the max
-	CURVE,
-}
-
 ## The ID of this attribute effect.
-@export var id: String
+@export var id: StringName
 
 ## The direct effect to [member Attribute.value]
-@export var value: float = NO_MODIFIER
+@export var value: float
 
-## The [enum CalcType] when applying [member value]
-@export var value_cacl_type: CalcType = CalcType.ADD
+## The [enum CalcType] that determines how the [member value] is applied to 
+## [member Attribute.value].
+@export var value_cacl_type: ValueCalcType:
+	set(_value):
+		value_cacl_type = _value
+		notify_property_list_changed()
 
 ## The priority to be used in comparing with other [AttributeEffect]s when
 ## [member value_calc_type] is [enum CalcType.OVERRIDE].
@@ -77,9 +88,9 @@ enum PeriodType {
 	set(_value):
 		duration_type = _value
 		notify_property_list_changed()
-		# TODO  figure out what this did and convert it
-		#if !has_duration && stack_mode == StackMode.ADD_DURATION:
-			#stack_mode = StackMode.DENY
+		if duration_type != DurationType.HAS_DURATION:
+			duration_stack_mode = DurationStackMode.IGNORE
+			duration_in_seconds = 0.0
 
 ## The amount of time in seconds this [AttributeEffect] lasts.
 @export var duration_in_seconds: float = 0.0:
@@ -89,71 +100,169 @@ enum PeriodType {
 
 @export_group("Period")
 
-@export var period_type: PeriodType
-
-## Amount of time inbetween when this effect activates. Only relevant for [member value].
-@export var period_in_seconds: float = 0.0
-
-@export var period_curve: Curve = Curve.new()
+## Amount of time, in seconds, between when this effect is applied to an [Attribute].[br]
+## A zero value means every frame.
+@export var period_in_seconds: float = 0.0:
+	set(_value):
+		period_in_seconds = max(0.0, _value)
 
 @export_group("Stacking")
 
-## If true, this [AttributeEffect] can be stacked.
-@export var stackable: bool = false
-
 ## The [StackMode] to use when duplicate [AttributeEffect]s are found.
-@export var stack_mode: StackMode = StackMode.REPLACE
+@export var stack_mode: StackMode:
+	set(_value):
+		stack_mode = _value
+		
+		if stack_mode != StackMode.COMBINE:
+			value_stack_mode = ValueStackMode.IGNORE
+			duration_stack_mode = DurationStackMode.IGNORE
+		
+		notify_property_list_changed()
+
+@export var value_stack_mode: ValueStackMode:
+	set(_value):
+		value_stack_mode = _value
+		notify_property_list_changed()
+
+@export var duration_stack_mode: DurationStackMode:
+	set(_value):
+		duration_stack_mode = _value
+		notify_property_list_changed()
+
+@export_group("Modifiers")
+
+@export var _modifiers: Array[AttributeEffectModifier]
 
 @export_group("Conditions")
-
-## If true, conditions are enabled to determine when this effect can apply to an [Attribute].
-##  Set to false if there are no conditions configured for better performance.
-@export var enable_conditions: bool = false:
-	set(_value):
-		enable_conditions = _value
-		notify_property_list_changed()
 
 ## All [AttributeEffectCondition]s an [Attribute] must meet for this effect to be applied to it.
 @export var conditions: Array[AttributeEffectCondition] = []
 
-func _init(_id: String = "") -> void:
+func _init(_id: StringName = "") -> void:
 	id = _id
+	_modifiers.sort_custom(AttributeEffectModifier.compare)
 
 
 func _validate_property(property: Dictionary) -> void:
-	if property.name == "duration" && duration_type != DurationType.HAS_DURATION:
-		property.usage = PROPERTY_USAGE_NO_EDITOR
+	if property.name == "override_priority":
+		if value_cacl_type != ValueCalcType.OVERRIDE:
+			_no_editor(property)
 		return
 	
-	if duration_type == DurationType.INSTANT && AttributeUtil.instant_exclusion_props.has(property.name):
-		property.usage = PROPERTY_USAGE_NO_EDITOR
+	if property.name == "duration_in_seconds":
+		if duration_type != DurationType.HAS_DURATION:
+			_no_editor(property)
 		return
 	
-	if !enable_conditions && AttributeUtil.condition_properties.has(property.name):
-		property.usage = PROPERTY_USAGE_NO_EDITOR
+	if property.name == "period_in_seconds":
+		if duration_type == DurationType.INSTANT:
+			_no_editor(property)
 		return
 	
-	#if property.name == "stack_mode":
-		#property.hint = PROPERTY_HINT_ENUM
-		#property.hint_string = ""
-		#for name: String in StackMode.keys():
-			#if !has_duration && name == "ADD_DURATION":
-				#continue
-			#var prefix: String = "" if property.hint_string.is_empty() else ","
-			#property.hint_string += prefix + name.capitalize() + ":" + str(StackMode[name])
+	if property.name == "stack_mode":
+		if duration_type == DurationType.INSTANT:
+			_no_editor(property)
+		return
+	
+	if property.name == "value_stack_mode":
+		if stack_mode != StackMode.COMBINE \
+		or duration_type == DurationType.INSTANT:
+			_no_editor(property)
+		return
+	
+	if property.name == "duration_stack_mode":
+		if stack_mode != StackMode.COMBINE \
+		or duration_type != DurationType.HAS_DURATION:
+			_no_editor(property)
+		return
+
+
+func _no_editor(property: Dictionary) -> void:
+	property.usage = PROPERTY_USAGE_NO_EDITOR
+
+
+## Adds the [param modifier] to this [AttributeEffect]. Returns true if it was added,
+## false if not (due to [member AttributeEffectModifier.duplicate_instances] being
+## false and an instance already existing on this effect.
+func add_modifier(modifier: AttributeEffectModifier) -> bool:
+	if !modifier.duplicate_instances:
+		if _modifiers.has(modifier):
+			return false
+	_modifiers.append(modifier)
+	_modifiers.sort_custom(AttributeEffectModifier.compare)
+	return true
+
+
+## Returns true if this effect has one (or more) instances of [param modifier].
+func has_modifier(modifier: AttributeEffectModifier) -> bool:
+	return _modifiers.has(modifier)
+
+
+## Removes the first occrrence of [param modifier], or all occurrences if [param remove_all]
+## is true.
+func remove_modifier(modifier: AttributeEffectModifier, remove_all: bool = false) -> void:
+	_modifiers.erase(modifier)
+	if remove_all:
+		while _modifiers.has(modifier):
+			_modifiers.erase(modifier)
 
 
 ## Returns null if this [AttributeEffect] can be applied to the specified [Attribute],
 ## or returns the first [AttributeEffectCondition] whose condition was not met.
 func can_apply(attribute: Attribute) -> AttributeEffectCondition:
 	
-	if enable_conditions:
-		for condition: AttributeEffectCondition in conditions:
-			if !condition._meets_condition(attribute):
-				return condition
+	for condition: AttributeEffectCondition in conditions:
+		if !condition._meets_condition(attribute):
+			return condition
 	
 	return null
 
 
+## Called each time this effect represented as [param spec] is triggered on
+## [param attribute]. Should not take [param 
+func _calculate_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
+	assert(spec.effect == self, "spec.effect (%s) != self" % spec.effect)
+	
+	var calculated_value: float = value
+	
+	for modifier: AttributeEffectModifier in _modifiers:
+		calculated_value = modifier._modify_value(calculated_value, attribute, spec)
+		if modifier.stop_processing_modifiers:
+			break
+	
+	return 0.0
+
+
+## Calculates the next period to be used right after this effect represented 
+## as [param spec] was triggered on [param attribute].
+func _calculate_next_period(attribute: Attribute, spec: AttributeEffectSpec) -> float:
+	assert(duration_type != DurationType.INSTANT, "duration_type == INSTANT, there is no period")
+	
+	var calculated_period: float = period_in_seconds
+	
+	for modifier: AttributeEffectModifier in _modifiers:
+		calculated_period = modifier._modify_next_period(calculated_period, attribute, spec)
+		if modifier.stop_processing_modifiers:
+			break
+	
+	return calculated_period
+
+
+## Calculates the starting duration to be used when this effect represented as 
+## [param spec] is first applied to [param attribute].
+func _calculate_starting_duration(attribute: Attribute, spec: AttributeEffectSpec) -> float:
+	assert(duration_type == DurationType.HAS_DURATION, "duration_type != HAS_DURATION, " +\
+	"there is no duration")
+	
+	var calculated_duration: float = duration_in_seconds
+	
+	for modifier: AttributeEffectModifier in _modifiers:
+		calculated_duration = modifier._modify_starting_duration(calculated_duration, attribute, spec)
+		if modifier.stop_processing_modifiers:
+			break
+	
+	return calculated_duration
+
+
 func _to_string() -> String:
-	return ObjectUtil.to_string_helper("AttributeEffect", self)
+	return "AttributeEffect (%s)" % id

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://84fe3nd5qp4l"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/attribute_container.gd" id="1_gp3xo"]
+
+[node name="AttributeContainer" type="Node"]
+script = ExtResource("1_gp3xo")

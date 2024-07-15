@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="AttributeEffect" load_steps=4 format=3 uid="uid://dvly5x6yjqajm"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/attribute_effect.gd" id="1_h6haq"]
+
+[sub_resource type="Curve" id="Curve_rqejl"]
+
+[sub_resource type="Curve" id="Curve_lbmfh"]
+
+[resource]
+script = ExtResource("1_h6haq")
+id = ""
+value_type = 0
+value = 0.0
+value_curve = SubResource("Curve_lbmfh")
+value_cacl_type = 0
+override_priority = 0
+duration_type = 0
+duration_in_seconds = 0.0
+period_type = 0
+period_in_seconds = 0.0
+period_curve = SubResource("Curve_rqejl")
+stackable = false
+stack_mode = 0
+value_stacking = 0
+duration_stacking = 0
+modifiers = Array[Resource("res://addons/neth_lib/attribute/modifier/attribute_effect_modifier.gd")]([])
+enable_conditions = false
+conditions = Array[Resource("res://addons/neth_lib/attribute/condition/attribute_effect_condition.gd")]([])

@@ -1,19 +1,10 @@
-[gd_scene load_steps=4 format=3 uid="uid://34k0bn6vq04u"]
+[gd_scene load_steps=3 format=3 uid="uid://34k0bn6vq04u"]
 
 [ext_resource type="PackedScene" uid="uid://vcxekr41wjqt" path="res://addons/neth_lib/attribute/attribute.tscn" id="1_pbdfo"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/wrapped_attribute.gd" id="2_rswyw"]
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/attribute.gd" id="3_gwaxo"]
 
-[node name="WrappedAttribute" node_paths=PackedStringArray("minimum", "maximum") instance=ExtResource("1_pbdfo")]
+[node name="WrappedAttribute" instance=ExtResource("1_pbdfo")]
 script = ExtResource("2_rswyw")
+autowrap_value = false
 allow_null_minimum = false
-minimum = NodePath("Attribute")
 allow_null_maximum = false
-maximum = NodePath("Attribute2")
-
-[node name="Attribute" type="Node" parent="." index="0"]
-script = ExtResource("3_gwaxo")
-
-[node name="Attribute2" type="Node" parent="." index="1"]
-script = ExtResource("3_gwaxo")
-value = 10.0

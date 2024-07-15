@@ -13,14 +13,24 @@ signal value_hit_maximum(old_value: float)
 ## Emitted when the [member minimum]'s [member Attribute.value] changes, or the
 ## [member minimum] instance changes to a new [Attribute] with a different value.[br]
 ## [param had_old_minimum] is true if there was a minimum previously, and if true
-## [param old_minimum] is the old minimum, otherwise it is 0.0.
-signal minimum_value_changed(had_old_minimum: bool ,old_minimum: float)
+## [param old_minimum] is the old minimum, otherwise it is 0.0.[br]
+## [param autowrap_after] is a [BoolRef] where if the referred [member BoolRef.value] is
+## true, autowrapping will occur if the new minimum is greater than the current value. The default
+## value of the BoolRef is that of [member autowrap_value].
+signal minimum_value_changed(had_old_minimum: bool, old_minimum: float, autowrap_after: BoolRef)
 
 ## Emitted when the [member maximum]'s [member Attribute.value] changes, or the
 ## [member maximum] instance changes to a new [Attribute] with a different value.[br]
 ## [param had_old_maximum] is true if there was a maximum previously, and if true
 ## [param old_maximum] is the old maximum, otherwise it is 0.0.
-signal maximum_value_changed(had_old_maximum: bool, old_maximum: float)
+## [param autowrap_after] is a [BoolRef] where if the referred [member BoolRef.value] is
+## true, autowrapping will occur if the new maximum is less than the current value. The default
+## value of the BoolRef is that of [member autowrap_value].
+signal maximum_value_changed(had_old_maximum: bool, old_maximum: float, autowrap_after: BoolRef)
+
+## If true, whenever the minimum and maximum are changed the value is automatically
+## max'd/floor'd to the nearest mininum/maximum if it is out of bounds.
+@export var autowrap_value: bool = true
 
 ## If true, [member minimum] can be null meaning there is no minimum. If false, an assertion
 ## will be called on [method Node._ready] to ensure it isn't null & an error will
@@ -40,8 +50,9 @@ signal maximum_value_changed(had_old_maximum: bool, old_maximum: float)
 			assert(!allow_null_minimum || _value != null, "minimum set to null while " + \
 			"allow_null_minimum is false")
 			# Assert minimum < maximum if neither are null
-			assert(_value == null || maximum == null || _value.value < maximum.value,
-			"newly set minimum value (%s) not < maximum.value (%s)" % [_value.value, maximum.value])
+			if OS.is_debug_build() && (_value != null && maximum != null):
+				assert(_value.value < maximum.value, ("newly set minimum value (%s) " + \
+				"not < maximum.value (%s)") % [_value.value, maximum.value])
 		else:
 			# Is in editor, set it and forget
 			minimum = _value
@@ -57,14 +68,18 @@ signal maximum_value_changed(had_old_maximum: bool, old_maximum: float)
 		if is_inside_tree() && minimum != null:
 			SignalUtil.connect_safely(minimum.value_changed, _on_minimum_value_changed)
 		
-		# Emit the change
-		var new_value = null if minimum == null else minimum.value
-		var old_value = null if old_minimum == null else old_minimum.value
-		if new_value != old_value:
-			minimum_value_changed.emit(old_minimum != null, old_value if old_value != null else 0.0)
+		# Check if there was a change
+		var new_min_val = null if minimum == null else minimum.value
+		var old_min_val = null if old_minimum == null else old_minimum.value
+		if new_min_val != old_min_val:
+			var autowrap_after: BoolRef = BoolRef.new(autowrap_value)
+			# Emit minimum signal
+			minimum_value_changed.emit(old_minimum != null, old_min_val if old_min_val != null else 0.0,
+			autowrap_after)
+			# Wrap value.
+			_wrap_min(autowrap_after)
 		
 		update_configuration_warnings()
-
 
 ## If true, [member maximum] can be null meaning there is no maximum. If false, an assertion
 ## will be called on [method Node._ready] to ensure it isn't null & an error will
@@ -84,8 +99,9 @@ signal maximum_value_changed(had_old_maximum: bool, old_maximum: float)
 			assert(!allow_null_maximum || _value != null, "maximum set to null while " + \
 			"allow_null_maximum is false")
 			# Assert maximum > minimum if neither are null
-			assert(_value == null || minimum == null || _value.value > minimum.value,
-			"newly set maximum value (%s) not < minimum.value (%s)" % [_value.value, minimum.value])
+			if OS.is_debug_build() && (_value != null && minimum != null):
+				assert(_value.value > minimum.value, ("newly set maximum value (%s) " + \
+				"not < minimum.value (%s)") % [_value.value, minimum.value])
 		else:
 			# Is in editor, set it and forget
 			maximum = _value
@@ -102,11 +118,16 @@ signal maximum_value_changed(had_old_maximum: bool, old_maximum: float)
 		if is_inside_tree() && maximum != null:
 			SignalUtil.connect_safely(maximum.value_changed, _on_maximum_value_changed)
 		
-		# Emit the change
-		var new_value = null if maximum == null else maximum.value
-		var old_value = null if old_maximum == null else old_maximum.value
-		if new_value != old_value:
-			maximum_value_changed.emit(old_maximum != null, old_value if old_value != null else 0.0)
+		# Check if there was a change
+		var new_max_val = null if maximum == null else maximum.value
+		var old_max_val = null if old_maximum == null else old_maximum.value
+		if new_max_val != old_max_val:
+			var autowrap_after: BoolRef = BoolRef.new(autowrap_value)
+			# Emit minimum signal
+			maximum_value_changed.emit(old_maximum != null, old_max_val if old_max_val != null else 0.0,
+			autowrap_after)
+			# Wrap value.
+			_wrap_max(autowrap_after)
 		
 		update_configuration_warnings()
 
@@ -116,6 +137,16 @@ func _ready() -> void:
 		return
 	SignalUtil.connect_safely(minimum.value_changed, _on_minimum_value_changed)
 	SignalUtil.connect_safely(maximum.value_changed, _on_maximum_value_changed)
+
+
+## Returns true if [member maximum] is not null.
+func has_minimum() -> bool:
+	return minimum != null
+
+
+## Returns true if [member minimum] is not null.
+func has_maximum() -> bool:
+	return maximum != null
 
 
 ## Returns true if value is at the minimum.
@@ -147,10 +178,11 @@ func _get_configuration_warnings() -> PackedStringArray:
 func _validate_value(set_value: float) -> float:
 	if Engine.is_editor_hint():
 		return set_value
-	if maximum != null && set_value > maximum.value:
-		return maximum.value
-	if minimum != null && set_value < minimum.value:
-		return minimum.value
+	if autowrap_value:
+		if maximum != null && set_value > maximum.value:
+			return maximum.value
+		if minimum != null && set_value < minimum.value:
+			return minimum.value
 	return set_value
 
 
@@ -163,15 +195,25 @@ func _value_changed(old_value: float) -> void:
 		value_hit_minimum.emit(old_value)
 
 
-func _on_maximum_value_changed(old_maximum_value: float) -> void:
-	# TODO: Test if this is works on initialization
-	if maximum != null && value > maximum.value:
-		value = maximum.value
-	maximum_value_changed.emit(true, old_maximum_value)
-
-
-func _on_minimum_value_changed(old_minimum_value: float) -> void:
-	# TODO: Test if this is works on initialization
-	if minimum != null && value < minimum.value:
+func _wrap_min(bool_ref: BoolRef) -> void:
+	if bool_ref.value && minimum != null && value < minimum.value:
 		value = minimum.value
-	minimum_value_changed.emit(true, old_minimum_value)
+
+
+func _wrap_max(bool_ref: BoolRef) -> void:
+	if bool_ref.value && maximum != null && value > maximum.value:
+		value = maximum.value
+
+
+# Handles minimum.value being set, NOT minimum itself.
+func _on_minimum_value_changed(old_minimum_value: float) -> void:
+	var autowrap_after: BoolRef = BoolRef.new(autowrap_value)
+	minimum_value_changed.emit(true, old_minimum_value, autowrap_after)
+	_wrap_min(autowrap_after)
+
+
+# Handles maximum.value being set, NOT maximum itself.
+func _on_maximum_value_changed(old_maximum_value: float) -> void:
+	var autowrap_after: BoolRef = BoolRef.new(autowrap_value)
+	maximum_value_changed.emit(true, old_maximum_value, autowrap_after)
+	_wrap_max(autowrap_after)
