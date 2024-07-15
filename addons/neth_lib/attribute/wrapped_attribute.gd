@@ -133,6 +133,7 @@ signal maximum_value_changed(had_old_maximum: bool, old_maximum: float, autowrap
 
 
 func _ready() -> void:
+	super._ready()
 	if Engine.is_editor_hint():
 		return
 	SignalUtil.connect_safely(minimum.value_changed, _on_minimum_value_changed)

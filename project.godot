@@ -31,4 +31,4 @@ run/main_run_args="--release"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/neth_lib/plugin.cfg")
+enabled=PackedStringArray("res://addons/gut/plugin.cfg", "res://addons/neth_lib/plugin.cfg")

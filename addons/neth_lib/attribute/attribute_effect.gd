@@ -21,6 +21,9 @@ enum ValueCalcType {
 
 ## Determines how this effect can be stacked on an [Attribute], if at all.
 enum StackMode {
+	## Stacking is not allowed and an assertion will be called
+	## if there is an attempt to stack this effect on an [Attribute].
+	DENY_ERROR,
 	## Stacking is not allowed.
 	DENY,
 	## Attribute effects are seperate, a new [AppliedAttributeEffect] is created
@@ -76,6 +79,10 @@ enum DurationType {
 	set(_value):
 		value_cacl_type = _value
 		notify_property_list_changed()
+
+## If true, [signal Attribute.effect_processed] will be emitted every time an
+## [AttributeEffectSpec
+@export var emit_process_signal: bool = false
 
 ## The priority to be used in comparing with other [AttributeEffect]s when
 ## [member value_calc_type] is [enum CalcType.OVERRIDE].
@@ -176,7 +183,7 @@ func _validate_property(property: Dictionary) -> void:
 			_no_editor(property)
 		return
 
-
+## Helper method for _validate_property.
 func _no_editor(property: Dictionary) -> void:
 	property.usage = PROPERTY_USAGE_NO_EDITOR
 
@@ -207,15 +214,34 @@ func remove_modifier(modifier: AttributeEffectModifier, remove_all: bool = false
 			_modifiers.erase(modifier)
 
 
-## Returns null if this [AttributeEffect] can be applied to the specified [Attribute],
+## Returns null if this [AttributeEffect] can be applied to the [param attribute],
 ## or returns the first [AttributeEffectCondition] whose condition was not met.
 func can_apply(attribute: Attribute) -> AttributeEffectCondition:
-	
 	for condition: AttributeEffectCondition in conditions:
-		if !condition._meets_condition(attribute):
+		if condition.block_apply && !condition._meets_condition(attribute):
 			return condition
 	
 	return null
+
+
+## Returns null if this [AttributeEffect] can be processed on the [param attribute],
+## or returns the first [AttributeEffectCondition] whose condition was not met.
+func can_process(attribute: Attribute) -> AttributeEffectCondition:
+	for condition: AttributeEffectCondition in conditions:
+		if condition.block_processing && !condition._meets_condition(attribute):
+			return condition
+	
+	return null
+
+
+## Shorthand function to create an [AttributeEffectSpec] for this
+## [AttributeEffect]. [param _stack_count] can be specified if
+## [member stack_mode] is of type [enum StackMode.COMBINE].
+func to_spec(_stack_count = 1) -> AttributeEffectSpec:
+	assert(_stack_count > 0, "_stack_count (%s) not > 0" % _stack_count)
+	assert(stack_mode == StackMode.COMBINE || _stack_count == 1, 
+	"_stack_count (%s) > 1 but stack_mode != COMBINE" % _stack_count)
+	return AttributeEffectSpec.new(self, _stack_count)
 
 
 ## Called each time this effect represented as [param spec] is triggered on
@@ -265,4 +291,4 @@ func _calculate_starting_duration(attribute: Attribute, spec: AttributeEffectSpe
 
 
 func _to_string() -> String:
-	return "AttributeEffect (%s)" % id
+	return "AttributeEffect(id:%s)" % id

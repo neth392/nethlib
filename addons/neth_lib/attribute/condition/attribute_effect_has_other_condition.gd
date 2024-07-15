@@ -16,7 +16,7 @@ enum Mode {
 ## See [enum AttributeEffectHasOtherCondition.Mode]
 @export var mode: Mode
 
-func _meets_condition(attribute: Attribute) -> bool:
+func _meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 	assert(attribute != null, "attribute is null")
 	for effect: AttributeEffect in other_effects:
 		var has_effect: bool = attribute.has_effect(effect)

@@ -1,7 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://bk20t8f6ganhk"]
-
-[ext_resource type="Script" path="res://test_code/general_testing.gd" id="1_pdqn5"]
-
-[node name="GeneralTesting2" type="Node"]
-script = ExtResource("1_pdqn5")
-id = "test2"
