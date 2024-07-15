@@ -84,11 +84,6 @@ enum DurationType {
 ## [AttributeEffectSpec] of this effect is successfully processed.
 @export var emit_process_signal: bool = false
 
-## If true, [signal Attribute.effect_process_blocked] will be emitted every time
-## [AttributeEffectSpec] of this effect has its processing blocked by an 
-## [AttributeEffectCondition].
-@export var emit_process_blocked_signal: bool = false
-
 ## The priority to be used in comparing with other [AttributeEffect]s when
 ## [member value_calc_type] is [enum CalcType.OVERRIDE].
 @export var override_priority: int = 0
@@ -274,9 +269,6 @@ func _calculate_starting_duration(attribute: Attribute, spec: AttributeEffectSpe
 	
 	return calculated_duration
 
-
-func _calculate_start_delay(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	
 
 func _to_string() -> String:
 	return "AttributeEffect(id:%s)" % id

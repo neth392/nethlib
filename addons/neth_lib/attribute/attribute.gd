@@ -36,36 +36,27 @@ signal value_changed(old_value: float)
 ## Effect Signals ##
 ####################
 
-## Emitted after the [param spec] was applied to this [Attribute]. It may
-## or may not be active, see [method AttributeEffectSpec.is_active]. If the
+## Emitted after the [param spec] was added to this [Attribute]. If the
 ## relative [AttributeEffect] is of [enum AttributEffect.DurationType.INSTANT] then
-## [method has_effect] will return false for it.
+## [method has_effect] will return false when called with [param spec].
+signal effect_added(spec: AttributeEffectSpec)
+
+## Emitted after the [param spec] has been applied to this [Attribute], in processing
+## or as an instant effect.
 signal effect_applied(spec: AttributeEffectSpec)
 
-## Emitted after the [param spec] applied to this [Attribute] has successfully
-## processed. Emitted AFTER [member value] has been "affected" by it. 
-## Not emitted if processing was blocked by an [AttributeEffectCondition], for
-##  that see [signal effect_proccess_blocked].[br]
-## Only emitted if [member AttributeEffect.emit_processed_signal] is true for
-## the spec.get_effect().
-signal effect_processed(spec: AttributeEffectSpec)
+## Emitted after the [param spec] was blocked from being added to
+## this [Attribute] by an [AttributeEffectCondition]. To access the condition
+## that blocked, call [method AttributeEffectSpec.get_denied_by].
+signal effect_add_blocked(spec: AttributeEffectSpec)
 
-## Emitted after the [param spec] applied to this [Attribute] has had its
-## processing blocked by [param blocking_condition].[br]
-## Only emitted if [member AttributeEffect.emit_process_blocked_signal] is true for
-## the spec.get_effect().
-signal effect_process_blocked(spec: AttributeEffectSpec, 
-blocking_condition: AttributeEffectCondition)
+## Emitted after the added [param spec] was blocked from being applied to
+## this [Attribute] by an [AttributeEffectCondition]. To access the condition
+## that blocked, call [method AttributeEffectSpec.get_denied_by].
+signal effect_apply_blocked(spec: AttributeEffectSpec)
 
-## Emitted when an [AttributeEffect] that was previously applied was inactive but
-## is now active due to meeting previously failed conditions.
-signal dormant_effect_activated(spec: AttributeEffectSpec)
-
-## Emitted when an [AttributeEffect] that was previously applied was active but
-## is now inactive due to failing to meet previously met conditions.
-signal active_effect_deactivated(spec: AttributeEffectSpec)
-
-## Emitted when the [param spec] was removed, either manually or due to expiration.
+## Emitted when the [param spec] was removed. To determine if it was manual
+## or due to expiration, see [method AttributeEffectSpec.expired].
 signal effect_removed(spec: AttributeEffectSpec)
 
 ## The ID of the attribute.
@@ -169,7 +160,7 @@ func _process_effects(delta: float, current_frame: int) -> void:
 	for index: int in _effects_range:
 		var spec: AttributeEffectSpec = _effects[index]
 		
-		if !spec.process(self, delta, current_frame):
+		if spec.process(self, delta, current_frame):
 			_remove_effect_spec_at_index(spec, index)
 			pass
 
@@ -195,10 +186,10 @@ func get_container() -> AttributeContainer:
 	return _container.get_ref() as AttributeContainer
 
 
-## Applies the [param spec], returning true if it was successfully
-## applied, false if it wasn't due to an [AttributeEffectCondition] which can
-## be 
-func apply_effect_spec(spec: AttributeEffectSpec) -> bool:
+## Adds & applies the [param spec], returning true if it was successfully
+## added & applied, false if it wasn't due to an [AttributeEffectCondition]
+## that was not met.
+func add_effect_spec(spec: AttributeEffectSpec) -> bool:
 	# Assert stack mode isnt DENY_ERROR, if it is assert it isn't a stack
 	assert(spec._effect.stack_mode != AttributeEffect.StackMode.DENY_ERROR \
 	or !has_effect(spec._effect), "stacking attempted on unstackable spec._effect (%s)" \
@@ -216,7 +207,14 @@ func apply_effect_spec(spec: AttributeEffectSpec) -> bool:
 		return true
 	
 	_effects.append(spec)
+	_effects.sort_custom(AttributeEffectSpec.reverse_compare)
 	_update_effects_range()
+	
+	if _effect_counts.has(spec.get_effect()):
+		_effect_counts[spec.get_effect()] += 1
+	else:
+		_effect_counts[spec.get_effect()] = 1
+	
 	effect_applied.emit(spec)
 	return true
 
@@ -237,7 +235,6 @@ func has_effect_spec(spec: AttributeEffectSpec) -> bool:
 func remove_effect_spec(spec: AttributeEffectSpec) -> bool:
 	assert(spec != null, "spec is null")
 	var index: int = _effects.find(spec)
-	_effects.remove_at()
 	if index < 0:
 		return false
 	spec._is_active = false
@@ -260,9 +257,9 @@ func _remove_effect_spec_at_index(spec: AttributeEffectSpec, index: int) -> void
 	_effects.remove_at(index)
 	var new_count: int = _effect_counts[spec._effect] - 1
 	if new_count <= 0:
-		_effects.erase(effect)
+		_effects.erase(spec.get_effect())
 	else:
-		_effect_counts[effect] = new_count
+		_effect_counts[spec.get_effect()] = new_count
 	
 	effect_removed.emit(spec)
 

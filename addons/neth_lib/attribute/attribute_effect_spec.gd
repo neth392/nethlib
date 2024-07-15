@@ -47,6 +47,8 @@ var _last_process_frame: int = -1
 var _expired: bool = false
 
 ## The remaining amount of time, in seconds, until this effect is next triggered.
+## Can be manually set before applying to an [AttributeEffect] to create an initial
+## delay in if it is applied.
 var remaining_period: float = 0.0
 
 func _init(effect: AttributeEffect, stack_count: int = 1) -> void:
@@ -122,21 +124,19 @@ func expired() -> bool:
 	return _expired
 
 
-## Returns null if this spec can be applied to the [param attribute],
-## or returns the first [AttributeEffectCondition] whose condition was not met.
-func can_apply(attribute: Attribute) -> AttributeEffectCondition:
+## TODO
+func can_add(attribute: Attribute) -> AttributeEffectCondition:
 	for condition: AttributeEffectCondition in _effect.conditions:
-		if condition.block_apply && !condition._meets_condition(attribute, self):
+		if condition.block_add && !condition._meets_condition(attribute, self):
 			return condition
 	
 	return null
 
 
-## Returns null if this [AttributeEffect] can be processed on the [param attribute],
-## or returns the first [AttributeEffectCondition] whose condition was not met.
-func can_process(attribute: Attribute) -> AttributeEffectCondition:
+## TODO
+func can_apply(attribute: Attribute) -> AttributeEffectCondition:
 	for condition: AttributeEffectCondition in _effect.conditions:
-		if condition.block_processing && !condition._meets_condition(attribute, self):
+		if condition.block_apply && !condition._meets_condition(attribute, self):
 			return condition
 	
 	return null
@@ -147,7 +147,7 @@ func calculate_value(attribute: Attribute) -> float:
 	return _effect._calculate_value(attribute, self)
 
 
-func stack(add_amount: int = 1) -> void:
+func stack(attribute: Attribute, add_amount: int = 1) -> void:
 	assert(add_amount > 0, "add_amount (%s) <= 0" % add_amount)
 	assert(_effect.stack_mode == AttributeEffect.StackMode.COMBINE, 
 	"_effec.stack_mode != COMBINE")
@@ -155,30 +155,52 @@ func stack(add_amount: int = 1) -> void:
 	_stack_count += add_amount
 	if _effect.value_stack_mode == AttributeEffect.ValueStackMode.ADD:
 		pass
+	
+	if _effect.duration_stack_mode == AttributeEffect.DurationStackMode.RESET:
+		pass
+	elif _effect.duration_stack_mode == AttributeEffect.DurationStackMode.ADD:
+		pass
 
 
 ## Processes this spec on the [param attribute], returning true if it should
 ## remain applied, false if not.
 func process(attribute: Attribute, delta: float, process_frame: int) -> bool:
+	if is_instant():
+		_last_process_frame = process_frame
+		
+		pass
+	
 	# Ensure it isn't already processed this frame if not instant (can be applied
 	# multiple times in an instant)
-	if !is_instant() && _last_process_frame == process_frame:
+	if !instant && _last_process_frame == process_frame:
 		return true
-	_last_process_frame = process_frame
+	
+	if instant:
+		_apply(attribute, delta, process_frame)
+		pass
 	
 	var _has_duration: bool = has_duration()
 	
-	if _has_duration:
-		# If remaining duration is already <= 0, it should be removed and not processed.
-		if remaining_duration <= 0:
-			return false
+	# If remaining duration is already <= 0, it should be removed and not processed.
+	if _has_duration && remaining_duration <= 0:
+		return false
+		
+	if remaining_period
 	
 	# PERIOD 
 	
 	if _has_duration:
-		
+		pass
 	
 	return false
+
+
+func _period(attribute: Attribute, delta: float, process_frame: ind) -> void:
+	pass
+
+
+func _apply(attribute: Attribute, delta: float, process_frame: int) -> void:
+	pass
 
 
 func _to_string() -> String:

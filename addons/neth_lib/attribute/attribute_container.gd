@@ -7,13 +7,25 @@ signal attribute_added(attribute: Attribute)
 
 signal attribute_removed(attribute: Attribute)
 
+signal tag_added(tag: StringName)
+
+signal tag_removed(tag: StringName)
+
+## Tags to be added to the internal _tags [Dictionary] in _ready.
+@export var default_tags: PackedStringArray
+
 var _attributes: Dictionary = {}
-var _tags: PackedStringArray = PackedStringArray()
+var _tags: Dictionary = {}
 
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
 		return
 	child_entered_tree.connect(_on_child_entered_tree)
+
+
+func _ready() -> void:
+	for tag: String in default_tags:
+		add_tag(StringName(tag))
 
 
 func _exit_tree() -> void:
@@ -51,15 +63,31 @@ func has_attribute_id(id: StringName) -> void:
 
 ## Returns the [Attribute] with the specified [member id].
 func get_attribute(id: StringName) -> Attribute:
-	var weak_ref: WeakRef = _attributes.get(id) as WeakRef
-	return weak_ref.get_ref()
+	return _attributes.get(id).get_ref()
 
 
-func add_tag(tag: String) -> void:
+## Adds the [param tag], returning true if added, false if not as it already existed.
+func add_tag(tag: StringName) -> bool:
 	assert(!tag.is_empty(), "tag is empty")
-	if !_tags.has(tag):
-		_tags.append(tag)
-	
+	if has_tag(tag):
+		return false
+	_tags[tag] = null
+	tag_added.emit(tag)
+	return true
+
+
+## Returns true if the [param] tag exists on this container, false if not.
+func has_tag(tag: StringName) -> bool:
+	return _tags.has(tag)
+
+
+## Removes the [param tag], retunrs true if it existed & was removed, false if not.
+func remove_tag(tag: StringName) -> bool:
+	if _tags.erase(tag):
+		tag_removed.emit(tag)
+		return true
+	return false
+
 
 func _on_child_entered_tree(child: Node) -> void:
 	if child is Attribute:

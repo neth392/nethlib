@@ -8,4 +8,3 @@ script = ExtResource("2_rswyw")
 autowrap_value = true
 allow_null_minimum = false
 allow_null_maximum = false
-effects_process_function = null
