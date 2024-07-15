@@ -40,6 +40,9 @@ var _apply_count: int = 0
 ## The condition that lasts denied application of this spec.
 var _denied_by: AttributeEffectCondition
 
+## The last frame this spec was processed on.
+var _last_process_frame: int = -1
+
 ## Whether or not this spec expired.
 var _expired: bool = false
 
@@ -53,6 +56,8 @@ func _init(effect: AttributeEffect, stack_count: int = 1) -> void:
 	"stack_count >= 2 but stack_mode = false for effect: (%s)" % effect)
 	_effect = effect
 	_stack_count = stack_count
+	# TODO calculate starting duration
+	# TODO calculate 
 
 
 ## Returns the [AttributeEffect] instance this spec was created for.
@@ -84,6 +89,11 @@ func is_processing() -> bool:
 	return _is_applied && _denied_by == null
 
 
+## Returns the last process frame this spec was processed on.
+func get_last_process_frame() -> int:
+	return _last_process_frame
+
+
 ## Returns true if [member effect] has a [member AttributeEffect.value_calc_type]
 ## equal to [enum AttributeEffect.ValueCalcType.OVERRIDE]
 func is_override() -> bool:
@@ -112,9 +122,63 @@ func expired() -> bool:
 	return _expired
 
 
+## Returns null if this spec can be applied to the [param attribute],
+## or returns the first [AttributeEffectCondition] whose condition was not met.
+func can_apply(attribute: Attribute) -> AttributeEffectCondition:
+	for condition: AttributeEffectCondition in _effect.conditions:
+		if condition.block_apply && !condition._meets_condition(attribute, self):
+			return condition
+	
+	return null
+
+
+## Returns null if this [AttributeEffect] can be processed on the [param attribute],
+## or returns the first [AttributeEffectCondition] whose condition was not met.
+func can_process(attribute: Attribute) -> AttributeEffectCondition:
+	for condition: AttributeEffectCondition in _effect.conditions:
+		if condition.block_processing && !condition._meets_condition(attribute, self):
+			return condition
+	
+	return null
+
+
 ## Calculates the value to be used at the current frame.
 func calculate_value(attribute: Attribute) -> float:
 	return _effect._calculate_value(attribute, self)
+
+
+func stack(add_amount: int = 1) -> void:
+	assert(add_amount > 0, "add_amount (%s) <= 0" % add_amount)
+	assert(_effect.stack_mode == AttributeEffect.StackMode.COMBINE, 
+	"_effec.stack_mode != COMBINE")
+	
+	_stack_count += add_amount
+	if _effect.value_stack_mode == AttributeEffect.ValueStackMode.ADD:
+		pass
+
+
+## Processes this spec on the [param attribute], returning true if it should
+## remain applied, false if not.
+func process(attribute: Attribute, delta: float, process_frame: int) -> bool:
+	# Ensure it isn't already processed this frame if not instant (can be applied
+	# multiple times in an instant)
+	if !is_instant() && _last_process_frame == process_frame:
+		return true
+	_last_process_frame = process_frame
+	
+	var _has_duration: bool = has_duration()
+	
+	if _has_duration:
+		# If remaining duration is already <= 0, it should be removed and not processed.
+		if remaining_duration <= 0:
+			return false
+	
+	# PERIOD 
+	
+	if _has_duration:
+		
+	
+	return false
 
 
 func _to_string() -> String:

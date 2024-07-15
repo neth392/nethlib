@@ -36,11 +36,26 @@ signal value_changed(old_value: float)
 ## Effect Signals ##
 ####################
 
-## Emitted when the [param spec] was applied to this [Attribute]. It may
+## Emitted after the [param spec] was applied to this [Attribute]. It may
 ## or may not be active, see [method AttributeEffectSpec.is_active]. If the
 ## relative [AttributeEffect] is of [enum AttributEffect.DurationType.INSTANT] then
 ## [method has_effect] will return false for it.
 signal effect_applied(spec: AttributeEffectSpec)
+
+## Emitted after the [param spec] applied to this [Attribute] has successfully
+## processed. Emitted AFTER [member value] has been "affected" by it. 
+## Not emitted if processing was blocked by an [AttributeEffectCondition], for
+##  that see [signal effect_proccess_blocked].[br]
+## Only emitted if [member AttributeEffect.emit_processed_signal] is true for
+## the spec.get_effect().
+signal effect_processed(spec: AttributeEffectSpec)
+
+## Emitted after the [param spec] applied to this [Attribute] has had its
+## processing blocked by [param blocking_condition].[br]
+## Only emitted if [member AttributeEffect.emit_process_blocked_signal] is true for
+## the spec.get_effect().
+signal effect_process_blocked(spec: AttributeEffectSpec, 
+blocking_condition: AttributeEffectCondition)
 
 ## Emitted when an [AttributeEffect] that was previously applied was inactive but
 ## is now active due to meeting previously failed conditions.
@@ -150,23 +165,13 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 
 func _process_effects(delta: float, current_frame: int) -> void:
-	var indexes_to_remove: Array[int] = []
-	var index_modifier: int = 0
-	
 	# Reverse iteration of _effects for safe & efficient removal at expiration.
 	for index: int in _effects_range:
 		var spec: AttributeEffectSpec = _effects[index]
 		
-		if spec.remaining_duration
-		
-		if tick_effect_durations && spec.tick_duration:
-			
-		if !_process_spec(spec, delta):
-			indexes_to_remove.append(index + index_modifier)
-			index_modifier -= 1
-	
-	for index: int in indexes_to_remove:
-		_effects.remove_at(index)
+		if !spec.process(self, delta, current_frame):
+			_remove_effect_spec_at_index(spec, index)
+			pass
 
 
 ## Called by the setter of [member value] with [param set_value] (what was manually
@@ -198,7 +203,6 @@ func apply_effect_spec(spec: AttributeEffectSpec) -> bool:
 	assert(spec._effect.stack_mode != AttributeEffect.StackMode.DENY_ERROR \
 	or !has_effect(spec._effect), "stacking attempted on unstackable spec._effect (%s)" \
 	% spec._effect)
-	
 	# Assert spec not already applied elsewhere
 	assert(!spec.is_applied(), "spec (%s) already applied to an Attribute" % spec)
 	
@@ -208,9 +212,9 @@ func apply_effect_spec(spec: AttributeEffectSpec) -> bool:
 			spec._last_denied_by = blocking_condition
 			return false
 		value = spec.calculate_value(self) # TODO Make sure this is good impl
-		spec.
 		effect_applied.emit(spec)
 		return true
+	
 	_effects.append(spec)
 	_update_effects_range()
 	effect_applied.emit(spec)

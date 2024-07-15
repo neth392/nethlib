@@ -16,6 +16,8 @@ static func compare(a: AttributeEffectModifier, b: AttributeEffectModifier) -> b
 ## If true, allow duplicate instances of this modifier on [AttributeEffect]s.
 @export var duplicate_instances: bool = false
 
+## Called each time the [param spec] is processed to calculate which value to apply
+## to the [param attribute].
 func _modify_value(current_modified_value: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	return current_modified_value
 

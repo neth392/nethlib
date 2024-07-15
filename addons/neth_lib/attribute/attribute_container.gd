@@ -8,6 +8,7 @@ signal attribute_added(attribute: Attribute)
 signal attribute_removed(attribute: Attribute)
 
 var _attributes: Dictionary = {}
+var _tags: PackedStringArray = PackedStringArray()
 
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
@@ -53,6 +54,12 @@ func get_attribute(id: StringName) -> Attribute:
 	var weak_ref: WeakRef = _attributes.get(id) as WeakRef
 	return weak_ref.get_ref()
 
+
+func add_tag(tag: String) -> void:
+	assert(!tag.is_empty(), "tag is empty")
+	if !_tags.has(tag):
+		_tags.append(tag)
+	
 
 func _on_child_entered_tree(child: Node) -> void:
 	if child is Attribute:

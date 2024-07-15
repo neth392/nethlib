@@ -81,8 +81,13 @@ enum DurationType {
 		notify_property_list_changed()
 
 ## If true, [signal Attribute.effect_processed] will be emitted every time an
-## [AttributeEffectSpec
+## [AttributeEffectSpec] of this effect is successfully processed.
 @export var emit_process_signal: bool = false
+
+## If true, [signal Attribute.effect_process_blocked] will be emitted every time
+## [AttributeEffectSpec] of this effect has its processing blocked by an 
+## [AttributeEffectCondition].
+@export var emit_process_blocked_signal: bool = false
 
 ## The priority to be used in comparing with other [AttributeEffect]s when
 ## [member value_calc_type] is [enum CalcType.OVERRIDE].
@@ -214,26 +219,6 @@ func remove_modifier(modifier: AttributeEffectModifier, remove_all: bool = false
 			_modifiers.erase(modifier)
 
 
-## Returns null if this [AttributeEffect] can be applied to the [param attribute],
-## or returns the first [AttributeEffectCondition] whose condition was not met.
-func can_apply(attribute: Attribute) -> AttributeEffectCondition:
-	for condition: AttributeEffectCondition in conditions:
-		if condition.block_apply && !condition._meets_condition(attribute):
-			return condition
-	
-	return null
-
-
-## Returns null if this [AttributeEffect] can be processed on the [param attribute],
-## or returns the first [AttributeEffectCondition] whose condition was not met.
-func can_process(attribute: Attribute) -> AttributeEffectCondition:
-	for condition: AttributeEffectCondition in conditions:
-		if condition.block_processing && !condition._meets_condition(attribute):
-			return condition
-	
-	return null
-
-
 ## Shorthand function to create an [AttributeEffectSpec] for this
 ## [AttributeEffect]. [param _stack_count] can be specified if
 ## [member stack_mode] is of type [enum StackMode.COMBINE].
@@ -256,7 +241,7 @@ func _calculate_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
 		if modifier.stop_processing_modifiers:
 			break
 	
-	return 0.0
+	return calculated_value
 
 
 ## Calculates the next period to be used right after this effect represented 
@@ -289,6 +274,9 @@ func _calculate_starting_duration(attribute: Attribute, spec: AttributeEffectSpe
 	
 	return calculated_duration
 
+
+func _calculate_start_delay(attribute: Attribute, spec: AttributeEffectSpec) -> float:
+	
 
 func _to_string() -> String:
 	return "AttributeEffect(id:%s)" % id
