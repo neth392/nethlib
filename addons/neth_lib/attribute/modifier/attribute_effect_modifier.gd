@@ -1,5 +1,4 @@
-## Modifies an [AttributeEffect]'s calculated values for [member AttributeEffect.value],
-## [member AttributeEffect.period_in_seconds], and [member AttributeEffect.duration_in_second]s.
+## Modifies an [AttributeEffect]'s behavior by providing several overridable functions.
 @tool
 class_name AttributeEffectModifier extends Resource
 
@@ -7,7 +6,7 @@ static func compare(a: AttributeEffectModifier, b: AttributeEffectModifier) -> b
 	return a.priority > b.priority
 
 ## The priority of processing this [AttributeEffectModifier] in comparison to
-## other modifiers.
+## other modifiers. Greater priorities are processed first.
 @export var priority: int = 0
 
 ## If true, other [AttributeEffectModifier]s will not be processed after this instance.
@@ -28,3 +27,18 @@ func _modify_next_period(current_modified_period: float, attribute: Attribute, s
 
 func _modify_starting_duration(current_modified_duration: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	return current_modified_duration
+
+
+## Called when the effect has been succesfully applied to an [Attribute].
+func _applied(attribute: Attribute, spec: AttributeEffectSpec) -> void:
+	pass
+
+
+## Called when the effect has been added to an [Attribute].
+func _added(attribute: Attribute, spec: AttributeEffectSpec) -> void:
+	pass
+
+
+## Called when the [param spec] has been removed from an [Attribute].
+func _removed(attribute: Attribute, spec: AttributeEffectSpec) -> void:
+	pass

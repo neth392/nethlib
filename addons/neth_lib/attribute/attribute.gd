@@ -156,13 +156,64 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 
 func _process_effects(delta: float, current_frame: int) -> void:
-	# Reverse iteration of _effects for safe & efficient removal at expiration.
+	var override: bool = false
+	var override_value: float = 0.0
+	var override_effect: AttributeEffectSpec
+	
+	# Reverse iteration of _effects for safe & efficient removal during iteration.
 	for index: int in _effects_range:
 		var spec: AttributeEffectSpec = _effects[index]
 		
-		if spec.process(self, delta, current_frame):
+		# Ensure spec wasn't processed this frame.
+		if spec._last_process_frame == current_frame:
+			continue
+		
+		# Ensure can process
+		var process_block: AttributeEffectCondition = spec.can_process(self)
+		if process_block != null:
+			spec._is_processing = false
+			spec._blocked_by = process_block
+			continue
+		
+		# Mark as processing
+		spec._is_processing = true
+		spec._last_process_frame = current_frame
+		
+		# Duration Calculations
+		if spec.has_duration():
+			spec.remaining_duration -= delta
+			# Spec expired, remove it.
+			if spec.remaining_duration <= 0.0:
+				# Adjust remaining period as well
+				spec.remaining_period -= delta
+				spec.remaining_duration = 0.0
+				spec._expired = true
+				_remove_effect_spec_at_index(spec, index)
+				continue
+		
+		# Period Calculations
+		spec.remaining_period -= delta
+		# Can not yet activate, proceed to next
+		if spec.remaining_period > 0.0:
+			continue
+		
+		spec.remaining_period += spec.calculate
+		
+		var apply_block: AttributeEffectCondition = spec.can_apply(self)
+		if apply_block != null:
+			spec._blocked_by = apply_block
+			if apply_block.emit_apply_blocked_signal:
+				effect_apply_blocked.emit(spec)
+			continue
+		
+			# DO ACTIVATE
+		
+		if !spec.process(self, delta, current_frame):
 			_remove_effect_spec_at_index(spec, index)
 			pass
+	
+	if override:
+		value = override_value
 
 
 ## Called by the setter of [member value] with [param set_value] (what was manually

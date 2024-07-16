@@ -11,9 +11,6 @@ script = ExtResource("1_x6gt7")
 [node name="AttributeContainer" parent="." instance=ExtResource("2_1tap4")]
 
 [node name="Health" parent="AttributeContainer" node_paths=PackedStringArray("minimum", "maximum") instance=ExtResource("2_g5ycq")]
-effects_process_function = 0
-id = &"health"
-value = 20.0
 minimum = NodePath("../MinHealth")
 maximum = NodePath("../MaxHealth")
 

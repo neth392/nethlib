@@ -3,20 +3,22 @@
 @tool
 class_name AttributeEffectCondition extends Resource
 
+enum BlockType {
+	## Blocks the addition of an [AttributeEffect] if conditions are not met.
+	ADD,
+	## Blocks the processing (duration, period, application, etc) of an [AttributeEffect]
+	## if conditions are not met.
+	PROCESS,
+	## Blocks the application of an [AttributeEffect] if conditions are not met.
+	APPLY,
+}
+
 ## A message explaining why this condition has blocked an [AttributeEffect]
 ## from being applied.
 @export_multiline var message: String
 
-## If true, if the condition isn't met the [AttributeEffectSpec] can not be
-## added to [Attribute] (and therefore not applied). If false,
-## the [AttributeEffect] can be added regardless of the condition.
-@export var block_add: bool = true
-
-## If true, if the condition isn't met the [AttributeEffectSpec] will not be
-## applied to the [Attribute] it is added to. If false, the [AttributeEffect]
-## will be processed regardless of condition as long as it is applied to an
-## [Attribute].
-@export var block_apply: bool = false
+## What features of an [AttributeEffect] should be blocked if conditions are not met.
+@export var block_types: Array[BlockType] = []
 
 ## If treu
 @export var emit_add_blocked_signal: bool = false
@@ -26,3 +28,12 @@ class_name AttributeEffectCondition extends Resource
 ## Returns true if the [param attribute] & [param spec] meets the conditions.
 func _meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 	return true
+
+
+func _validate_property(property: Dictionary) -> void:
+	if property.name == "emit_add_blocked_signal":
+		if !block_types.has(BlockType.ADD):
+			property.usage = PROPERTY_USAGE_STORAGE
+	if property.name == "emit_apply_blocked_signal":
+		if !block_types.has(BlockType.APPLY):
+			property.usage = PROPERTY_USAGE_STORAGE

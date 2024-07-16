@@ -4,24 +4,13 @@ class_name AttributeEffectSpec extends Resource
 
 ## Used in [method Array.custom_sort] to sort specs in a reverse order.
 static func reverse_compare(a: AttributeEffectSpec, b: AttributeEffectSpec) -> bool:
-	var a_override: bool = a.is_override()
-	var b_override: bool = b.is_override()
-	
-	if a_override && b_override:
-		return a._effect.override_priority < b._effect.override_priority
-	elif a_override:
-		return false
-	else:
-		return true
+	return a._effect.priority < b._effect.priority
 
 ## The effect this [AttributeEffectSpec] was created for.
 var _effect: AttributeEffect
 
 ## The current stack count
 var _stack_count: int
-
-## If true, duration is ticking (if the [AttributeEffect] has a duration).
-var tick_duration: bool = true
 
 ## The initial duration of the effect.
 var _starting_duration: float
@@ -31,35 +20,41 @@ var remaining_duration: float:
 	set(_value):
 		remaining_duration = max(0.0, _value)
 
-## If this spec is actively applied to an [Attribute].
-var _is_applied: bool = false
+## If this spec is actively added to an [Attribute].
+var _is_added: bool = false
+
+## If this spec is actively added to an [Attribute] & processing is not
+## blocked by an [AttributeEffectCondition].
+var _is_processing: bool = false
 
 ## Amount of times the [AttributeEffect] was applied to the [Attribute].
 var _apply_count: int = 0
 
-## The condition that lasts denied application of this spec.
-var _denied_by: AttributeEffectCondition
+## The condition that lasts blocks addition or application of this spec.
+var _blocked_by: AttributeEffectCondition
 
-## The last frame this spec was processed on.
+## The last frame this spec was processed on. If the value is -1, this
+## spec has not yet been processed.
 var _last_process_frame: int = -1
+
+## The last frame this spec was applied on. If the value is -1, this spec
+## has not yet been applied.
+var _last_apply_frame: int = -1
 
 ## Whether or not this spec expired.
 var _expired: bool = false
 
 ## The remaining amount of time, in seconds, until this effect is next triggered.
-## Can be manually set before applying to an [AttributeEffect] to create an initial
-## delay in if it is applied.
+## Can be manually set before applying to an [Attribute] to create an initial
+## delay.
 var remaining_period: float = 0.0
 
-func _init(effect: AttributeEffect, stack_count: int = 1) -> void:
+func _init(effect: AttributeEffect) -> void:
 	assert(effect != null, "effect is null")
 	assert(stack_count > 0, "stack_count is > 0")
 	assert(stack_count < 2 || effect.stack_mode == AttributeEffect.StackMode.COMBINE,
 	"stack_count >= 2 but stack_mode = false for effect: (%s)" % effect)
 	_effect = effect
-	_stack_count = stack_count
-	# TODO calculate starting duration
-	# TODO calculate 
 
 
 ## Returns the [AttributeEffect] instance this spec was created for.
@@ -79,21 +74,25 @@ func has_duration() -> bool:
 	return _effect.duration_type == AttributeEffect.DurationType.HAS_DURATION
 
 
-## Returns true if this spec is currently applied to an [Attribute].
-func is_applied() -> bool:
-	return _is_applied
+## Returns true if this spec is currently added to an [Attribute].
+func is_added() -> bool:
+	return _is_added
 
 
-## Returns true if the [AttributeEffect] is currently processing on an [Attribute],
-## or false if it not currently applied to an [Attribute] (see [method is_applied])
-## or was last blocked by an [AttributeEffectCondition] (see [method get_denied_by]).
+## Returns true if this spec is currently added to an [Attribute] AND
+## processing has not been blocked by an [AttributeEffectCondition].
 func is_processing() -> bool:
-	return _is_applied && _denied_by == null
+	return _is_processing
 
 
 ## Returns the last process frame this spec was processed on.
 func get_last_process_frame() -> int:
 	return _last_process_frame
+
+
+## Returns the last process frame this spec was applied on.
+func get_last_apply_frame() -> int:
+	return _last_apply_frame
 
 
 ## Returns true if [member effect] has a [member AttributeEffect.value_calc_type]
@@ -102,10 +101,10 @@ func is_override() -> bool:
 	return _effect.value_cacl_type == AttributeEffect.ValueCalcType.OVERRIDE
 
 
-## If currently denied, returns the [AttributeEffectCondition] that denied this spec.
+## If currently blocked, returns the [AttributeEffectCondition] that blocked this spec.
 ## Otherwise returns null.
-func get_denied_by() -> AttributeEffectCondition:
-	return _denied_by
+func get_blocked_by() -> AttributeEffectCondition:
+	return _blocked_by
 
 
 ## Returns the initial duration of the effect when it was first applied.
@@ -124,83 +123,88 @@ func expired() -> bool:
 	return _expired
 
 
-## TODO
+## Returns the stack count (how many [AttributeEffect]s have been stacked).
+## Can't be less than 1.
+func get_stack_count() -> int:
+	return _stack_count
+
+
+## Checks if there is an [AttributeEffectCondition] blocking the processing of this
+## spec on [param attribute]. Returns the condition that is blocking it, or
+## null if there is no blocking condition.
+func can_process(attribute: Attribute) -> AttributeEffectCondition:
+	for condition: AttributeEffectCondition \
+	in _effect._conditions[AttributeEffectCondition.BlockType.PROCESS]:
+		if !condition._meets_condition(attribute, self):
+			return condition
+	
+	return null
+
+
+## Checks if there is an [AttributeEffectCondition] blocking the addition of this
+## spec to the [param attribute]. Returns the condition that is blocking it, or
+## null if there is no blocking condition.
 func can_add(attribute: Attribute) -> AttributeEffectCondition:
-	for condition: AttributeEffectCondition in _effect.conditions:
-		if condition.block_add && !condition._meets_condition(attribute, self):
+	for condition: AttributeEffectCondition \
+	in _effect._conditions[AttributeEffectCondition.BlockType.ADD]:
+		if !condition._meets_condition(attribute, self):
 			return condition
 	
 	return null
 
 
-## TODO
+## Checks if there is an [AttributeEffectCondition] blocking the application of this
+## spec to the [param attribute]. Returns the condition that is blocking it, or
+## null if there is no blocking condition.
 func can_apply(attribute: Attribute) -> AttributeEffectCondition:
-	for condition: AttributeEffectCondition in _effect.conditions:
-		if condition.block_apply && !condition._meets_condition(attribute, self):
+	for condition: AttributeEffectCondition \
+	in _effect._conditions[AttributeEffectCondition.BlockType.PROCESS]:
+		if !condition._meets_condition(attribute, self):
 			return condition
 	
 	return null
 
 
-## Calculates the value to be used at the current frame.
+## Calculates & returns the value that should be set to [param attribute]'s
+## [member Attribute.value] but does not set the value. Takes stack count
+## into consideration.
 func calculate_value(attribute: Attribute) -> float:
-	return _effect._calculate_value(attribute, self)
+	var value: float = _effect._calculate_value(attribute, self)
+	if _stack_count > 1 && _effect.stack_mode == AttributeEffect.StackMode.COMBINE:
+		match _effect.value_stack_mode:
+			AttributeEffect.ValueStackMode.MULTIPLY_BY_STACK:
+				value *= _stack_count
+			AttributeEffect.ValueStackMode.DIVIDE_BY_STACK:
+				value /= _stack_count
+	return value
 
 
-func stack(attribute: Attribute, add_amount: int = 1) -> void:
-	assert(add_amount > 0, "add_amount (%s) <= 0" % add_amount)
-	assert(_effect.stack_mode == AttributeEffect.StackMode.COMBINE, 
-	"_effec.stack_mode != COMBINE")
-	
-	_stack_count += add_amount
-	if _effect.value_stack_mode == AttributeEffect.ValueStackMode.ADD:
-		pass
-	
-	if _effect.duration_stack_mode == AttributeEffect.DurationStackMode.RESET:
-		pass
-	elif _effect.duration_stack_mode == AttributeEffect.DurationStackMode.ADD:
-		pass
+## Calculates & returns the next [member remaining_period] after it has
+## reached <= 0.0 but does not set the period. Takes stack count
+## into consideration.
+func calculate_next_period(attribute: Attribute) -> float:
+	var period: float = _effect._calculate_next_period(attribute, self)
+	if _stack_count > 1 && _effect.stack_mode == AttributeEffect.StackMode.COMBINE:
+		match _effect.period_stack_mode:
+			AttributeEffect.PeriodStackMode.MULTIPLY_BY_STACK:
+				period *= _stack_count
+			AttributeEffect.PeriodStackMode.MULTIPLY_BY_STACK:
+				period /= _stack_count
+	return period
 
 
-## Processes this spec on the [param attribute], returning true if it should
-## remain applied, false if not.
-func process(attribute: Attribute, delta: float, process_frame: int) -> bool:
-	if is_instant():
-		_last_process_frame = process_frame
-		
-		pass
-	
-	# Ensure it isn't already processed this frame if not instant (can be applied
-	# multiple times in an instant)
-	if !instant && _last_process_frame == process_frame:
-		return true
-	
-	if instant:
-		_apply(attribute, delta, process_frame)
-		pass
-	
-	var _has_duration: bool = has_duration()
-	
-	# If remaining duration is already <= 0, it should be removed and not processed.
-	if _has_duration && remaining_duration <= 0:
-		return false
-		
-	if remaining_period
-	
-	# PERIOD 
-	
-	if _has_duration:
-		pass
-	
-	return false
-
-
-func _period(attribute: Attribute, delta: float, process_frame: ind) -> void:
-	pass
-
-
-func _apply(attribute: Attribute, delta: float, process_frame: int) -> void:
-	pass
+## Calculates & returns the next [member remaining_period] after it has
+## reached <= 0.0 but does not set the period. Takes stack count
+## into consideration.
+func calculate_starting_duration(attribute: Attribute) -> float:
+	var period: float = _effect._calculate_next_period(attribute, self)
+	if _stack_count > 1 && _effect.stack_mode == AttributeEffect.StackMode.COMBINE:
+		match _effect.period_stack_mode:
+			AttributeEffect.PeriodStackMode.MULTIPLY_BY_STACK:
+				period *= _stack_count
+			AttributeEffect.PeriodStackMode.MULTIPLY_BY_STACK:
+				period /= _stack_count
+	return period
 
 
 func _to_string() -> String:
