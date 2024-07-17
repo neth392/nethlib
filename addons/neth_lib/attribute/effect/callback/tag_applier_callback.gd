@@ -1,6 +1,6 @@
 ## Callback that adds tags to an [Attribute]'s [AttributeContainer] for the
 ## duration of the effect. Does nothing if the effect is instant.
-class_name AttributeEffectTaggerCallback extends AttributeEffectCallback
+class_name TagApplierCallback extends AttributeEffectCallback
 
 ## The tags to be added for the duration of the [AttributeEffect].
 @export var tags: Array[StringName]
@@ -31,3 +31,9 @@ func _pre_remove(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 		attribute.get_container().remove_tags(tags)
 	elif error_on_no_container:
 		assert(false, "no container for attribute: %s" % attribute)
+
+
+## Called after the [param spec]'s stack count has changed. [param previous_stack_count] was
+## the previous count before the change.
+func _stack_changed(attribute: Attribute, spec: AttributeEffectSpec, previous_stack_count: int) -> void:
+	pass

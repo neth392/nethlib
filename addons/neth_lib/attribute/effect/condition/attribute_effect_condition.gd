@@ -12,6 +12,17 @@ class_name AttributeEffectCondition extends Resource
 ## reasons, there is no signal for processing being blocked.
 @export var emit_blocked_signal: bool = false
 
+## If true, the condition result is negated.
+@export var negate: bool = false
+
+## 
+func meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
+	var meets: bool = _meets_condition(attribute, spec)
+	if negate:
+		return !meets
+	return meets
+
+
 ## Returns true if the [param attribute] & [param spec] meets the conditions.
 func _meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 	return true

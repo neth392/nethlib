@@ -10,7 +10,8 @@ enum _Function {
 	PRE_APPLY,
 	APPLIED,
 	PRE_REMOVE,
-	REMOVE
+	REMOVED,
+	STACK_CHANGED
 }
 
 static var _functions_by_name: Dictionary = {
@@ -19,7 +20,8 @@ static var _functions_by_name: Dictionary = {
 	"_pre_apply": _Function.PRE_APPLY,
 	"_applied": _Function.APPLIED,
 	"_pre_remove": _Function.PRE_REMOVE,
-	"_remove": _Function.REMOVE,
+	"_removed": _Function.REMOVED,
+	"_stack_changed": _Function.STACK_CHANGED,
 }
 
 static var _function_names: Dictionary = {
@@ -28,7 +30,8 @@ static var _function_names: Dictionary = {
 	_Function.PRE_APPLY: "_pre_apply",
 	_Function.APPLIED: "_applied",
 	_Function.PRE_REMOVE: "_pre_remove",
-	_Function.REMOVE: "_remove",
+	_Function.REMOVED: "_removed",
+	_Function.STACK_CHANGED: "_stack_changed",
 }
 
 # Used to detect what functions a callback has implemented - trickery here is that
@@ -58,25 +61,43 @@ var _functions_set: bool = false
 var _functions: Array[_Function] = []
 
 
+## Editor tool function that is called when this callback is added to [param effect].
+## A good place to write assertions.
+func _validate_and_assert(effect: AttributeEffect) -> void:
+	pass
+
+
+## Called before the [param spec] is to be added to the [param attribute].
 func _pre_add(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	pass
 
 
+## Called after the [param spec] has been added to the [param attribute].
 func _added(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	pass
 
 
+## Called before the [param spec] is to be applied to the [param attribute].
 func _pre_apply(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	pass
 
 
+## Called after the [param spec] has been applied to the [param attribute].
 func _applied(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	pass
 
 
+## Called before the [param spec] is to be removed from the [param attribute].
 func _pre_remove(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	pass
 
 
-func _remove(attribute: Attribute, spec: AttributeEffectSpec) -> void:
+## Called after the [param spec] has been removed from the [param attribute].
+func _removed(attribute: Attribute, spec: AttributeEffectSpec) -> void:
+	pass
+
+
+## Called after the [param spec]'s stack count has changed. [param previous_stack_count] was
+## the previous count before the change.
+func _stack_changed(attribute: Attribute, spec: AttributeEffectSpec, previous_stack_count: int) -> void:
 	pass

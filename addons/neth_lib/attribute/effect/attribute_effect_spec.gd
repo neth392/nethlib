@@ -20,7 +20,7 @@ var remaining_period: float = 0.0
 var _effect: AttributeEffect
 
 ## The current stack count
-var _stack_count: int
+var _stack_count: int = 1
 
 ## The initial duration of the effect.
 var _starting_duration: float
@@ -124,7 +124,8 @@ func get_blocked_by() -> AttributeEffectCondition:
 	return _blocked_by
 
 
-## Returns the initial duration of the effect when it was first applied.
+## Returns the initial duration of the effect when it was first applied. This amount
+## is increased if the stack count is increased & duration stacking is enabled.
 func get_starting_duration() -> float:
 	return _starting_duration
 
@@ -150,75 +151,41 @@ func get_stack_count() -> int:
 	return _stack_count
 
 
-func add_to_stack(amount: int = 1) -> int:
+func add_to_stack(attribute: Attribute, amount: int = 1) -> void:
 	assert(amount > 0, "amount(%s) <= 0" % amount)
 	assert(is_stackable(), "_effect (%s) not stackable" % _effect)
 	_stack_count += amount
-	if _effect.stack_mode.
+	
 
 
 ## Checks if there is an [AttributeEffectCondition] blocking the processing of this
 ## spec on [param attribute]. Returns the condition that is blocking it, or
 ## null if there is no blocking condition.
 func can_process(attribute: Attribute) -> AttributeEffectCondition:
-	for condition: AttributeEffectCondition \
-	in _effect._conditions[AttributeEffectCondition.BlockType.PROCESS]:
-		if !condition._meets_condition(attribute, self):
-			return condition
-	
-	return null
+	return _passes_conditions(attribute, _effect._process_conditions)
 
 
 ## Checks if there is an [AttributeEffectCondition] blocking the addition of this
 ## spec to the [param attribute]. Returns the condition that is blocking it, or
 ## null if there is no blocking condition.
 func can_add(attribute: Attribute) -> AttributeEffectCondition:
-	for condition: AttributeEffectCondition \
-	in _effect._conditions[AttributeEffectCondition.BlockType.ADD]:
-		if !condition._meets_condition(attribute, self):
-			return condition
-	
-	return null
+	return _passes_conditions(attribute, _effect._add_conditions)
 
 
 ## Checks if there is an [AttributeEffectCondition] blocking the application of this
 ## spec to the [param attribute]. Returns the condition that is blocking it, or
 ## null if there is no blocking condition.
 func can_apply(attribute: Attribute) -> AttributeEffectCondition:
-	for condition: AttributeEffectCondition \
-	in _effect._conditions[AttributeEffectCondition.BlockType.PROCESS]:
-		if !condition._meets_condition(attribute, self):
+	return _passes_conditions(attribute, _effect._apply_conditions)
+
+
+func _passes_conditions(attribute: Attribute, conditions: Array[AttributeEffectCondition]) \
+ -> AttributeEffectCondition:
+	for condition: AttributeEffectCondition in conditions:
+		if !condition.meets_condition(attribute, self):
 			return condition
-	
 	return null
 
-
-## Calculates & returns the value that should be set to [param attribute]'s
-## [member Attribute.value] but does not set the value. Takes stack count
-## into consideration.
-func calculate_value(attribute: Attribute) -> float:
-	var value: float = _effect._calculate_value(attribute, self)
-	if _stack_count > 1 && _effect.stack_mode == AttributeEffect.StackMode.COMBINE:
-		match _effect.value_stack_mode:
-			AttributeEffect.ValueStackMode.MULTIPLY_BY_STACK:
-				value *= _stack_count
-			AttributeEffect.ValueStackMode.DIVIDE_BY_STACK:
-				value /= _stack_count
-	return value
-
-
-## Calculates & returns the next [member remaining_period] after it has
-## reached <= 0.0 but does not set the period. Takes stack count
-## into consideration.
-func calculate_next_period(attribute: Attribute) -> float:
-	var period: float = _effect._calculate_next_period(attribute, self)
-	if _stack_count > 1 && _effect.stack_mode == AttributeEffect.StackMode.COMBINE:
-		match _effect.period_stack_mode:
-			AttributeEffect.PeriodStackMode.MULTIPLY_BY_STACK:
-				return period * _stack_count
-			AttributeEffect.PeriodStackMode.DIVIDE_BY_STACK:
-				return period / _stack_count
-	return period
 
 
 ## Calculates & returns the next [member remaining_period] after it has
@@ -228,11 +195,11 @@ func calculate_starting_duration(attribute: Attribute) -> float:
 	var duration: float = _effect._calculate_starting_duration(attribute, self)
 	if _stack_count > 1 && _effect.stack_mode == AttributeEffect.StackMode.COMBINE:
 		match _effect.period_stack_mode:
-			AttributeEffect.DurationStackMode.RESET:
-				return duration
-			AttributeEffect.DurationStackMode.ADD:
-				return duration
-	return period
+			AttributeEffect.DurationStackMode.MULTIPLY_BY_STACK:
+				return duration * _stack_count
+			AttributeEffect.DurationStackMode.DIVIDE_BY_STACK:
+				return duration / _stack_count
+	return duration
 
 
 ## Runs the callback [param _function] on all [AttributeEffectCallback] who have

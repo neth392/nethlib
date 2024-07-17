@@ -1,6 +1,6 @@
 ## Condition that checks if other [AttributeEffect]s are present or not on an
 ## [Attribute].
-class_name AttributeEffectHasOtherCondition extends AttributeEffectCondition
+class_name HasOtherEffectCondition extends AttributeEffectCondition
 
 ## How this condition is determined.
 enum Mode {
@@ -13,7 +13,7 @@ enum Mode {
 ## The other [AttributeEffect]s to check for the presence of.
 @export var other_effects: Array[AttributeEffect]
 
-## See [enum AttributeEffectHasOtherCondition.Mode]
+## See [enum Mode]
 @export var mode: Mode
 
 func _meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:

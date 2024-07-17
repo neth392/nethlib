@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="AttributeEffectTaggerCallback" load_steps=2 format=3 uid="uid://chjg8u8miptwm"]
 
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/attribute_effect_tagger_callback.gd" id="1_2n3er"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/tag_applier_callback.gd" id="1_2n3er"]
 
 [resource]
 script = ExtResource("1_2n3er")

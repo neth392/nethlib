@@ -19,6 +19,13 @@ static func sort(a: AttributeEffectModifier, b: AttributeEffectModifier) -> bool
 ## If true, allow duplicate instances of this modifier on [AttributeEffect]s.
 @export var duplicate_instances: bool = false
 
+
+## Editor tool function that is called when this modifier is added to [param effect].
+## A good place to write assertions.
+func _validate_and_assert(effect: AttributeEffect) -> void:
+	pass
+
+
 ## Called every time the 
 func _modify(current_modified: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	return current_modified

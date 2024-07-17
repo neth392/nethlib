@@ -1,6 +1,6 @@
 ## Condition that checks if an [Attribute], its owner, or its parent 
 ## is in or not in a specific set of groups.
-class_name AttributeEffectGroupCondition extends AttributeEffectCondition
+class_name NodeGroupCondition extends AttributeEffectCondition
 
 ## Which node relative to the provided [Attribute] should be checked for the
 ## group(s)
@@ -27,7 +27,7 @@ enum Mode {
 ## Which groups should be checked.
 @export var groups: PackedStringArray
 
-## The mode of this condition, see [enum AttributeEffectGroupCondition.Mode].
+## The mode of this condition, see [enum Mode].
 @export var mode: Mode
 
 func _meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:

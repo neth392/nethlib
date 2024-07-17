@@ -3,7 +3,9 @@
 ## limited from 0 to 1, a [member min] & [member max] OR a [WrappedAttribute]'s id
 ## can be specified which will multiply 0 by min, & 1 by max for.
 @tool
-class_name AttributeEffectValueCurveModifier extends AttributeEffectModifier
+class_name ValueCurveModifier extends AttributeEffectModifier
+
+# TODO this whole class
 
 enum MinMaxValues {
 	WRAPPED_ATTRIBUTE,

@@ -32,41 +32,6 @@ enum StackMode {
 	COMBINE,
 }
 
-## Determines how [member value] is stacked.
-enum ValueStackMode {
-	## Ignores value when stacking, as if there was only 1 instance of this 
-	## [AttributeEffect] applied.
-	IGNORE,
-	## Multiplies [member value] by [member AttributeEffectSpec.get_stack_count].
-	## ie: a stack of 3 would be [member value] * 3.0.
-	MULTIPLY_BY_STACK,
-	## Divides [member value] by [member AttributeEffectSpec.get_stack_count].
-	## ie: a stack of 3 would be [member value] * 3.0.
-	DIVIDE_BY_STACK,
-}
-
-## Determines how [member duration_in_seconds] is stacked, only applicable if
-## [member duration_type] is [enum DurationType.HAS_DURATION].
-enum DurationStackMode {
-	## Ignores duration during stacking.
-	IGNORE,
-	## Resets the duration to [member duration_in_seconds].
-	RESET,
-	## Adds to the existing duration of the [AppliedAttributeEffect].
-	ADD,
-}
-
-## Determines how [member period_in_seconds] is stacked, only applicable if
-## [member duration_type] is NOT [enum DurationType.INSTANT].
-enum PeriodStackMode {
-	## Ignores period during stacking.
-	IGNORE,
-	## Multiplies [member period_in_seconds] by the stack count.
-	MULTIPLY_BY_STACK,
-	## Divides [member period_in_seconds] by the stack count.
-	DIVIDE_BY_STACK,
-}
-
 ## Determines how the effect is applied time-wise.
 enum DurationType {
 	## The effect is immediately applied to an [Attribute] and does not remain
@@ -111,15 +76,13 @@ enum DurationType {
 @export var duration_type: DurationType = DurationType.INSTANT:
 	set(_value):
 		duration_type = _value
-		notify_property_list_changed()
 		if duration_type != DurationType.HAS_DURATION:
-			duration_stack_mode = DurationStackMode.IGNORE
 			duration_in_seconds = 0.0
 			if duration_type == DurationType.INSTANT:
 				if stack_mode != StackMode.DENY && stack_mode != StackMode.DENY_ERROR:
 					stack_mode = StackMode.DENY
-				period_stack_mode = PeriodStackMode.IGNORE
 				period_in_seconds = 0.0
+		notify_property_list_changed()
 
 ## The amount of time in seconds this [AttributeEffect] lasts.
 @export var duration_in_seconds: float = 0.0:
@@ -139,30 +102,6 @@ enum DurationType {
 @export var stack_mode: StackMode:
 	set(_value):
 		stack_mode = _value
-		
-		if stack_mode != StackMode.COMBINE:
-			value_stack_mode = ValueStackMode.IGNORE
-			duration_stack_mode = DurationStackMode.IGNORE
-			period_stack_mode = PeriodStackMode.IGNORE
-		
-		notify_property_list_changed()
-
-## How the value is stacked if [member stack_mode] is [enum StackMode.COMBINE].
-@export var value_stack_mode: ValueStackMode:
-	set(_value):
-		value_stack_mode = _value
-		notify_property_list_changed()
-
-## How the duration is stacked if [member stack_mode] is [enum StackMode.COMBINE].
-@export var duration_stack_mode: DurationStackMode:
-	set(_value):
-		duration_stack_mode = _value
-		notify_property_list_changed()
-
-## How the is stacked if [member stack_mode] is [enum StackMode.COMBINE].
-@export var period_stack_mode: PeriodStackMode:
-	set(_value):
-		period_stack_mode = _value
 		notify_property_list_changed()
 
 @export_group("Modifiers")
@@ -190,37 +129,34 @@ enum DurationType {
 
 @export_group("Conditions")
 
-## TODO
-@export var _add_conditions: Array[AttributeEffectCondition]
+## All [AttributeEffectCondition]s that must be met for this effect to be
+## added to an [Attribute]. This array can safely be directly modified or set.
+@export var add_conditions: Array[AttributeEffectCondition]
 
-## TODO
-@export var _apply_conditions: Array[AttributeEffectCondition]
+## All [AttributeEffectCondition]s that must be met for this effect to be
+## applied to an [Attribute]. This array can safely be directly modified or set.
+@export var apply_conditions: Array[AttributeEffectCondition]
 
-## TODO
-@export var _process_conditions: Array[AttributeEffectCondition]
+## All [AttributeEffectCondition]s that must be met for this effect to be
+## processed (duration, period, etc) on an [Attribute]. This array can 
+## safely be directly modified or set.
+@export var process_conditions: Array[AttributeEffectCondition]
 
 @export_group("Callbacks")
 
 ## TODO
-@export var _callbacks: Array[AttributeEffectCallback]:
-	set(_value):
-		_callbacks = _value
+@export var _callbacks: Array[AttributeEffectCallback]
 
-var _conditions: Dictionary = {}
-var _callbacks_by_function: Dictionary = {
-	AttributeEffectCallback._Function.PRE_ADD: [],
-	AttributeEffectCallback._Function.ADDED: [],
-	AttributeEffectCallback._Function.PRE_APPLY: [],
-	AttributeEffectCallback._Function.APPLIED: [],
-	AttributeEffectCallback._Function.PRE_REMOVE: [],
-	AttributeEffectCallback._Function.REMOVE: [],
-}
+var _callbacks_by_function: Dictionary = {}
 
 func _init(_id: StringName = "") -> void:
 	id = _id
 	
 	if Engine.is_editor_hint():
 		return
+	
+	for _function: int in AttributeEffectCallback._Function.values():
+		_callbacks_by_function[_function] = []
 	
 	for callback: AttributeEffectCallback in _callbacks:
 		AttributeEffectCallback._set_functions(callback)
@@ -248,24 +184,7 @@ func _validate_property(property: Dictionary) -> void:
 		if duration_type == DurationType.INSTANT:
 			_no_editor(property)
 		return
-	
-	if property.name == "value_stack_mode":
-		if stack_mode != StackMode.COMBINE \
-		or duration_type == DurationType.INSTANT:
-			_no_editor(property)
-		return
-	
-	if property.name == "duration_stack_mode":
-		if stack_mode != StackMode.COMBINE \
-		or duration_type != DurationType.HAS_DURATION:
-			_no_editor(property)
-		return
-	
-	if property.name == "period_stack_mode":
-		if stack_mode != StackMode.COMBINE \
-		or duration_type == DurationType.INSTANT:
-			_no_editor(property)
-		return
+
 
 ## Helper method for _validate_property.
 func _no_editor(property: Dictionary) -> void:
@@ -373,7 +292,7 @@ modifiers: Array[AttributeEffectModifier]) -> float:
 ## Default implementation first uses the [AttributeEffectModifier]s to modify [member value]
 ## then uses the [member value_calc_type] to calculate the returned float.[br]
 ## The returned value should NOT take stacking into account.
-func _calculate_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
+func calculate_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	assert(spec._effect == self, "spec._effect (%s) != self" % spec._effect)
 	
 	var modified_value: float = _get_modified_value(value, attribute, spec, 
@@ -401,7 +320,7 @@ func _calculate_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
 ## Default implementation uses [member period_in_seconds] and runs it through every
 ## [AttributeEffectModifier] in [member modifiers].[br]
 ## The returned value should NOT take stacking into account.
-func _calculate_next_period(attribute: Attribute, spec: AttributeEffectSpec) -> float:
+func calculate_next_period(attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	assert(duration_type != DurationType.INSTANT, "duration_type == INSTANT, there is no period")
 	return _get_modified_value(period_in_seconds, attribute, spec, _period_modifiers)
 
@@ -412,7 +331,7 @@ func _calculate_next_period(attribute: Attribute, spec: AttributeEffectSpec) -> 
 ## Default implementation uses [member duration_in_seconds] and runs it through every
 ## [AttributeEffectModifier] in [member modifiers].[br]
 ## The returned value should NOT take stacking into account.
-func _calculate_starting_duration(attribute: Attribute, spec: AttributeEffectSpec) -> float:
+func calculate_starting_duration(attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	assert(duration_type == DurationType.HAS_DURATION, "duration_type != HAS_DURATION")
 	return _get_modified_value(duration_in_seconds, attribute, spec, _duration_modifiers)
 

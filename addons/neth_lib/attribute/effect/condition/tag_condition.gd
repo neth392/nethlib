@@ -1,6 +1,6 @@
 ## Condition that is met if an [Attribute]'s [AttributeContainer] has
 ## all (or none) of the [member tags].
-class_name AttributeEffectTagCondition extends AttributeEffectCondition
+class_name TagCondition extends AttributeEffectCondition
 
 ## How this condition is determined.
 enum Mode {
