@@ -22,6 +22,15 @@ static var _functions_by_name: Dictionary = {
 	"_remove": _Function.REMOVE,
 }
 
+static var _function_names: Dictionary = {
+	_Function.PRE_ADD: "_pre_add",
+	_Function.ADDED: "_added",
+	_Function.PRE_APPLY: "_pre_apply",
+	_Function.APPLIED: "_applied",
+	_Function.PRE_REMOVE: "_pre_remove",
+	_Function.REMOVE: "_remove",
+}
+
 # Used to detect what functions a callback has implemented - trickery here is that
 # in the Array Script.get_script_method_list() returns, methods will appear more
 # than once if the current or any parent script has overridden them.

@@ -291,10 +291,13 @@ func _add_modifier(modifier: AttributeEffectModifier, array: Array[AttributeEffe
 	if !modifier.duplicate_instances:
 		if array.has(modifier):
 			return false
+	
 	var insert_index: int = 0
 	for index: int in array.size():
-		if modifier.priority > array[index].priority 
-		
+		if modifier.priority > array[index].priority:
+			insert_index = index
+			break
+	
 	array.insert(insert_index, modifier)
 	return true
 

@@ -46,6 +46,9 @@ var _last_process_frame: int = -1
 ## has not yet been applied.
 var _last_apply_frame: int = -1
 
+## The value that was last applied.
+var _last_applied_value: float
+
 ## Whether or not this spec expired.
 var _expired: bool = false
 
@@ -82,14 +85,31 @@ func is_processing() -> bool:
 	return _is_processing
 
 
-## Returns the last process frame this spec was processed on.
+## Returns the last process frame this spec was processed on. -1 if it has not
+## yet been processed.
 func get_last_process_frame() -> int:
 	return _last_process_frame
 
 
-## Returns the last process frame this spec was applied on.
+## Returns true if the effect has been processed.
+func has_processed() -> bool:
+	return _last_process_frame > -1
+
+
+## Returns the last process frame this spec was applied on. -1 if it has not
+## yet been applied.
 func get_last_apply_frame() -> int:
 	return _last_apply_frame
+
+
+## Returns true if the effect has been applied.
+func has_applied() -> bool:
+	return _last_apply_frame > -1
+
+
+## The value that was last applied to the [Attribute].
+func get_last_applied_value() -> float:
+	return _last_applied_value
 
 
 ## Returns true if [member effect] has a [member AttributeEffect.value_calc_type]
@@ -120,10 +140,21 @@ func expired() -> bool:
 	return _expired
 
 
+func is_stackable() -> bool:
+	return _effect.stack_mode == AttributeEffect.StackMode.COMBINE
+
+
 ## Returns the stack count (how many [AttributeEffect]s have been stacked).
 ## Can't be less than 1.
 func get_stack_count() -> int:
 	return _stack_count
+
+
+func add_to_stack(amount: int = 1) -> int:
+	assert(amount > 0, "amount(%s) <= 0" % amount)
+	assert(is_stackable(), "_effect (%s) not stackable" % _effect)
+	_stack_count += amount
+	if _effect.stack_mode.
 
 
 ## Checks if there is an [AttributeEffectCondition] blocking the processing of this
@@ -184,9 +215,9 @@ func calculate_next_period(attribute: Attribute) -> float:
 	if _stack_count > 1 && _effect.stack_mode == AttributeEffect.StackMode.COMBINE:
 		match _effect.period_stack_mode:
 			AttributeEffect.PeriodStackMode.MULTIPLY_BY_STACK:
-				period *= _stack_count
+				return period * _stack_count
 			AttributeEffect.PeriodStackMode.DIVIDE_BY_STACK:
-				period /= _stack_count
+				return period / _stack_count
 	return period
 
 
@@ -197,11 +228,19 @@ func calculate_starting_duration(attribute: Attribute) -> float:
 	var duration: float = _effect._calculate_starting_duration(attribute, self)
 	if _stack_count > 1 && _effect.stack_mode == AttributeEffect.StackMode.COMBINE:
 		match _effect.period_stack_mode:
-			AttributeEffect.PeriodStackMode.MULTIPLY_BY_STACK:
-				period *= _stack_count
-			AttributeEffect.PeriodStackMode.DIVIDE_BY_STACK:
-				period /= _stack_count
+			AttributeEffect.DurationStackMode.RESET:
+				return duration
+			AttributeEffect.DurationStackMode.ADD:
+				return duration
 	return period
+
+
+## Runs the callback [param _function] on all [AttributeEffectCallback] who have
+## implemented that function.
+func run_callbacks(_function: AttributeEffectCallback._Function, attribute: Attribute) -> void:
+	var function_name: String = AttributeEffectCallback._functions_by_name[_function]
+	for callback: AttributeEffectCallback in _effect._callbacks_by_function.get(_function):
+		callback.call(function_name, attribute, self)
 
 
 func _to_string() -> String:
