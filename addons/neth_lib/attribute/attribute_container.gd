@@ -76,6 +76,14 @@ func add_tag(tag: StringName) -> bool:
 	return true
 
 
+## Adds all of the [param tags] which are not yet added.
+func add_tags(tags: Array[StringName]) -> void:
+	for tag in tags:
+		if !_tags.has(tag):
+			_tags[tag] = null
+			tag_added.emit(tag)
+
+
 ## Returns true if the [param] tag exists on this container, false if not.
 func has_tag(tag: StringName) -> bool:
 	return _tags.has(tag)
@@ -87,6 +95,13 @@ func remove_tag(tag: StringName) -> bool:
 		tag_removed.emit(tag)
 		return true
 	return false
+
+
+## Removes all of the [param tags] that are present.
+func remove_tags(tags: Array[StringName]) -> void:
+	for tag in tags:
+		if _tags.erase(tag):
+			tag_removed.emit(tag)
 
 
 func _on_child_entered_tree(child: Node) -> void:

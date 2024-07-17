@@ -115,6 +115,11 @@ enum DurationType {
 		if duration_type != DurationType.HAS_DURATION:
 			duration_stack_mode = DurationStackMode.IGNORE
 			duration_in_seconds = 0.0
+			if duration_type == DurationType.INSTANT:
+				if stack_mode != StackMode.DENY && stack_mode != StackMode.DENY_ERROR:
+					stack_mode = StackMode.DENY
+				period_stack_mode = PeriodStackMode.IGNORE
+				period_in_seconds = 0.0
 
 ## The amount of time in seconds this [AttributeEffect] lasts.
 @export var duration_in_seconds: float = 0.0:
@@ -138,6 +143,7 @@ enum DurationType {
 		if stack_mode != StackMode.COMBINE:
 			value_stack_mode = ValueStackMode.IGNORE
 			duration_stack_mode = DurationStackMode.IGNORE
+			period_stack_mode = PeriodStackMode.IGNORE
 		
 		notify_property_list_changed()
 
@@ -161,29 +167,70 @@ enum DurationType {
 
 @export_group("Modifiers")
 
-@export var _modifiers: Array[AttributeEffectModifier]
+## Modififiers to modify [member value].
+@export var _value_modifiers: Array[AttributeEffectModifier]:
+	set(_value):
+		_value_modifiers = _value
+		if _value_modifiers != null:
+			_value_modifiers.sort_custom(AttributeEffectModifier.sort)
+
+## Modififiers to modify [member period_in_seconds].
+@export var _period_modifiers: Array[AttributeEffectModifier]:
+	set(_value):
+		_period_modifiers = _value
+		if _period_modifiers != null:
+			_period_modifiers.sort_custom(AttributeEffectModifier.sort)
+
+## Modififiers to modify [member duration_in_seconds].
+@export var _duration_modifiers: Array[AttributeEffectModifier]:
+	set(_value):
+		_period_modifiers = _value
+		if _period_modifiers != null:
+			_period_modifiers.sort_custom(AttributeEffectModifier.sort)
 
 @export_group("Conditions")
 
-## All [AttributeEffectCondition]s an [Attribute] must meet for this effect to be applied to it.
-@export var _default_conditions: Array[AttributeEffectCondition]
+## TODO
+@export var _add_conditions: Array[AttributeEffectCondition]
+
+## TODO
+@export var _apply_conditions: Array[AttributeEffectCondition]
+
+## TODO
+@export var _process_conditions: Array[AttributeEffectCondition]
+
+@export_group("Callbacks")
+
+## TODO
+@export var _callbacks: Array[AttributeEffectCallback]:
+	set(_value):
+		_callbacks = _value
 
 var _conditions: Dictionary = {}
+var _callbacks_by_function: Dictionary = {
+	AttributeEffectCallback._Function.PRE_ADD: [],
+	AttributeEffectCallback._Function.ADDED: [],
+	AttributeEffectCallback._Function.PRE_APPLY: [],
+	AttributeEffectCallback._Function.APPLIED: [],
+	AttributeEffectCallback._Function.PRE_REMOVE: [],
+	AttributeEffectCallback._Function.REMOVE: [],
+}
 
 func _init(_id: StringName = "") -> void:
 	id = _id
 	
-	# Split conditions up based on block type for efficiency
-	for block_type: int in AttributeEffectCondition.BlockType.values():
-		_conditions[block_type] = []
-	for condition: AttributeEffectCondition in _default_conditions:
-		for block_type: AttributeEffectCondition.BlockType in condition.block_types:
-			_default_conditions[block_type].append(condition)
-	for array: Array in _conditions.values():
-		array.sort_custom(AttributeEffectModifier.compare)
+	if Engine.is_editor_hint():
+		return
+	
+	for callback: AttributeEffectCallback in _callbacks:
+		AttributeEffectCallback._set_functions(callback)
+		for _function: AttributeEffectCallback._Function in callback._functions:
+			_callbacks_by_function[_function].append(callback)
 	
 	# Sort Modifiers
-	_modifiers.sort_custom(AttributeEffectModifier.compare)
+	_value_modifiers.sort_custom(AttributeEffectModifier.sort)
+	_period_modifiers.sort_custom(AttributeEffectModifier.sort)
+	_duration_modifiers.sort_custom(AttributeEffectModifier.sort)
 
 
 func _validate_property(property: Dictionary) -> void:
@@ -224,56 +271,98 @@ func _validate_property(property: Dictionary) -> void:
 func _no_editor(property: Dictionary) -> void:
 	property.usage = PROPERTY_USAGE_NO_EDITOR
 
+## TODO
+func add_value_modifier(modifier: AttributeEffectModifier) -> bool:
+	return _add_modifier(modifier, _value_modifiers)
 
-## Adds the [param modifier] to this [AttributeEffect]. Returns true if it was added,
-## false if not (due to [member AttributeEffectModifier.duplicate_instances] being
-## false and an instance already existing on this effect.
-func add_modifier(modifier: AttributeEffectModifier) -> bool:
+
+## TODO
+func add_period_modifier(modifier: AttributeEffectModifier) -> bool:
+	return _add_modifier(modifier, _period_modifiers)
+
+
+## TODO
+func add_duration_modifier(modifier: AttributeEffectModifier) -> bool:
+	return _add_modifier(modifier, _duration_modifiers)
+
+
+## TODO
+func _add_modifier(modifier: AttributeEffectModifier, array: Array[AttributeEffectModifier]) -> bool:
 	if !modifier.duplicate_instances:
-		if _modifiers.has(modifier):
+		if array.has(modifier):
 			return false
-	_modifiers.append(modifier)
-	_modifiers.sort_custom(AttributeEffectModifier.compare)
+	var insert_index: int = 0
+	for index: int in array.size():
+		if modifier.priority > array[index].priority 
+		
+	array.insert(insert_index, modifier)
 	return true
 
 
-## Returns true if this effect has one (or more) instances of [param modifier].
-func has_modifier(modifier: AttributeEffectModifier) -> bool:
-	return _modifiers.has(modifier)
+## TODO
+func has_value_modifier(modifier: AttributeEffectModifier) -> bool:
+	return _value_modifiers.has(modifier)
 
 
-## Removes the first occrrence of [param modifier], or all occurrences if [param remove_all]
-## is true.
-func remove_modifier(modifier: AttributeEffectModifier, remove_all: bool = false) -> void:
-	_modifiers.erase(modifier)
+## TODO
+func has_period_modifier(modifier: AttributeEffectModifier) -> bool:
+	return _period_modifiers.has(modifier)
+
+
+## TODO
+func has_duration_modifier(modifier: AttributeEffectModifier) -> bool:
+	return _duration_modifiers.has(modifier)
+
+
+## TODO
+func remove_value_modifier(modifier: AttributeEffectModifier, remove_all: bool = false) -> void:
+	_remove_modifier(modifier, remove_all, _value_modifiers)
+
+
+## TODO
+func remove_period_modifier(modifier: AttributeEffectModifier, remove_all: bool = false) -> void:
+	_remove_modifier(modifier, remove_all, _period_modifiers)
+
+
+## TODO
+func remove_duration_modifier(modifier: AttributeEffectModifier, remove_all: bool = false) -> void:
+	_remove_modifier(modifier, remove_all, _duration_modifiers)
+
+
+func _remove_modifier(modifier: AttributeEffectModifier, remove_all: bool,
+array: Array[AttributeEffectModifier]) -> void:
+	array.erase(modifier)
 	if remove_all:
-		while _modifiers.has(modifier):
-			_modifiers.erase(modifier)
+		while array.has(modifier):
+			array.erase(modifier)
 
 
-## Returns a new mutable [Array] of all added [AttributeEffectModifier]s. Changes
-## to the array are not reflected in this instance.
-func get_modifiers() -> Array[AttributeEffectModifier]:
-	return _modifiers.duplicate(false)
+## TODO
+func get_value_modifiers() -> Array[AttributeEffectModifier]:
+	return _value_modifiers.duplicate(false)
 
 
-## Shorthand function to create an [AttributeEffectSpec] for this
-## [AttributeEffect]. [param _stack_count] can be specified if
-## [member stack_mode] is of type [enum StackMode.COMBINE].
-func to_spec(_stack_count: int = 1) -> AttributeEffectSpec:
-	assert(_stack_count > 0, "_stack_count (%s) not > 0" % _stack_count)
-	assert(stack_mode == StackMode.COMBINE || _stack_count == 1, 
-	"_stack_count (%s) > 1 but stack_mode != COMBINE" % _stack_count)
-	return AttributeEffectSpec.new(self, _stack_count)
+func get_period_modifiers() -> Array[AttributeEffectModifier]:
+	return _period_modifiers.duplicate(false)
 
 
-func _get_modified_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	var modified_value: float = value
-	for modifier: AttributeEffectModifier in _modifiers:
-		modified_value = modifier._modify_value(modified_value, attribute, spec)
+func get_duration_modifiers() -> Array[AttributeEffectModifier]:
+	return _duration_modifiers.duplicate(false)
+
+
+## Shorthand function to create an [AttributeEffectSpec] for this [AttributeEffect].
+func to_spec() -> AttributeEffectSpec:
+	return AttributeEffectSpec.new(self)
+
+
+func _get_modified_value(to_modify: float, attribute: Attribute, spec: AttributeEffectSpec, 
+modifiers: Array[AttributeEffectModifier]) -> float:
+	var modified: float = to_modify
+	for modifier: AttributeEffectModifier in _value_modifiers:
+		modified = modifier._modify(modified, attribute, spec)
 		if modifier.stop_processing_modifiers:
 			break
-	return modified_value
+	return modified
 
 
 ## Calculates & returns the new value to assign to [param attribute]'s 
@@ -284,7 +373,8 @@ func _get_modified_value(attribute: Attribute, spec: AttributeEffectSpec) -> flo
 func _calculate_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	assert(spec._effect == self, "spec._effect (%s) != self" % spec._effect)
 	
-	var modified_value: float = _get_modified_value(attribute, spec)
+	var modified_value: float = _get_modified_value(value, attribute, spec, 
+	_value_modifiers)
 	
 	match value_cacl_type:
 		ValueCalcType.ADD_TO:
@@ -310,15 +400,7 @@ func _calculate_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
 ## The returned value should NOT take stacking into account.
 func _calculate_next_period(attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	assert(duration_type != DurationType.INSTANT, "duration_type == INSTANT, there is no period")
-	
-	var modified_period: float = period_in_seconds
-	
-	for modifier: AttributeEffectModifier in _modifiers:
-		modified_period = modifier._modify_next_period(modified_period, attribute, spec)
-		if modifier.stop_processing_modifiers:
-			break
-	
-	return modified_period
+	return _get_modified_value(period_in_seconds, attribute, spec, _period_modifiers)
 
 
 ## Calculates & returns the starting duration to be used right after this effect represented 
@@ -329,15 +411,7 @@ func _calculate_next_period(attribute: Attribute, spec: AttributeEffectSpec) -> 
 ## The returned value should NOT take stacking into account.
 func _calculate_starting_duration(attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	assert(duration_type == DurationType.HAS_DURATION, "duration_type != HAS_DURATION")
-	
-	var modified_duration: float = duration_in_seconds
-	
-	for modifier: AttributeEffectModifier in _modifiers:
-		modified_duration = modifier._modify_starting_duration(modified_duration, attribute, spec)
-		if modifier.stop_processing_modifiers:
-			break
-	
-	return modified_duration
+	return _get_modified_value(duration_in_seconds, attribute, spec, _duration_modifiers)
 
 
 func _to_string() -> String:

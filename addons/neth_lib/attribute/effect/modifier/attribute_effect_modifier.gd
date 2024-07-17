@@ -1,8 +1,12 @@
-## Modifies an [AttributeEffect]'s value, period, and duration.
+## Modifies an [AttributeEffect]'s value, period, or duration.
 @tool
 class_name AttributeEffectModifier extends Resource
 
-static func compare(a: AttributeEffectModifier, b: AttributeEffectModifier) -> bool:
+static func sort(a: AttributeEffectModifier, b: AttributeEffectModifier) -> bool:
+	if a == null:
+		return false
+	if b == null:
+		return true
 	return a.priority > b.priority
 
 ## The priority of processing this [AttributeEffectModifier] in comparison to
@@ -15,7 +19,6 @@ static func compare(a: AttributeEffectModifier, b: AttributeEffectModifier) -> b
 ## If true, allow duplicate instances of this modifier on [AttributeEffect]s.
 @export var duplicate_instances: bool = false
 
-
 ## Called every time the 
-func _modify_value(current_modified: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
+func _modify(current_modified: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	return current_modified

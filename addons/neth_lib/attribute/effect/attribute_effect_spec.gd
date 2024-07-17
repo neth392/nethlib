@@ -6,6 +6,16 @@ class_name AttributeEffectSpec extends Resource
 static func reverse_compare(a: AttributeEffectSpec, b: AttributeEffectSpec) -> bool:
 	return a._effect.priority < b._effect.priority
 
+## The remaining duration in seconds, can not be set to less than 0.0.
+var remaining_duration: float:
+	set(_value):
+		remaining_duration = max(0.0, _value)
+
+## The remaining amount of time, in seconds, until this effect is next triggered.
+## Can be manually set before applying to an [Attribute] to create an initial
+## delay.
+var remaining_period: float = 0.0
+
 ## The effect this [AttributeEffectSpec] was created for.
 var _effect: AttributeEffect
 
@@ -14,11 +24,6 @@ var _stack_count: int
 
 ## The initial duration of the effect.
 var _starting_duration: float
-
-## The remaining duration in seconds, can not be set to less than 0.0.
-var remaining_duration: float:
-	set(_value):
-		remaining_duration = max(0.0, _value)
 
 ## If this spec is actively added to an [Attribute].
 var _is_added: bool = false
@@ -44,16 +49,8 @@ var _last_apply_frame: int = -1
 ## Whether or not this spec expired.
 var _expired: bool = false
 
-## The remaining amount of time, in seconds, until this effect is next triggered.
-## Can be manually set before applying to an [Attribute] to create an initial
-## delay.
-var remaining_period: float = 0.0
-
 func _init(effect: AttributeEffect) -> void:
 	assert(effect != null, "effect is null")
-	assert(stack_count > 0, "stack_count is > 0")
-	assert(stack_count < 2 || effect.stack_mode == AttributeEffect.StackMode.COMBINE,
-	"stack_count >= 2 but stack_mode = false for effect: (%s)" % effect)
 	_effect = effect
 
 
@@ -188,7 +185,7 @@ func calculate_next_period(attribute: Attribute) -> float:
 		match _effect.period_stack_mode:
 			AttributeEffect.PeriodStackMode.MULTIPLY_BY_STACK:
 				period *= _stack_count
-			AttributeEffect.PeriodStackMode.MULTIPLY_BY_STACK:
+			AttributeEffect.PeriodStackMode.DIVIDE_BY_STACK:
 				period /= _stack_count
 	return period
 
@@ -197,12 +194,12 @@ func calculate_next_period(attribute: Attribute) -> float:
 ## reached <= 0.0 but does not set the period. Takes stack count
 ## into consideration.
 func calculate_starting_duration(attribute: Attribute) -> float:
-	var period: float = _effect._calculate_next_period(attribute, self)
+	var duration: float = _effect._calculate_starting_duration(attribute, self)
 	if _stack_count > 1 && _effect.stack_mode == AttributeEffect.StackMode.COMBINE:
 		match _effect.period_stack_mode:
 			AttributeEffect.PeriodStackMode.MULTIPLY_BY_STACK:
 				period *= _stack_count
-			AttributeEffect.PeriodStackMode.MULTIPLY_BY_STACK:
+			AttributeEffect.PeriodStackMode.DIVIDE_BY_STACK:
 				period /= _stack_count
 	return period
 

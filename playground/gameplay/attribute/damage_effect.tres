@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="AttributeEffect" load_steps=4 format=3 uid="uid://dvly5x6yjqajm"]
 
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/attribute_effect.gd" id="1_h6haq"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect.gd" id="1_h6haq"]
 
 [sub_resource type="Curve" id="Curve_rqejl"]
 
