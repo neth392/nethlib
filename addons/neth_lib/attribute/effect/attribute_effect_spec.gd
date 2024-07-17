@@ -16,14 +16,14 @@ var remaining_duration: float:
 ## delay.
 var remaining_period: float = 0.0
 
+## The current duration of how long this effect has been active
+var _current_duration: float
+
 ## The effect this [AttributeEffectSpec] was created for.
 var _effect: AttributeEffect
 
 ## The current stack count
 var _stack_count: int = 1
-
-## The initial duration of the effect.
-var _starting_duration: float
 
 ## If this spec is actively added to an [Attribute].
 var _is_added: bool = false
@@ -45,6 +45,9 @@ var _last_process_frame: int = -1
 ## The last frame this spec was applied on. If the value is -1, this spec
 ## has not yet been applied.
 var _last_apply_frame: int = -1
+
+## 
+var _last_set_value: float
 
 ## The value that was last applied.
 var _last_applied_value: float
@@ -124,10 +127,9 @@ func get_blocked_by() -> AttributeEffectCondition:
 	return _blocked_by
 
 
-## Returns the initial duration of the effect when it was first applied. This amount
-## is increased if the stack count is increased & duration stacking is enabled.
-func get_starting_duration() -> float:
-	return _starting_duration
+## Returns the total current duration of how long, in seconds, this effect has been active.
+func get_current_duration() -> float:
+	return _current_duration
 
 
 ## Amount of times this [AttributeEffectSpec] was applied to an [Attribute].
@@ -152,34 +154,49 @@ func get_stack_count() -> int:
 
 
 func add_to_stack(attribute: Attribute, amount: int = 1) -> void:
-	assert(amount > 0, "amount(%s) <= 0" % amount)
 	assert(is_stackable(), "_effect (%s) not stackable" % _effect)
-	_stack_count += amount
+	assert(amount > 0, "amount(%s) <= 0" % amount)
 	
+	var previous_stack_count: int = _stack_count
+	_stack_count += amount
+	_run_stack_callbacks(attribute, previous_stack_count)
+	attribute.effect_stack_count_changed.emit(self, previous_stack_count)
+
+
+func remove_from_stack(attribute: Attribute, amount: int = 1) -> void:
+	assert(is_stackable(), "_effect (%s) not stackable" % _effect)
+	assert(amount > 0, "amount(%s) <= 0" % amount)
+	assert(_stack_count - amount > 0, "amount(%s) - _stack_count(%s) <= 0"\
+	 % [amount, _stack_count])
+	
+	var previous_stack_count: int = _stack_count
+	_stack_count -= amount
+	_run_stack_callbacks(attribute, previous_stack_count)
+	attribute.effect_stack_count_changed.emit(self, previous_stack_count)
 
 
 ## Checks if there is an [AttributeEffectCondition] blocking the processing of this
 ## spec on [param attribute]. Returns the condition that is blocking it, or
 ## null if there is no blocking condition.
 func can_process(attribute: Attribute) -> AttributeEffectCondition:
-	return _passes_conditions(attribute, _effect._process_conditions)
+	return _check_conditions(attribute, _effect._process_conditions)
 
 
 ## Checks if there is an [AttributeEffectCondition] blocking the addition of this
 ## spec to the [param attribute]. Returns the condition that is blocking it, or
 ## null if there is no blocking condition.
 func can_add(attribute: Attribute) -> AttributeEffectCondition:
-	return _passes_conditions(attribute, _effect._add_conditions)
+	return _check_conditions(attribute, _effect._add_conditions)
 
 
 ## Checks if there is an [AttributeEffectCondition] blocking the application of this
 ## spec to the [param attribute]. Returns the condition that is blocking it, or
 ## null if there is no blocking condition.
 func can_apply(attribute: Attribute) -> AttributeEffectCondition:
-	return _passes_conditions(attribute, _effect._apply_conditions)
+	return _check_conditions(attribute, _effect._apply_conditions)
 
 
-func _passes_conditions(attribute: Attribute, conditions: Array[AttributeEffectCondition]) \
+func _check_conditions(attribute: Attribute, conditions: Array[AttributeEffectCondition]) \
  -> AttributeEffectCondition:
 	for condition: AttributeEffectCondition in conditions:
 		if !condition.meets_condition(attribute, self):
@@ -187,27 +204,21 @@ func _passes_conditions(attribute: Attribute, conditions: Array[AttributeEffectC
 	return null
 
 
-
-## Calculates & returns the next [member remaining_period] after it has
-## reached <= 0.0 but does not set the period. Takes stack count
-## into consideration.
-func calculate_starting_duration(attribute: Attribute) -> float:
-	var duration: float = _effect._calculate_starting_duration(attribute, self)
-	if _stack_count > 1 && _effect.stack_mode == AttributeEffect.StackMode.COMBINE:
-		match _effect.period_stack_mode:
-			AttributeEffect.DurationStackMode.MULTIPLY_BY_STACK:
-				return duration * _stack_count
-			AttributeEffect.DurationStackMode.DIVIDE_BY_STACK:
-				return duration / _stack_count
-	return duration
-
-
 ## Runs the callback [param _function] on all [AttributeEffectCallback] who have
 ## implemented that function.
-func run_callbacks(_function: AttributeEffectCallback._Function, attribute: Attribute) -> void:
+func _run_callbacks(_function: AttributeEffectCallback._Function, attribute: Attribute) -> void:
 	var function_name: String = AttributeEffectCallback._functions_by_name[_function]
 	for callback: AttributeEffectCallback in _effect._callbacks_by_function.get(_function):
 		callback.call(function_name, attribute, self)
+
+
+func _run_stack_callbacks(attribute: Attribute, previous_stack_count: int) -> void:
+	var function_name: String = AttributeEffectCallback._functions_by_name\
+	[AttributeEffectCallback._Function.STACK_CHANGED]
+	
+	for callback: AttributeEffectCallback in _effect._callbacks_by_function\
+	.get(AttributeEffectCallback._Function.STACK_CHANGED):
+		callback.call(function_name, attribute, self, previous_stack_count)
 
 
 func _to_string() -> String:

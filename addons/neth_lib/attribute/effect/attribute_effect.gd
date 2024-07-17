@@ -104,29 +104,6 @@ enum DurationType {
 		stack_mode = _value
 		notify_property_list_changed()
 
-@export_group("Modifiers")
-
-## Modififiers to modify [member value].
-@export var _value_modifiers: Array[AttributeEffectModifier]:
-	set(_value):
-		_value_modifiers = _value
-		if _value_modifiers != null:
-			_value_modifiers.sort_custom(AttributeEffectModifier.sort)
-
-## Modififiers to modify [member period_in_seconds].
-@export var _period_modifiers: Array[AttributeEffectModifier]:
-	set(_value):
-		_period_modifiers = _value
-		if _period_modifiers != null:
-			_period_modifiers.sort_custom(AttributeEffectModifier.sort)
-
-## Modififiers to modify [member duration_in_seconds].
-@export var _duration_modifiers: Array[AttributeEffectModifier]:
-	set(_value):
-		_period_modifiers = _value
-		if _period_modifiers != null:
-			_period_modifiers.sort_custom(AttributeEffectModifier.sort)
-
 @export_group("Conditions")
 
 ## All [AttributeEffectCondition]s that must be met for this effect to be
@@ -142,10 +119,38 @@ enum DurationType {
 ## safely be directly modified or set.
 @export var process_conditions: Array[AttributeEffectCondition]
 
+@export_group("Modifiers")
+
+## Modififiers to modify [member value].
+@export var _value_modifiers: Array[AttributeEffectModifier]:
+	set(_value):
+		_value_modifiers = _value
+		_value_modifiers.sort_custom(AttributeEffectModifier.sort)
+		_validate_and_assert(_value_modifiers)
+
+## Modififiers to modify [member period_in_seconds].
+@export var _period_modifiers: Array[AttributeEffectModifier]:
+	set(_value):
+		_period_modifiers = _value
+		_period_modifiers.sort_custom(AttributeEffectModifier.sort)
+		_validate_and_assert(_period_modifiers)
+
+## Modififiers to modify [member duration_in_seconds].
+@export var _duration_modifiers: Array[AttributeEffectModifier]:
+	set(_value):
+		_duration_modifiers = _value
+		_duration_modifiers.sort_custom(AttributeEffectModifier.sort)
+		_validate_and_assert(_duration_modifiers)
+
 @export_group("Callbacks")
 
 ## TODO
-@export var _callbacks: Array[AttributeEffectCallback]
+@export var _callbacks: Array[AttributeEffectCallback]:
+	set(_value):
+		_callbacks = _value
+		for callback: AttributeEffectCallback in _callbacks:
+			if callback != null:
+				callback._validate_and_assert(self)
 
 var _callbacks_by_function: Dictionary = {}
 
@@ -186,6 +191,12 @@ func _validate_property(property: Dictionary) -> void:
 		return
 
 
+func _validate_and_assert(modifiers: Array[AttributeEffectModifier]) -> void:
+	for modifier: AttributeEffectModifier in modifiers:
+		if modifier != null:
+			modifier._validate_and_assert(self)
+
+
 ## Helper method for _validate_property.
 func _no_editor(property: Dictionary) -> void:
 	property.usage = PROPERTY_USAGE_NO_EDITOR
@@ -207,9 +218,12 @@ func add_duration_modifier(modifier: AttributeEffectModifier) -> bool:
 
 ## TODO
 func _add_modifier(modifier: AttributeEffectModifier, array: Array[AttributeEffectModifier]) -> bool:
-	if !modifier.duplicate_instances:
-		if array.has(modifier):
-			return false
+	assert(modifier != null, "modifier is null")
+	if OS.is_debug_build():
+		modifier.validate_and_assert(self)
+	
+	if !modifier.duplicate_instances && array.has(modifier):
+		return false
 	
 	var insert_index: int = 0
 	for index: int in array.size():
@@ -272,12 +286,47 @@ func get_duration_modifiers() -> Array[AttributeEffectModifier]:
 	return _duration_modifiers.duplicate(false)
 
 
-## Shorthand function to create an [AttributeEffectSpec] for this [AttributeEffect].
-func to_spec() -> AttributeEffectSpec:
-	return AttributeEffectSpec.new(self)
+## Returns the [member value] after applying all value [AttributeEffectModifier]s to it.
+func get_modified_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
+	assert(spec._effect == self, "spec._effect (%s) != self" % spec._effect)
+	return _get_modified(value, attribute, spec, _value_modifiers)
 
 
-func _get_modified_value(to_modify: float, attribute: Attribute, spec: AttributeEffectSpec, 
+## Applies the [member value_calc_type] to [param attribute_value] and
+## [param effect_value], returning the result.
+func apply_calc_type(attribute_value: float, effect_value: float) -> float:
+	match value_cacl_type:
+		ValueCalcType.ADD_TO:
+			return attribute_value + effect_value
+		ValueCalcType.SUBTRACT_FROM:
+			return attribute_value - effect_value
+		ValueCalcType.MULTIPLY_BY:
+			return attribute_value * effect_value
+		ValueCalcType.DIVIDE_BY:
+			return attribute_value / effect_value
+		ValueCalcType.OVERRIDE:
+			return effect_value
+		_:
+			assert(false, "no calculation written for ValueCalcType=%s" % value_cacl_type)
+			return attribute_value
+
+
+## Returns the [member period_in_seconds] after applying all period [AttributeEffectModifier]s to it.
+func get_modified_next_period(attribute: Attribute, spec: AttributeEffectSpec) -> float:
+	assert(spec._effect == self, "spec._effect (%s) != self" % spec._effect)
+	assert(duration_type != DurationType.INSTANT, "duration_type == INSTANT, there is no period")
+	return _get_modified(period_in_seconds, attribute, spec, _period_modifiers)
+
+
+## Returns the [member duration_in_seconds] after applying all duration [AttributeEffectModifier]s to it.
+func get_modified_duration(attribute: Attribute, spec: AttributeEffectSpec) -> float:
+	assert(spec._effect == self, "spec._effect (%s) != self" % spec._effect)
+	assert(duration_type == DurationType.HAS_DURATION, "duration_type != HAS_DURATION")
+	return _get_modified(duration_in_seconds, attribute, spec, _duration_modifiers)
+
+
+## Helper function for the above functions
+func _get_modified(to_modify: float, attribute: Attribute, spec: AttributeEffectSpec, 
 modifiers: Array[AttributeEffectModifier]) -> float:
 	var modified: float = to_modify
 	for modifier: AttributeEffectModifier in _value_modifiers:
@@ -287,53 +336,9 @@ modifiers: Array[AttributeEffectModifier]) -> float:
 	return modified
 
 
-## Calculates & returns the new value to assign to [param attribute]'s 
-## [member Attribute.value], but does NOT assign the property itself.[br]
-## Default implementation first uses the [AttributeEffectModifier]s to modify [member value]
-## then uses the [member value_calc_type] to calculate the returned float.[br]
-## The returned value should NOT take stacking into account.
-func calculate_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	assert(spec._effect == self, "spec._effect (%s) != self" % spec._effect)
-	
-	var modified_value: float = _get_modified_value(value, attribute, spec, 
-	_value_modifiers)
-	
-	match value_cacl_type:
-		ValueCalcType.ADD_TO:
-			return attribute.value + modified_value
-		ValueCalcType.SUBTRACT_FROM:
-			return attribute.value - modified_value
-		ValueCalcType.MULTIPLY_BY:
-			return attribute.value * modified_value
-		ValueCalcType.DIVIDE_BY:
-			return attribute.value / modified_value
-		ValueCalcType.OVERRIDE:
-			return modified_value
-		_:
-			assert(false, "no calculation written for ValueCalcType=%s" % value_cacl_type)
-			return attribute.value
-
-
-## Calculates & returns the next period to be used right after this effect represented 
-## as [param spec] was triggered on [param attribute]. Does NOT set
-## [member AttributeEffectSpec.remaining_period].[br]
-## Default implementation uses [member period_in_seconds] and runs it through every
-## [AttributeEffectModifier] in [member modifiers].[br]
-## The returned value should NOT take stacking into account.
-func calculate_next_period(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	assert(duration_type != DurationType.INSTANT, "duration_type == INSTANT, there is no period")
-	return _get_modified_value(period_in_seconds, attribute, spec, _period_modifiers)
-
-
-## Calculates & returns the starting duration to be used right after this effect represented 
-## as [param spec] was added to an [param attribute], or when a stack was increased.
-## Should NOT modify [param spec] in any way.[br]
-## Default implementation uses [member duration_in_seconds] and runs it through every
-## [AttributeEffectModifier] in [member modifiers].[br]
-## The returned value should NOT take stacking into account.
-func calculate_starting_duration(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	assert(duration_type == DurationType.HAS_DURATION, "duration_type != HAS_DURATION")
-	return _get_modified_value(duration_in_seconds, attribute, spec, _duration_modifiers)
+## Shorthand function to create an [AttributeEffectSpec] for this [AttributeEffect].
+func to_spec() -> AttributeEffectSpec:
+	return AttributeEffectSpec.new(self)
 
 
 func _to_string() -> String:

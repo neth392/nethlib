@@ -59,6 +59,9 @@ signal effect_apply_blocked(spec: AttributeEffectSpec)
 ## or due to expiration, see [method AttributeEffectSpec.expired].
 signal effect_removed(spec: AttributeEffectSpec)
 
+## Emitted when the [param spec] had its stack count changed.
+signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_count: int)
+
 ## The ID of the attribute.
 @export var id: StringName:
 	set(_value):
@@ -71,7 +74,7 @@ signal effect_removed(spec: AttributeEffectSpec)
 		var old_value: float = value
 		value = _validate_value(_value)
 		
-		if old_value != value && !Engine.is_editor_hint():
+		if _emit_value_changed && old_value != value && !Engine.is_editor_hint():
 			value_changed.emit(old_value)
 		
 		_value_changed(old_value)
@@ -108,6 +111,9 @@ var _effects_range: Array = [0]
 ## Dictionary of in the format of [member AttributeEffect.id] : int count of all 
 ## applied [AttributeEffectSpec]s with that effect.
 var _effect_counts: Dictionary = {}
+
+## Internal flag used to mark if [signal value_changed] should be emitted or not.
+var _emit_value_changed: bool = true
 
 func _enter_tree() -> void:
 	range()
@@ -156,9 +162,9 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 
 func _process_effects(delta: float, current_frame: int) -> void:
-	var override: bool = false
-	var override_value: float = 0.0
-	var override_effect: AttributeEffectSpec
+	var previous_value: float = value
+	var emit_applied: Array[AttributeEffectSpec] = []
+	_emit_value_changed = false
 	
 	# Reverse iteration of _effects for safe & efficient removal during iteration.
 	for index: int in _effects_range:
@@ -212,8 +218,11 @@ func _process_effects(delta: float, current_frame: int) -> void:
 			_remove_effect_spec_at_index(spec, index)
 			pass
 	
-	if override:
-		value = override_value
+	_emit_value_changed = true
+	if previous_value != value:
+		value_changed.emit(previous_value)
+	for effect: AttributeEffectSpec in emit_applied:
+		effect_applied.emit(effect)
 
 
 ## Called by the setter of [member value] with [param set_value] (what was manually

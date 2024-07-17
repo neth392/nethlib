@@ -31,9 +31,3 @@ func _pre_remove(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 		attribute.get_container().remove_tags(tags)
 	elif error_on_no_container:
 		assert(false, "no container for attribute: %s" % attribute)
-
-
-## Called after the [param spec]'s stack count has changed. [param previous_stack_count] was
-## the previous count before the change.
-func _stack_changed(attribute: Attribute, spec: AttributeEffectSpec, previous_stack_count: int) -> void:
-	pass

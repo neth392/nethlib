@@ -18,6 +18,7 @@ enum Mode {
 ## The mode of this condition, see [enum AttributeEffecctTagCondition.Mode].
 @export var mode: Mode
 
+
 func _meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 	assert(attribute != null, "attribute is null")
 	var container: AttributeContainer = attribute.get_container()

@@ -30,6 +30,7 @@ enum Mode {
 ## The mode of this condition, see [enum Mode].
 @export var mode: Mode
 
+
 func _meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 	assert(attribute != null, "attribute is null")
 	if groups.is_empty():
