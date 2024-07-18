@@ -1,21 +1,20 @@
-## Callback that adds tags to an [Attribute]'s [AttributeContainer] for the
-## duration of the effect. Does nothing if the effect is instant.
+## Callback that adds tags to an [Attribute]'s [AttributeContainer] when it is added,
+## and if configured (and the effect is not instant) removes the tags afterwards.
 class_name TagApplierCallback extends AttributeEffectCallback
 
 ## The tags to be added for the duration of the [AttributeEffect].
 @export var tags: Array[StringName]
+
+## Whether or not the tags should be removed afterwards.
+@export var remove_after: bool = true
 
 @export_group("Debug Errors")
 
 ## If true and [function Attribute.get_container] is null, a debug error will be thrown.
 @export var error_on_no_container: bool = false
 
-## If true and [AttributeEffectSpec] is instant, a debug error will be thrown.
-@export var error_on_instant: bool = false
 
 func _pre_add(attribute: Attribute, spec: AttributeEffectSpec) -> void:
-	if error_on_instant:
-		assert(!spec.is_instant(), "AttributeEffectSpec is instant")
 	var container: AttributeContainer = attribute.get_container()
 	if container != null:
 		attribute.get_container().add_tags(tags)
@@ -24,8 +23,8 @@ func _pre_add(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 
 
 func _pre_remove(attribute: Attribute, spec: AttributeEffectSpec) -> void:
-	if error_on_instant:
-		assert(!spec.is_instant(), "AttributeEffectSpec is instant")
+	if !remove_after:
+		return
 	var container: AttributeContainer = attribute.get_container()
 	if container != null:
 		attribute.get_container().remove_tags(tags)
