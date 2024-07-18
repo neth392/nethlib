@@ -2,6 +2,12 @@
 @tool
 class_name AttributeEffect extends Resource
 
+enum AffectedValue {
+	## Changes are made permanently to the [member base_value].
+	BASE_VALUE,
+	CURRENT_VALUE
+}
+
 ## Short for CalculationType; determines the calculations used when applying
 ## this [AttributeEffect]'s properties to an [Attribute].
 enum ValueCalcType {
@@ -50,6 +56,11 @@ enum DurationType {
 
 ## The direct effect to [member Attribute.value]
 @export var value: float
+
+## If true, this effect permanently changes the [member Attribute.value] property,
+## if false it is just considered in calculations in [method Attribute.get_current_value].
+## TODO write this better
+@export var permanent_change: bool = false
 
 ## The [enum CalcType] that determines how the [member value] is applied to 
 ## [member Attribute.value].

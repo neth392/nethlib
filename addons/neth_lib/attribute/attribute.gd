@@ -28,9 +28,11 @@ enum ProcessFunction {
 ## Value Signals ##
 ###################
 
-## Emitted when the attribute value changes. [param old_value] is the value prior to the change.
+## Emitted when the value returned by [method get_current_value] changes.
 signal value_changed(old_value: float)
 
+## Emitted when [member base_value] changes.
+signal base_value_changed(old_base_value: float)
 
 ####################
 ## Effect Signals ##
@@ -69,15 +71,15 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 		update_configuration_warnings()
 
 ## The attribute value.
-@export var value: float:
-	set(_value):
-		var old_value: float = value
-		value = _validate_value(_value)
+@export var base_value: float:
+	set(value):
+		var old_base_value: float = base_value
+		base_value = _validate_base_value(value)
 		
-		if _emit_value_changed && old_value != value && !Engine.is_editor_hint():
-			value_changed.emit(old_value)
+		if _emit_value_changed && old_base_value != base_value && !Engine.is_editor_hint():
+			base_value_changed.emit(old_base_value)
 		
-		_value_changed(old_value)
+		_base_value_changed(old_base_value)
 		
 		update_configuration_warnings()
 		return true
@@ -232,18 +234,18 @@ func _process_effects(delta: float, current_frame: int) -> void:
 		effect_applied.emit(spec)
 
 
-## Called by the setter of [member value] with [param set_value] (what was manually
-## set to [member value]). If the value fails any constraints it can be modified and
-## returned, otherwise just return [param set_value].[br]
+## Called by the setter of [member base_value] with [param set_base_value] (what was manually
+## set to [member base_value]). If the value fails any constraints it can be modified and
+## returned, otherwise just return [param set_base_value].[br]
 ## Can also be used to emit events as this is [b]only[/b] called in the setter of 
-## [member value].
-func _validate_value(set_value: float) -> float:
-	return set_value
+## [member set_base_value].
+func _validate_base_value(set_base_value: float) -> float:
+	return set_base_value
 
 
-## Called in the setter of [member value] after the new value has been set &
-## after [signal value_changed] has been admitted.
-func _value_changed(old_value: float) -> void:
+## Called in the setter of [member base_value] after it has been set &
+## after [signal emit_value_changed] has been admitted.
+func _base_value_changed(old_value: float) -> void:
 	pass
 
 
@@ -251,6 +253,12 @@ func _value_changed(old_value: float) -> void:
 ## is no container (which shouldn't happen with proper [Node] management).
 func get_container() -> AttributeContainer:
 	return _container.get_ref() as AttributeContainer
+
+
+## Returns the current value, which is the accumulate of the [member base_value]
+## 
+func get_current_value() -> float:
+	pass
 
 
 ## Adds & applies the [param spec], returning true if it was successfully
