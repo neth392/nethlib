@@ -16,8 +16,8 @@ var remaining_duration: float:
 ## delay.
 var remaining_period: float = 0.0
 
-## The current duration of how long this effect has been active
-var _current_duration: float
+## The amount of time, in seconds, of how long this effect has been active
+var _passed_duration: float
 
 ## The effect this [AttributeEffectSpec] was created for.
 var _effect: AttributeEffect
@@ -46,11 +46,14 @@ var _last_process_frame: int = -1
 ## has not yet been applied.
 var _last_apply_frame: int = -1
 
-## 
+## The last value that was set to [member Attribute.value] based on the
+## [enum AttributeEffect.ValueCalcType].
 var _last_set_value: float
 
-## The value that was last applied.
-var _last_applied_value: float
+## The value that was last derived from [method AttributeEffect.get_modified_value].
+## This does NOT take into account the [enum AttributeEffect.ValueCalcType] of the
+## effect.
+var _last_value: float
 
 ## Whether or not this spec expired.
 var _expired: bool = false
@@ -110,15 +113,17 @@ func has_applied() -> bool:
 	return _last_apply_frame > -1
 
 
-## The value that was last applied to the [Attribute].
-func get_last_applied_value() -> float:
-	return _last_applied_value
+## Returns the last value that was directly set to [member Attribute.value] based 
+## on [method get_last_value] and the effect's [enum AttributeEffect.ValueCalcType].
+func get_last_set_value() -> float:
+	return _last_set_value
 
 
-## Returns true if [member effect] has a [member AttributeEffect.value_calc_type]
-## equal to [enum AttributeEffect.ValueCalcType.OVERRIDE]
-func is_override() -> bool:
-	return _effect.value_cacl_type == AttributeEffect.ValueCalcType.OVERRIDE
+## Returns the value that was last derived from [method AttributeEffect.get_modified_value].
+## This does NOT take into account the [enum AttributeEffect.ValueCalcType] of the
+## effect.
+func get_last_value() -> float:
+	return _last_value
 
 
 ## If currently blocked, returns the [AttributeEffectCondition] that blocked this spec.
@@ -127,9 +132,14 @@ func get_blocked_by() -> AttributeEffectCondition:
 	return _blocked_by
 
 
-## Returns the total current duration of how long, in seconds, this effect has been active.
-func get_current_duration() -> float:
-	return _current_duration
+## Returns the amount of time, in seconds, this effect has been active for.
+func get_passed_duration() -> float:
+	return _passed_duration
+
+
+## Returns the total expected duration (passed + remaining) in seconds.
+func get_total_duration() -> float:
+	return _passed_duration + remaining_duration
 
 
 ## Amount of times this [AttributeEffectSpec] was applied to an [Attribute].
@@ -139,10 +149,11 @@ func get_apply_count() -> int:
 
 ## Returns true if the effect expired due to duration, false if not. Can be useful
 ## to see if this spec was manually removed from an [Attribute] or if it expired.
-func expired() -> bool:
-	return _expired
+func is_expired() -> bool:
+	return !is_instant() && _expired
 
 
+## If this effect is stackable.
 func is_stackable() -> bool:
 	return _effect.stack_mode == AttributeEffect.StackMode.COMBINE
 
@@ -153,7 +164,9 @@ func get_stack_count() -> int:
 	return _stack_count
 
 
-func add_to_stack(attribute: Attribute, amount: int = 1) -> void:
+## Adds [param amount] to the effect stack. This effect must be stackable
+## (see [method is_stackable]) and [param amount] must be > 0.
+func _add_to_stack(attribute: Attribute, amount: int = 1) -> void:
 	assert(is_stackable(), "_effect (%s) not stackable" % _effect)
 	assert(amount > 0, "amount(%s) <= 0" % amount)
 	
@@ -163,7 +176,10 @@ func add_to_stack(attribute: Attribute, amount: int = 1) -> void:
 	attribute.effect_stack_count_changed.emit(self, previous_stack_count)
 
 
-func remove_from_stack(attribute: Attribute, amount: int = 1) -> void:
+## Removes [param amount] from the effect stack. This effect must be stackable
+## (see [method is_stackable]), [param amount] must be > 0, and 
+## [method get_stack_count] - [param amount] must be > 0.
+func _remove_from_stack(attribute: Attribute, amount: int = 1) -> void:
 	assert(is_stackable(), "_effect (%s) not stackable" % _effect)
 	assert(amount > 0, "amount(%s) <= 0" % amount)
 	assert(_stack_count - amount > 0, "amount(%s) - _stack_count(%s) <= 0"\

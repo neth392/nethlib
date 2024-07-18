@@ -1,3 +1,5 @@
+## Causes immediate changes to the remaining duration of an [AttributeEffectSpec]
+## when the stack value is changed.
 @tool
 class_name StackDurationCallback extends AttributeEffectCallback
 
@@ -6,15 +8,15 @@ class_name StackDurationCallback extends AttributeEffectCallback
 enum Mode {
 	## Does nothing on stacking.
 	IGNORE,
-	## Resets the duration to [method AttributeEffect.calculate_starting_duration] regardless
+	## Resets the duration to [method AttributeEffect.get_modified_duration] regardless
 	## of the change in stack count.
 	RESET,
 	## Determines the difference between the old stack count & new stack count,
-	## then muliplities that by [method AttributeEffect.calculate_starting_duration] and
+	## then muliplities that by [method AttributeEffect.get_modified_duration] and
 	## ADDS it to the remaining duration.
 	ADD,
 	## Determines the difference between the old stack count & new stack count,
-	## then muliplities that by [method AttributeEffect.calculate_starting_duration] and
+	## then muliplities that by [method AttributeEffect.get_modified_duration] and
 	## SUBTRACTS it to the remaining duration.
 	SUBTRACT,
 }
@@ -53,18 +55,20 @@ func _stack_changed(attribute: Attribute, spec: AttributeEffectSpec, previous_st
 
 
 func _reset(attribute: Attribute, spec: AttributeEffectSpec) -> void:
-	var duration: float = spec._effect._calculate_starting_duration(attribute, spec)
+	var duration: float = spec._effect.get_modified_duration(attribute, spec)
 	spec._starting_duration = duration
 	spec.remaining_duration = duration
 
 
 func _add(attribute: Attribute, spec: AttributeEffectSpec, amount: int) -> void:
-	var duration: float = amount * spec._effect.calculate_starting_duration(attribute, spec)
+	var duplicate: AttributeEffectSpec = spec.duplicate(false)
+	spec._stack_count = amount
+	var duration: float = amount * spec._effect.get_modified_duration(attribute, spec)
 	spec._starting_duration += duration
 	spec.remaining_duration += duration
 
 
 func _subtract(attribute: Attribute, spec: AttributeEffectSpec, amount: int) -> void:
-	var duration: float = amount * spec._effect.calculate_starting_duration(attribute, spec)
+	var duration: float = amount * spec._effect.get_modified_duration(attribute, spec)
 	spec._starting_duration -= duration
 	spec.remaining_duration -= duration

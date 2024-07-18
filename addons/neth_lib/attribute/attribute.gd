@@ -188,11 +188,11 @@ func _process_effects(delta: float, current_frame: int) -> void:
 		# Duration Calculations
 		if spec.has_duration():
 			spec.remaining_duration -= delta
+			spec._passed_duration += delta
 			# Spec expired, remove it.
 			if spec.remaining_duration <= 0.0:
 				# Adjust remaining period as well
 				spec.remaining_period -= delta
-				spec.remaining_duration = 0.0
 				spec._expired = true
 				_remove_effect_spec_at_index(spec, index)
 				continue
@@ -203,26 +203,33 @@ func _process_effects(delta: float, current_frame: int) -> void:
 		if spec.remaining_period > 0.0:
 			continue
 		
-		spec.remaining_period += spec.calculate
+		# Add period
+		spec.remaining_period += spec._effect.get_modified_period(self, spec)
 		
+		# Check if can apply
 		var apply_block: AttributeEffectCondition = spec.can_apply(self)
 		if apply_block != null:
+			# Can't apply
 			spec._blocked_by = apply_block
 			if apply_block.emit_apply_blocked_signal:
 				effect_apply_blocked.emit(spec)
 			continue
 		
-			# DO ACTIVATE
-		
-		if !spec.process(self, delta, current_frame):
-			_remove_effect_spec_at_index(spec, index)
-			pass
+		# Apply efffect
+		spec._last_apply_frame = current_frame
+		spec._apply_count += 1
+		spec._last_value = spec._effect.get_modified_value(self, spec)
+		value = spec._effect.apply_calc_type(value, spec._last_value)
+		spec._last_set_value = value
+		# Add to emit list if it should be emitted
+		if spec._effect.emit_applied_signal:
+			emit_applied.append(spec)
 	
 	_emit_value_changed = true
 	if previous_value != value:
 		value_changed.emit(previous_value)
-	for effect: AttributeEffectSpec in emit_applied:
-		effect_applied.emit(effect)
+	for spec: AttributeEffectSpec in emit_applied:
+		effect_applied.emit(spec)
 
 
 ## Called by the setter of [member value] with [param set_value] (what was manually
@@ -256,8 +263,9 @@ func add_effect_spec(spec: AttributeEffectSpec) -> bool:
 	% spec._effect)
 	# Assert spec not already applied elsewhere
 	assert(!spec.is_applied(), "spec (%s) already applied to an Attribute" % spec)
+	assert(spec.is_expired(), "spec (%s) already expired" % spec)
 	
-	if spec.get_effect().duration_type == AttributeEffect.DurationType.INSTANT:
+	if spec.is_instant():
 		var blocking_condition: AttributeEffectCondition = spec.get_effect().can_apply(self)
 		if blocking_condition != null:
 			spec._last_denied_by = blocking_condition

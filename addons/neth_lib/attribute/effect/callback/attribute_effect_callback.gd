@@ -57,13 +57,23 @@ static func _set_functions(callback: AttributeEffectCallback):
 	callback._functions.assign(definite.keys())
 
 var _functions_set: bool = false
-# Internal cache of what is overridden
+# Internal cache of what functions are overridden
 var _functions: Array[_Function] = []
 
 
 ## Editor tool function that is called when this callback is added to [param effect].
 ## A good place to write assertions.
 func _validate_and_assert(effect: AttributeEffect) -> void:
+	pass
+
+## Called when this callback is added to the [param effect].
+
+func _added_to_effect(effect: AttributeEffect) -> void:
+	pass
+
+
+## Called when this callback is removed from the [param effect].
+func _removed_from_effect(effect: AttributeEffect) -> void:
 	pass
 
 
