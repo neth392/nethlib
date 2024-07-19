@@ -2,28 +2,6 @@
 @tool
 class_name AttributeEffect extends Resource
 
-enum AffectedValue {
-	## Changes are made permanently to the [member base_value].
-	BASE_VALUE,
-	CURRENT_VALUE
-}
-
-## Short for CalculationType; determines the calculations used when applying
-## this [AttributeEffect]'s properties to an [Attribute].
-enum ValueCalcType {
-	## Adds [member value] to [member Attribute.value] when applied.
-	ADD_TO,
-	## Subtracts the [member value] from [member Attribute.value] when applied.
-	SUBTRACT_FROM,
-	## Multiplies [member Attribute.value] by [member value] when applied.
-	MULTIPLY_BY,
-	## Divides [member Attribute.value] by [member value] when applied.
-	DIVIDE_BY,
-	## Sets the value of [member Attribute.value] to [member value]. Keep in mind
-	## the [member priority] when using this calculation type.
-	OVERRIDE,
-}
-
 ## Determines how this effect can be stacked on an [Attribute], if at all.
 enum StackMode {
 	## Stacking is not allowed and an assertion will be called
@@ -57,20 +35,13 @@ enum DurationType {
 ## The direct effect to [member Attribute.value]
 @export var value: float
 
-## If true, this effect permanently changes the [member Attribute.value] property,
-## if false it is just considered in calculations in [method Attribute.get_current_value].
-## TODO write this better
-@export var permanent_change: bool = false
-
-## The [enum CalcType] that determines how the [member value] is applied to 
-## [member Attribute.value].
-@export var value_cacl_type: ValueCalcType:
-	set(_value):
-		value_cacl_type = _value
-		notify_property_list_changed()
+## Determines how [member value] is applied to an [Attribute].
+@export var value_applicator: AttributeEffectApplicator
 
 ## The priority to be used to determine the order of execution of [AttributeEffect]s
-## on an [Attribute]. Greater priorities will be executed first.
+## on an [Attribute]. Greater priorities will be executed first. So if you want an
+## effect to override a value on an attribute and not be modified by any other attributes,
+## it is important to make this priority lower than other effects that can be applied.
 @export var priority: int = 0
 
 ## If true, [signal Attribute.effect_added] will be emitted every time an

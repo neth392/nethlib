@@ -76,7 +76,7 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 		var old_base_value: float = base_value
 		base_value = _validate_base_value(value)
 		
-		if _emit_value_changed && old_base_value != base_value && !Engine.is_editor_hint():
+		if _emit_base_value_changed && old_base_value != base_value && !Engine.is_editor_hint():
 			base_value_changed.emit(old_base_value)
 		
 		_base_value_changed(old_base_value)
@@ -114,11 +114,12 @@ var _effects_range: Array = [0]
 ## applied [AttributeEffectSpec]s with that effect.
 var _effect_counts: Dictionary = {}
 
-## Internal flag used to mark if [signal value_changed] should be emitted or not.
-var _emit_value_changed: bool = true
+## Internal flag used to mark if [signal base_value_changed] should be emitted or not.
+var _emit_base_value_changed: bool = true
+
+var _current_value: float
 
 func _enter_tree() -> void:
-	range()
 	if Engine.is_editor_hint():
 		return
 	assert(get_parent() is AttributeContainer, "parent not of type AttributeContainer")
@@ -164,10 +165,11 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 
 func _process_effects(delta: float, current_frame: int) -> void:
-	var previous_value: float = value
+	var previous_base_value: float = base_value
 	var emit_applied: Array[AttributeEffectSpec] = []
-	_emit_value_changed = false
+	_emit_base_value_changed = false
 	
+	var update_range: bool = false
 	# Reverse iteration of _effects for safe & efficient removal during iteration.
 	for index: int in _effects_range:
 		var spec: AttributeEffectSpec = _effects[index]
@@ -197,6 +199,7 @@ func _process_effects(delta: float, current_frame: int) -> void:
 				spec.remaining_period -= delta
 				spec._expired = true
 				_remove_effect_spec_at_index(spec, index)
+				update_range = true
 				continue
 		
 		# Period Calculations
@@ -227,9 +230,12 @@ func _process_effects(delta: float, current_frame: int) -> void:
 		if spec._effect.emit_applied_signal:
 			emit_applied.append(spec)
 	
-	_emit_value_changed = true
-	if previous_value != value:
-		value_changed.emit(previous_value)
+	if update_range:
+		_update_effects_range()
+	
+	_emit_base_value_changed = true
+	if previous_base_value != base_value:
+		base_value_changed.emit(previous_base_value)
 	for spec: AttributeEffectSpec in emit_applied:
 		effect_applied.emit(spec)
 
@@ -316,6 +322,7 @@ func remove_effect_spec(spec: AttributeEffectSpec) -> bool:
 	spec._is_active = false
 	spec._expired = false
 	_remove_effect_spec_at_index(spec, index)
+	_update_effects_range()
 	return true
 
 
