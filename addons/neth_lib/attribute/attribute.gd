@@ -170,6 +170,7 @@ func _process_effects(delta: float, current_frame: int) -> void:
 	_emit_base_value_changed = false
 	
 	var update_range: bool = false
+	
 	# Reverse iteration of _effects for safe & efficient removal during iteration.
 	for index: int in _effects_range:
 		var spec: AttributeEffectSpec = _effects[index]
