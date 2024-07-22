@@ -2,13 +2,26 @@
 @tool
 class_name AttributeEffect extends Resource
 
+static func sort_ascending(a: AttributeEffect, b: AttributeEffect) -> bool:
+	if a.type != b.type:
+		return a.type != Type.PERMANENT
+	return a.priority < b.priority
+
+## The type of effect.
+enum Type {
+	## Makes permanent changes to the [member Attribute.base_value].
+	PERMANENT,
+	## Makes temporary changes to the value returned by [method Attribute.get_current_value].
+	TEMPORARY,
+}
+
 ## Determines how this effect can be stacked on an [Attribute], if at all.
 enum StackMode {
+	## Stacking is not allowed.
+	DENY,
 	## Stacking is not allowed and an assertion will be called
 	## if there is an attempt to stack this effect on an [Attribute].
 	DENY_ERROR,
-	## Stacking is not allowed.
-	DENY,
 	## Attribute effects are seperate, a new [AppliedAttributeEffect] is created
 	## for every instance added to an [Attribute].
 	SEPERATE,
@@ -18,31 +31,45 @@ enum StackMode {
 
 ## Determines how the effect is applied time-wise.
 enum DurationType {
-	## The effect is immediately applied to an [Attribute] and does not remain
-	## stored on it.
-	INSTANT,
 	## The effect is applied to an [Attribute] and remains until it is explicitly
 	## removed.
 	INFINITE,
 	## The effect is applied to an [Attribute] and is removed automatically
 	## after [member duration_seconds].
 	HAS_DURATION,
+	## The effect is immediately applied to an [Attribute] and does not remain
+	## stored on it.
+	INSTANT,
 }
 
 ## The ID of this attribute effect.
 @export var id: StringName
 
+## The type of effect, see [enum AttributeEffect.Type]
+@export var type: Type = Type.PERMANENT:
+	set(_value):
+		type = _value
+		if type == Type.TEMPORARY:
+			# INSTANT not compatible with TEMPORARY
+			if duration_type == DurationType.INSTANT:
+				duration_type = DurationType.INFINITE
+		notify_property_list_changed()
+
 ## The direct effect to [member Attribute.value]
 @export var value: float
 
-## Determines how [member value] is applied to an [Attribute].
+## Determines how the effect is applied to an [Attribute] (i.e. added, multiplied, etc).
 @export var value_applicator: AttributeEffectApplicator
 
 ## The priority to be used to determine the order of execution of [AttributeEffect]s
 ## on an [Attribute]. Greater priorities will be executed first. So if you want an
 ## effect to override a value on an attribute and not be modified by any other attributes,
 ## it is important to make this priority lower than other effects that can be applied.
+## [br]NOTE: Effects of [enum Type.PERMANENT] are processed BEFORE ALL effects of 
+## [enum Type.TEMPORARY].
 @export var priority: int = 0
+
+@export_group("Signals")
 
 ## If true, [signal Attribute.effect_added] will be emitted every time an
 ## [AttributeEffectSpec] of this effect is added to an [Attribute].
@@ -50,20 +77,25 @@ enum DurationType {
 
 ## If true, [signal Attribute.effect_applied] will be emitted every time an
 ## [AttributeEffectSpec] of this effect is successfully applied on an [Attribute].
+## [br]NOTE: ONLY AVAILABLE FOR [enum Type.PERMANENT].
 @export var emit_applied_signal: bool = false
 
-@export_group("Duration & Period")
+## If true, [signal Attribute.effect_removed] will be emitted every time an
+## [AttributeEffectSpec] of this effect is removed from an [Attribute].
+@export var emit_removed_signal: bool = false
+
+@export_group("Duration")
 
 ## How long the effect lasts.
-@export var duration_type: DurationType = DurationType.INSTANT:
+@export var duration_type: DurationType:
 	set(_value):
+		if type == Type.TEMPORARY && _value == DurationType.INSTANT:
+			duration_type = DurationType.INFINITE
+			return
 		duration_type = _value
-		if duration_type != DurationType.HAS_DURATION:
-			duration_in_seconds = 0.0
-			if duration_type == DurationType.INSTANT:
-				if stack_mode != StackMode.DENY && stack_mode != StackMode.DENY_ERROR:
-					stack_mode = StackMode.DENY
-				period_in_seconds = 0.0
+		if duration_type == DurationType.INSTANT:
+			if stack_mode != StackMode.DENY && stack_mode != StackMode.DENY_ERROR:
+				stack_mode = StackMode.DENY
 		notify_property_list_changed()
 
 ## The amount of time in seconds this [AttributeEffect] lasts.
@@ -72,8 +104,11 @@ enum DurationType {
 		duration_in_seconds = max(0.0, _value)
 		notify_property_list_changed()
 
-## Amount of time, in seconds, between when this effect is applied to an [Attribute].[br]
-## A zero value means every frame.
+@export_group("Period")
+
+## Amount of time, in seconds, between when this effect is applied to an [Attribute].
+## [br]Zero or less means every frame.
+## [br]NOTE: ONLY AVAILABLE FOR [enum Type.PERMANENT].
 @export var period_in_seconds: float = 0.0:
 	set(_value):
 		period_in_seconds = max(0.0, _value)
@@ -83,6 +118,9 @@ enum DurationType {
 ## The [StackMode] to use when duplicate [AttributeEffect]s are found.
 @export var stack_mode: StackMode:
 	set(_value):
+		if duration_type == DurationType.INSTANT && _value == StackMode.COMBINE:
+			stack_mode = StackMode.DENY
+			return
 		stack_mode = _value
 		notify_property_list_changed()
 
@@ -93,12 +131,14 @@ enum DurationType {
 @export var add_conditions: Array[AttributeEffectCondition]
 
 ## All [AttributeEffectCondition]s that must be met for this effect to be
-## applied to an [Attribute]. This array can safely be directly modified or set.
+## applied to an [Attribute]. This array can safely be directly modified or set.[br]
+## [br]NOTE: Only for [enum Type.PERMANENT] effects.
 @export var apply_conditions: Array[AttributeEffectCondition]
 
 ## All [AttributeEffectCondition]s that must be met for this effect to be
 ## processed (duration, period, etc) on an [Attribute]. This array can 
 ## safely be directly modified or set.
+## [br]NOTE: Only for [enum Type.PERMANENT] effects.
 @export var process_conditions: Array[AttributeEffectCondition]
 
 @export_group("Modifiers")
@@ -111,6 +151,7 @@ enum DurationType {
 		_validate_and_assert(_value_modifiers)
 
 ## Modififiers to modify [member period_in_seconds].
+## NOTE: Only for [enum Type.PERMANENT] effects.
 @export var _period_modifiers: Array[AttributeEffectModifier]:
 	set(_value):
 		_period_modifiers = _value
@@ -126,7 +167,8 @@ enum DurationType {
 
 @export_group("Callbacks")
 
-## TODO
+## List of [AttributeEffectCallback]s to extend the functionality of this effect
+## further than modifying the value of an [Attribute].
 @export var _callbacks: Array[AttributeEffectCallback]
 
 var _callbacks_by_function: Dictionary = {}
@@ -158,13 +200,23 @@ func _init(_id: StringName = "") -> void:
 
 
 func _validate_property(property: Dictionary) -> void:
+	if property.name == "emit_applied_signal":
+		if type != Type.PERMANENT:
+			_no_editor(property)
+		return
+	
+	if property.name == "duration_type":
+		var exclude: Array = [] if type == Type.PERMANENT else [DurationType.INSTANT]
+		property.hint_string = _format_enum(DurationType, exclude)
+		return
+	
 	if property.name == "duration_in_seconds":
 		if duration_type != DurationType.HAS_DURATION:
 			_no_editor(property)
 		return
 	
 	if property.name == "period_in_seconds":
-		if duration_type == DurationType.INSTANT:
+		if type != Type.PERMANENT || duration_type == DurationType.INSTANT:
 			_no_editor(property)
 		return
 	
@@ -172,6 +224,20 @@ func _validate_property(property: Dictionary) -> void:
 		if duration_type == DurationType.INSTANT:
 			_no_editor(property)
 		return
+	
+	if property.name == "apply_conditions" || property.name == "process_conditions":
+		if type != Type.PERMANENT:
+			_no_editor(property)
+		return
+	
+	if property.name == "_period_modifiers":
+		if duration_type == DurationType.INSTANT || type != Type.PERMANENT:
+			_no_editor(property)
+		return
+	
+	if property.name == "_duration_modifiers":
+		if duration_type == DurationType.INSTANT:
+			_no_editor(property)
 
 
 func _validate_and_assert(modifiers: Array[AttributeEffectModifier]) -> void:
@@ -183,6 +249,16 @@ func _validate_and_assert(modifiers: Array[AttributeEffectModifier]) -> void:
 ## Helper method for _validate_property.
 func _no_editor(property: Dictionary) -> void:
 	property.usage = PROPERTY_USAGE_NO_EDITOR
+
+
+func _format_enum(_enum: Dictionary, exclude: Array) -> String:
+	var hint_string: Array[String] = []
+	for name: String in _enum.keys():
+		var value: int = _enum[name]
+		if exclude.has(value):
+			continue
+		hint_string.append("%s:%s" % [name.to_camel_case().capitalize(), value])
+	return ",".join(hint_string)
 
 
 ## Adds the [param callback] from this effect. An assertion is in place to prevent
@@ -308,20 +384,8 @@ func modify_value(_value: float, attribute: Attribute, spec: AttributeEffectSpec
 ## Applies the [member value_calc_type] to [param attribute_value] and
 ## [param effect_value], returning the result.
 func apply_calc_type(attribute_value: float, effect_value: float) -> float:
-	match value_cacl_type:
-		ValueCalcType.ADD_TO:
-			return attribute_value + effect_value
-		ValueCalcType.SUBTRACT_FROM:
-			return attribute_value - effect_value
-		ValueCalcType.MULTIPLY_BY:
-			return attribute_value * effect_value
-		ValueCalcType.DIVIDE_BY:
-			return attribute_value / effect_value
-		ValueCalcType.OVERRIDE:
-			return effect_value
-		_:
-			assert(false, "no calculation written for ValueCalcType=%s" % value_cacl_type)
-			return attribute_value
+	# TODO
+	return 0.0
 
 
 ## Returns the [member period_in_seconds] after applying all period [AttributeEffectModifier]s to it.

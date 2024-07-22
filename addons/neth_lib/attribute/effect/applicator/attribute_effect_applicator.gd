@@ -11,6 +11,12 @@ func _validate_and_assert(effect: AttributeEffect) -> void:
 	pass
 
 
-## Applies the [param effect_value] to the [param attribute].
-func _apply(attribute: Attribute, effect_value: float) -> void:
-	assert(false, "_apply not implemented")
+## Must be overridden to return the value to be set to an [Attribute].
+## [br][param attribute_value] is the current value of the [Attribute], either 
+## [member Attribute.base_value] or [member Attribute._current_value], depending
+## on the [member AttributeEffect.type]
+## [br] [member effect_value] is the value derived from the [AttributeEffect].
+## [br]The returned value will be set in place of the current [param attribute_value].
+func _get_value_to_set(attribute_value: float, effect_value: float) -> float:
+	assert(false, "_get_value_to_set not implemented")
+	return 0.0
