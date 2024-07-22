@@ -1,7 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://uk88qvvbb8df"]
-
-[ext_resource type="Script" path="res://playground/general_testing.gd" id="1_eoet1"]
-
-[node name="GeneralTesting" type="Node"]
-script = ExtResource("1_eoet1")
-id = "test1"
