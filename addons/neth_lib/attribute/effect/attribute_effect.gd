@@ -144,6 +144,9 @@ enum DurationType {
 @export_group("Modifiers")
 
 ## Modififiers to modify [member value].
+## [br]NOTE: Be careful when using these with TEMPORARY effects. They are 
+## not called in a scheduled manner so it could result in unpredictable
+## values being set.
 @export var _value_modifiers: Array[AttributeEffectModifier]:
 	set(_value):
 		_value_modifiers = _value
