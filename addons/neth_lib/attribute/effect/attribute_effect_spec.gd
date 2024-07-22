@@ -68,6 +68,18 @@ func get_effect() -> AttributeEffect:
 	return _effect
 
 
+## Helper function returning true if the effect's type is 
+## [enum AttributeEffect.Type.PERMANENT], false if not.
+func is_permanent() -> bool:
+	return _effect.type == AttributeEffect.Type.PERMANENT
+
+
+## Helper function returning true if the effect's type is 
+## [enum AttributeEffect.Type.TEMPORARY], false if not.
+func is_temporary() -> bool:
+	return _effect.type == AttributeEffect.Type.TEMPORARY
+
+
 ## Shorthand function that returns true [method get_effect] has a 
 ## [member Attribute.duration_type] of [enum AttributeEffect.DurationType.INSTANT].
 func is_instant() -> bool:
@@ -195,6 +207,8 @@ func _remove_from_stack(attribute: Attribute, amount: int = 1) -> void:
 ## spec on [param attribute]. Returns the condition that is blocking it, or
 ## null if there is no blocking condition.
 func can_process(attribute: Attribute) -> AttributeEffectCondition:
+	if is_temporary():
+		return null
 	return _check_conditions(attribute, _effect._process_conditions)
 
 
@@ -209,6 +223,8 @@ func can_add(attribute: Attribute) -> AttributeEffectCondition:
 ## spec to the [param attribute]. Returns the condition that is blocking it, or
 ## null if there is no blocking condition.
 func can_apply(attribute: Attribute) -> AttributeEffectCondition:
+	if is_temporary():
+		return null
 	return _check_conditions(attribute, _effect._apply_conditions)
 
 
@@ -223,6 +239,8 @@ func _check_conditions(attribute: Attribute, conditions: Array[AttributeEffectCo
 ## Runs the callback [param _function] on all [AttributeEffectCallback] who have
 ## implemented that function.
 func _run_callbacks(_function: AttributeEffectCallback._Function, attribute: Attribute) -> void:
+	if !AttributeEffectCallback._can_run(_function, _effect):
+		return
 	var function_name: String = AttributeEffectCallback._functions_by_name[_function]
 	for callback: AttributeEffectCallback in _effect._callbacks_by_function.get(_function):
 		callback.call(function_name, attribute, self)

@@ -31,11 +31,15 @@ enum Mode {
 func _validate_and_assert(effect: AttributeEffect) -> void:
 	assert(effect.stack_mode == AttributeEffect.StackMode.COMBINE,
 	"stack_mode != COMBINE for effect: %s" % effect)
+	assert(effect.duration_type == AttributeEffect.DurationType.HAS_DURATION,
+	"duration_type != HAS_DURATION for effect: %s" % effect)
 	assert(increase_mode != Mode.IGNORE && decrease_mode != Mode.IGNORE,
 	"both increase_mode & decrease_mode are IGNORE; this callback does nothing")
 
 
 func _stack_changed(attribute: Attribute, spec: AttributeEffectSpec, previous_stack_count: int) -> void:
+	if spec.get_stack_count() == previous_stack_count:
+		return
 	var mode_to_use: Mode = decrease_mode if spec.get_stack_count() < previous_stack_count \
 	else increase_mode
 	
@@ -62,6 +66,8 @@ func _reset(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 
 func _add(attribute: Attribute, spec: AttributeEffectSpec, amount: int) -> void:
 	var duplicate: AttributeEffectSpec = spec.duplicate(false)
+	## TODO figure this out, manually changing stack count doesn't work
+	var previous_stack_count: int = spec._stack_count
 	spec._stack_count = amount
 	var duration: float = amount * spec._effect.get_modified_duration(attribute, spec)
 	spec._starting_duration += duration

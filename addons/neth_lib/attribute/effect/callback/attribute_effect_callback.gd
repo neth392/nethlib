@@ -14,6 +14,14 @@ enum _Function {
 	STACK_CHANGED
 }
 
+static var _temporary_functions: Array[_Function] = [
+		_Function.PRE_ADD,
+		_Function.ADDED,
+		_Function.PRE_REMOVE,
+		_Function.REMOVED,
+		_Function.STACK_CHANGED,
+	]
+
 static var _functions_by_name: Dictionary = {
 	"_pre_add": _Function.PRE_ADD,
 	"_added": _Function.ADDED,
@@ -56,6 +64,13 @@ static func _set_functions(callback: AttributeEffectCallback):
 	callback._functions_set = true
 	callback._functions.assign(definite.keys())
 
+
+static func _can_run(_function: _Function, effect: AttributeEffect) -> bool:
+	if effect.type == AttributeEffect.Type.TEMPORARY:
+		return _temporary_functions.has(_function)
+	return true
+
+
 var _functions_set: bool = false
 # Internal cache of what functions are overridden
 var _functions: Array[_Function] = []
@@ -63,61 +78,61 @@ var _functions: Array[_Function] = []
 
 ## Editor tool function that is called when this callback is added to [param effect].
 ## A good place to write assertions.
-## [br]Called for both PERMANENT and TEMPORARY effects.
+## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
 func _validate_and_assert(effect: AttributeEffect) -> void:
 	pass
 
 
 ## Called when this callback is added to the [param effect].
-## [br]Called for both PERMANENT and TEMPORARY effects.
+## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
 func _added_to_effect(effect: AttributeEffect) -> void:
 	pass
 
 
 ## Called when this callback is removed from the [param effect].
-## [br]Called for both PERMANENT and TEMPORARY effects.
+## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
 func _removed_from_effect(effect: AttributeEffect) -> void:
 	pass
 
 
 ## Called before the [param spec] is to be added to the [param attribute].
-## [br] Called for both PERMANENT and TEMPORARY effects.
+## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
 func _pre_add(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	pass
 
 
 ## Called after the [param spec] has been added to the [param attribute].
-## [br]Called for both PERMANENT and TEMPORARY effects.
+## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
 func _added(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	pass
 
 
 ## Called before the [param spec] is to be applied to the [param attribute].
-## [br]ONLY called for PERMANENT effects.
+## [br]NOTE: ONLY called for PERMANENT effects.
 func _pre_apply(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	pass
 
 
 ## Called after the [param spec] has been applied to the [param attribute].
-## [br]ONLY called for PERMANENT effects.
+## [br]NOTE: ONLY called for PERMANENT effects.
 func _applied(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	pass
 
 
 ## Called before the [param spec] is to be removed from the [param attribute].
-## [br]Called for both PERMANENT and TEMPORARY effects.
+## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
 func _pre_remove(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	pass
 
 
 ## Called after the [param spec] has been removed from the [param attribute].
-## [br]Called for both PERMANENT and TEMPORARY effects.
+## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
 func _removed(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	pass
 
 
 ## Called after the [param spec]'s stack count has changed. [param previous_stack_count] was
 ## the previous count before the change.
-## [br]Called for both PERMANENT and TEMPORARY effects.
+## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
 func _stack_changed(attribute: Attribute, spec: AttributeEffectSpec, previous_stack_count: int) -> void:
 	pass

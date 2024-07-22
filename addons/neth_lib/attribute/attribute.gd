@@ -29,7 +29,7 @@ enum ProcessFunction {
 ###################
 
 ## Emitted when the value returned by [method get_current_value] changes.
-signal value_changed(old_value: float)
+signal current_value_changed(old_value: float)
 
 ## Emitted when [member base_value] changes.
 signal base_value_changed(old_base_value: float)
@@ -76,10 +76,12 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 		var old_base_value: float = base_value
 		base_value = _validate_base_value(value)
 		
-		if _emit_base_value_changed && old_base_value != base_value && !Engine.is_editor_hint():
-			base_value_changed.emit(old_base_value)
-		
-		_base_value_changed(old_base_value)
+		if old_base_value != base_value:
+			if _emit_base_value_changed && !Engine.is_editor_hint():
+				base_value_changed.emit(old_base_value)
+			
+			_base_value_changed(old_base_value)
+			update_current_value()
 		
 		update_configuration_warnings()
 		return true
@@ -104,8 +106,10 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 ## circular reference safety.
 var _container: WeakRef
 
-## Array of all applied [AttributeEffectSpec]s.
+## Array of all added [AttributeEffectSpec]s.
 var _effects: Array[AttributeEffectSpec] = []
+## Array of all added [AttributeEffectSpec]s that are of [enum AttributeEffect.Type.TEMPORARY]
+var _temporary_effects: Array[AttributeEffectSpec] = []
 ## Stores _effects range (in reverse) to iterate so it doesn't need to be 
 ## reconstructed every _process call.
 var _effects_range: Array = [0]
@@ -117,7 +121,10 @@ var _effect_counts: Dictionary = {}
 ## Internal flag used to mark if [signal base_value_changed] should be emitted or not.
 var _emit_base_value_changed: bool = true
 
-var _current_value: float
+## The internal current value
+var _current_value: float:
+	set(value):
+		_current_value = _validate_current_value(value)
 
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
@@ -203,6 +210,8 @@ func _process_effects(delta: float, current_frame: int) -> void:
 				update_range = true
 				continue
 		
+		
+		
 		# Period Calculations
 		spec.remaining_period -= delta
 		# Can not yet activate, proceed to next
@@ -250,9 +259,25 @@ func _validate_base_value(set_base_value: float) -> float:
 	return set_base_value
 
 
+
+## Called by the setter of [member _current_value] with [param set_current_value] (what was manually
+## set to [member _current_value]). If the value fails any constraints it can be modified and
+## returned, otherwise just return [param set_current_value].[br]
+## Can also be used to emit events as this is [b]only[/b] called in the setter of 
+## [member set_current_value].
+func _validate_current_value(set_current_value: float) -> float:
+	return set_current_value
+
+
 ## Called in the setter of [member base_value] after it has been set &
 ## after [signal emit_value_changed] has been admitted.
 func _base_value_changed(old_value: float) -> void:
+	pass
+
+
+## Called in the setter of [member _current_value] after it has been set &
+## after [signal emit_value_changed] has been admitted.
+func _current_value_changed(old_value: float) -> void:
 	pass
 
 
@@ -262,9 +287,16 @@ func get_container() -> AttributeContainer:
 	return _container.get_ref() as AttributeContainer
 
 
-## Returns the current value, which is the accumulate of the [member base_value]
-## 
+## Returns the current value, which is the [member base_value] affected by
+## all [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY]
 func get_current_value() -> float:
+	return _current_value
+
+
+## Updates the value returned by [method get_current_value] by re-executing all
+## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY] on the [member base_value].
+func update_current_value() -> void:
+	# TODO UPDATE CURRENT VLAUE
 	pass
 
 
@@ -315,21 +347,24 @@ func has_effect_spec(spec: AttributeEffectSpec) -> bool:
 
 ## Manually removes the [param spec] from this [Attribute], returning true
 ## if successfully removed, false if not due to it not existing.
-func remove_effect_spec(spec: AttributeEffectSpec) -> bool:
+## [br][param _update_current_value] can be provided as false which will prevent the
+## current value from updating (by default, it only updates if the [param spec] is temporary).
+func remove_effect_spec(spec: AttributeEffectSpec, _update_current_value: bool = true) -> bool:
 	assert(spec != null, "spec is null")
 	var index: int = _effects.find(spec)
 	if index < 0:
 		return false
 	spec._is_active = false
 	spec._expired = false
-	_remove_effect_spec_at_index(spec, index)
+	_remove_effect_spec_at_index(spec, index, spec.is_temporary() && _update_current_value)
 	_update_effects_range()
 	return true
 
 
 ## More efficient function to remove an [AttributeEffectSpec] with a known [param index]
 ## in [member _effects].
-func _remove_effect_spec_at_index(spec: AttributeEffectSpec, index: int) -> void:
+func _remove_effect_spec_at_index(spec: AttributeEffectSpec, index: int, 
+_update_current_value: bool) -> void:
 	assert(spec != null, "spec is null")
 	assert(spec._effect != null, "spec._effect is null")
 	assert(index >= 0, "index(%s) < 0" % index)
@@ -346,6 +381,9 @@ func _remove_effect_spec_at_index(spec: AttributeEffectSpec, index: int) -> void
 		_effect_counts[spec.get_effect()] = new_count
 	
 	effect_removed.emit(spec)
+	
+	if _update_current_value:
+		update_current_value()
 
 
 func _update_effects_range() -> void:
