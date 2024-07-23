@@ -2,6 +2,12 @@
 @tool
 class_name AttributeEffect extends Resource
 
+## For use in [method Array.sort_custom], returns a bool that ensures the provided
+## effects are sorted by the following criteria, in order:
+##[br]- TEMPORARY effects are before PERMANENT effects
+##[br]- LESSER priority effects are before GREATER priority effects.
+##[br]NOTE: This sorting order takes into account the reverse iteration of
+## the effects array in [Attribute]'s implementation.
 static func sort_ascending(a: AttributeEffect, b: AttributeEffect) -> bool:
 	if a.type != b.type:
 		return a.type != Type.PERMANENT
@@ -41,6 +47,7 @@ enum DurationType {
 	## stored on it.
 	INSTANT,
 }
+
 
 ## The ID of this attribute effect.
 @export var id: StringName
@@ -403,12 +410,21 @@ func modify_value(_value: float, attribute: Attribute, spec: AttributeEffectSpec
 	return _get_modified(_value, attribute, spec, _value_modifiers)
 
 
-## First retrieves the value from [method get_modified_value], then applies it to
-## the [param attribute] using the [member value_calculator].
+## Retrieves the value from [method get_modified_value], determines which value 
+## to use from the [param attribute] (either [member Attribute._current_value]
+## or [member Attribute.base_value] depending on [member type]), and finally
+## uses the [member value_calculator] to calculate what the new value should be
+## and returns that value.
 func calulate_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	var modified_value: float = get_modified_value(attribute, spec)
-	var attribute_value: float = attribute.base_value
-	return 0.0
+	match type:
+		Type.PERMANENT:
+			return value_calculator._calculate(attribute.base_value, modified_value)
+		Type.TEMPORARY:
+			return value_calculator._calculate(attribute._current_value, modified_value)
+		_:
+			assert(false, "no implementation written for type %s" % type)
+			return 0.0
 
 
 ## Returns the [member period_in_seconds] after applying all period [AttributeEffectModifier]s to it.

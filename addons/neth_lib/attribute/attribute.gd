@@ -29,10 +29,10 @@ enum ProcessFunction {
 ###################
 
 ## Emitted when the value returned by [method get_current_value] changes.
-signal current_value_changed(old_value: float)
+signal current_value_changed(prev_current_value: float)
 
 ## Emitted when [member base_value] changes.
-signal base_value_changed(old_base_value: float)
+signal base_value_changed(prev_base_value: float)
 
 ####################
 ## Effect Signals ##
@@ -73,14 +73,14 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 ## The attribute value.
 @export var base_value: float:
 	set(value):
-		var old_base_value: float = base_value
+		var prev_base_value: float = base_value
 		base_value = _validate_base_value(value)
 		
-		if old_base_value != base_value:
-			if _emit_base_value_changed && !Engine.is_editor_hint():
-				base_value_changed.emit(old_base_value)
+		if prev_base_value != base_value:
+			if _emit_base_value_changed:
+				base_value_changed.emit(prev_base_value)
+				_base_value_changed(prev_base_value)
 			
-			_base_value_changed(old_base_value)
 			update_current_value()
 		
 		update_configuration_warnings()
@@ -106,25 +106,29 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 ## circular reference safety.
 var _container: WeakRef
 
-## Array of all added [AttributeEffectSpec]s.
-var _effects: Array[AttributeEffectSpec] = []
-## Array of all added [AttributeEffectSpec]s that are of [enum AttributeEffect.Type.TEMPORARY]
-var _temporary_effects: Array[AttributeEffectSpec] = []
+## Array of all added [AttributeEffectSpec]s that are of [enum AttributeEffect.Type.PERMANENT]
+var _specs: Array[AttributeEffectSpec] = []
 ## Stores _effects range (in reverse) to iterate so it doesn't need to be 
 ## reconstructed every _process call.
-var _effects_range: Array = [0]
+var _specs_range: Array = [0]
 
-## Dictionary of in the format of [member AttributeEffect.id] : int count of all 
+## Dictionary of in the format of [code]{[member AttributeEffect.id] : int}[/code] count of all 
 ## applied [AttributeEffectSpec]s with that effect.
 var _effect_counts: Dictionary = {}
 
 ## Internal flag used to mark if [signal base_value_changed] should be emitted or not.
 var _emit_base_value_changed: bool = true
+var _emit_current_value_changed: bool = true
 
 ## The internal current value
 var _current_value: float:
 	set(value):
+		var prev_current_value: float = _current_value
 		_current_value = _validate_current_value(value)
+		if _current_value != prev_current_value && _emit_current_value_changed:
+			current_value_changed.emit(prev_current_value)
+			_current_value_changed(prev_current_value)
+		update_configuration_warnings()
 
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
@@ -172,26 +176,34 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 
 func _process_effects(delta: float, current_frame: int) -> void:
-	var previous_base_value: float = base_value
+	var prev_base_value: float = base_value
+	var prev_current_value: float = _current_value
 	var emit_applied: Array[AttributeEffectSpec] = []
+	
 	_emit_base_value_changed = false
+	_emit_current_value_changed = false
 	
 	var update_range: bool = false
 	
-	# Reverse iteration of _effects for safe & efficient removal during iteration.
-	for index: int in _effects_range:
-		var spec: AttributeEffectSpec = _effects[index]
+	# Reverse iteration of _specs for safe & efficient removal during iteration.
+	for index: int in _specs_range:
+		var spec: AttributeEffectSpec = _specs[index]
 		
-		# Ensure spec wasn't processed this frame.
-		if spec._last_process_frame == current_frame:
+		if spec._last_process_frame == current_frame && !spec._effect.is_temporary():
 			continue
 		
-		# Ensure can process
-		var process_block: AttributeEffectCondition = spec.can_process(self)
-		if process_block != null:
-			spec._is_processing = false
-			spec._blocked_by = process_block
-			continue
+		# If spec wasn't processed this frame, process it
+		if spec._last_process_frame != current_frame:
+			# Ensure can process
+			var process_block: AttributeEffectCondition = spec._can_process(self)
+			if process_block != null:
+				spec._is_processing = false
+				spec._last_blocked_by = process_block
+				continue
+				
+		# If it was processed this frame and is permanent, return
+		elif spec._effect.is_permanent():
+			return
 		
 		# Mark as processing
 		spec._is_processing = true
@@ -246,6 +258,7 @@ func _process_effects(delta: float, current_frame: int) -> void:
 	_emit_base_value_changed = true
 	if previous_base_value != base_value:
 		base_value_changed.emit(previous_base_value)
+		_base_value_changed(previous_base_value)
 	for spec: AttributeEffectSpec in emit_applied:
 		effect_applied.emit(spec)
 
@@ -271,13 +284,13 @@ func _validate_current_value(set_current_value: float) -> float:
 
 ## Called in the setter of [member base_value] after it has been set &
 ## after [signal emit_value_changed] has been admitted.
-func _base_value_changed(old_value: float) -> void:
+func _base_value_changed(prev_base_value: float) -> void:
 	pass
 
 
 ## Called in the setter of [member _current_value] after it has been set &
 ## after [signal emit_value_changed] has been admitted.
-func _current_value_changed(old_value: float) -> void:
+func _current_value_changed(prev_current_value: float) -> void:
 	pass
 
 
@@ -296,8 +309,21 @@ func get_current_value() -> float:
 ## Updates the value returned by [method get_current_value] by re-executing all
 ## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY] on the [member base_value].
 func update_current_value() -> void:
-	# TODO UPDATE CURRENT VLAUE
-	pass
+	var _prev_current_value: float = _current_value
+	_emit_current_value_changed = false
+	_current_value = base_value
+	
+	for spec: AttributeEffectSpec in _specs:
+		if !spec.get_effect().is_temporary():
+			# We can break here because AttributeEffect.sort_ascending ensures
+			# temporary effects are ALWAYS before permanent.
+			break
+		_current_value = spec.get_effect().calulate_value(self, spec)
+	
+	_emit_current_value_changed = true
+	if _current_value != _prev_current_value:
+		current_value_changed.emit(_prev_current_value)
+		_current_value_changed(_prev_current_value)
 
 
 ## Adds & applies the [param spec], returning true if it was successfully
@@ -342,52 +368,52 @@ func has_effect(effect: AttributeEffect) -> bool:
 
 ## Returns true if [param spec] is currently applied to this [Attribute], false if not.
 func has_effect_spec(spec: AttributeEffectSpec) -> bool:
-	return _effects.has(spec)
+	return _specs.has(spec)
 
 
 ## Manually removes the [param spec] from this [Attribute], returning true
 ## if successfully removed, false if not due to it not existing.
-## [br][param _update_current_value] can be provided as false which will prevent the
-## current value from updating (by default, it only updates if the [param spec] is temporary).
-func remove_effect_spec(spec: AttributeEffectSpec, _update_current_value: bool = true) -> bool:
+func remove_effect_spec(spec: AttributeEffectSpec) -> bool:
 	assert(spec != null, "spec is null")
-	var index: int = _effects.find(spec)
+	var index: int = _specs.find(spec)
 	if index < 0:
 		return false
-	spec._is_active = false
-	spec._expired = false
-	_remove_effect_spec_at_index(spec, index, spec.is_temporary() && _update_current_value)
-	_update_effects_range()
+	
+	# Only update the current value if it is a temporary effect & _update_current_value is true
+	_remove_effect_spec_at_index(spec, index, spec._effect.is_temporary())
 	return true
 
 
 ## More efficient function to remove an [AttributeEffectSpec] with a known [param index]
 ## in [member _effects].
-func _remove_effect_spec_at_index(spec: AttributeEffectSpec, index: int, 
-_update_current_value: bool) -> void:
+func _remove_effect_spec_at_index(spec: AttributeEffectSpec, index: int, _update_current_value: bool) -> void:
 	assert(spec != null, "spec is null")
 	assert(spec._effect != null, "spec._effect is null")
 	assert(index >= 0, "index(%s) < 0" % index)
-	assert(index < _effects.size(), "index(%s) >= _effects.size() (%s)" \
-	% [index, _effects.size()])
+	assert(index < _specs.size(), "index(%s) >= _specs.size() (%s)" % [index, _specs.size()])
+	assert(_specs[index] == spec, "element @ index (%s) in _specs != spec (%s)" % [index, spec])
 	assert(_effect_counts.has(spec._effect), "_effect_counts does not have effect (%s)" \
 	% spec._effect)
 	
-	_effects.remove_at(index)
+	spec._is_processing = false
+	spec._is_active = false
+	_specs.remove_at(index)
+	_update_specs_range()
 	var new_count: int = _effect_counts[spec._effect] - 1
 	if new_count <= 0:
-		_effects.erase(spec.get_effect())
+		_effect_counts.erase(spec._effect)
 	else:
-		_effect_counts[spec.get_effect()] = new_count
+		_effect_counts[spec._effect] = new_count
 	
-	effect_removed.emit(spec)
+	if spec._effect.emit_removed_signal:
+		effect_removed.emit(spec)
 	
 	if _update_current_value:
 		update_current_value()
 
 
-func _update_effects_range() -> void:
-	_effects_range = range(_effects.size(), -1, -1)
+func _update_specs_range() -> void:
+	_specs_range = range(_specs.size(), -1, -1)
 
 
 func _to_string() -> String:

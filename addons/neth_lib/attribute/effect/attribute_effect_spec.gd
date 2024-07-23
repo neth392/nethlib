@@ -2,9 +2,11 @@
 ## which was (or can be) applied to an [Attribute].
 class_name AttributeEffectSpec extends Resource
 
-## Used in [method Array.custom_sort] to sort specs in a reverse order.
-static func reverse_compare(a: AttributeEffectSpec, b: AttributeEffectSpec) -> bool:
-	return a._effect.priority < b._effect.priority
+## Helper function that calls [method AttributeEffect.sort_ascending] from the
+## [member _effect] of each [param a] and [param b].
+static func sort_ascending(a: AttributeEffectSpec, b: AttributeEffectSpec) -> bool:
+	return AttributeEffect.sort_ascending(a._effect, b._effect)
+
 
 ## The remaining duration in seconds, can not be set to less than 0.0.
 var remaining_duration: float:

@@ -176,7 +176,7 @@ func _get_configuration_warnings() -> PackedStringArray:
 	return warnings
 
 
-func _validate_value(set_value: float) -> float:
+func _validate_base_value(set_value: float) -> float:
 	if Engine.is_editor_hint():
 		return set_value
 	if autowrap_value:
@@ -187,13 +187,13 @@ func _validate_value(set_value: float) -> float:
 	return set_value
 
 
-func _value_changed(old_value: float) -> void:
+func _base_value_changed(prev_base_value: float) -> void:
 	if Engine.is_editor_hint():
 		return
-	if maximum != null && old_value < maximum.value && value >= maximum.value:
-		value_hit_maximum.emit(old_value)
-	if minimum != null && old_value > minimum.value && value <= minimum.value:
-		value_hit_minimum.emit(old_value)
+	if maximum != null && prev_base_value < maximum.value && value >= maximum.value:
+		value_hit_maximum.emit(prev_base_value)
+	if minimum != null && prev_base_value > minimum.value && value <= minimum.value:
+		value_hit_minimum.emit(prev_base_value)
 
 
 func _wrap_min(bool_ref: BoolRef) -> void:
@@ -207,7 +207,7 @@ func _wrap_max(bool_ref: BoolRef) -> void:
 
 
 # Handles minimum.value being set, NOT minimum itself.
-func _on_minimum_value_changed(old_minimum_value: float) -> void:
+func _on_minimum_value_changed(prev_minimum_value: float) -> void:
 	var autowrap_after: BoolRef = BoolRef.new(autowrap_value)
 	minimum_value_changed.emit(true, old_minimum_value, autowrap_after)
 	_wrap_min(autowrap_after)
