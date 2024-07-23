@@ -1,6 +1,14 @@
-[gd_resource type="Resource" script_class="AttributeEffect" load_steps=2 format=3 uid="uid://cvxayiptd2dkf"]
+[gd_resource type="Resource" script_class="AttributeEffect" load_steps=4 format=3 uid="uid://cvxayiptd2dkf"]
 
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect.gd" id="1_rx56j"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/modifier/stack_modifier.gd" id="1_yb7fh"]
+
+[sub_resource type="Resource" id="Resource_lk28m"]
+script = ExtResource("1_yb7fh")
+mode = 0
+priority = 0
+stop_processing_modifiers = false
+duplicate_instances = false
 
 [resource]
 script = ExtResource("1_rx56j")
@@ -18,7 +26,7 @@ stack_mode = 0
 add_conditions = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
 apply_conditions = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
 process_conditions = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
-_value_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
+_value_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([SubResource("Resource_lk28m")])
 _period_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
 _duration_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
 _callbacks = Array[Resource("res://addons/neth_lib/attribute/effect/callback/attribute_effect_callback.gd")]([])

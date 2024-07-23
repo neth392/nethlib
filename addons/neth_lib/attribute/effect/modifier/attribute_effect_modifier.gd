@@ -2,8 +2,10 @@
 @tool
 class_name AttributeEffectModifier extends Resource
 
-static func sort(a: AttributeEffectModifier, b: AttributeEffectModifier) -> bool:
-	if a == null:
+## For use in [method Array.sort_custom], returns a bool so that the modifier with
+## the greater priority is in front of the other in the array (descending order)
+static func sort_descending(a: AttributeEffectModifier, b: AttributeEffectModifier) -> bool:
+	if a == null: # Null checks here for usage in editor (sometimes a null element is present)
 		return false
 	if b == null:
 		return true

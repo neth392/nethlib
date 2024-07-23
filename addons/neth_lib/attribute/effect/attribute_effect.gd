@@ -59,7 +59,7 @@ enum DurationType {
 @export var value: float
 
 ## Determines how the effect is applied to an [Attribute] (i.e. added, multiplied, etc).
-@export var value_applicator: AttributeEffectApplicator
+@export var value_calculator: AttributeEffectCalculator
 
 ## The priority to be used to determine the order of execution of [AttributeEffect]s
 ## on an [Attribute]. Greater priorities will be executed first. So if you want an
@@ -150,7 +150,7 @@ enum DurationType {
 @export var _value_modifiers: Array[AttributeEffectModifier]:
 	set(_value):
 		_value_modifiers = _value
-		_value_modifiers.sort_custom(AttributeEffectModifier.sort)
+		_value_modifiers.sort_custom(AttributeEffectModifier.sort_descending)
 		_validate_and_assert(_value_modifiers)
 
 ## Modififiers to modify [member period_in_seconds].
@@ -158,14 +158,14 @@ enum DurationType {
 @export var _period_modifiers: Array[AttributeEffectModifier]:
 	set(_value):
 		_period_modifiers = _value
-		_period_modifiers.sort_custom(AttributeEffectModifier.sort)
+		_period_modifiers.sort_custom(AttributeEffectModifier.sort_descending)
 		_validate_and_assert(_period_modifiers)
 
 ## Modififiers to modify [member duration_in_seconds].
 @export var _duration_modifiers: Array[AttributeEffectModifier]:
 	set(_value):
 		_duration_modifiers = _value
-		_duration_modifiers.sort_custom(AttributeEffectModifier.sort)
+		_duration_modifiers.sort_custom(AttributeEffectModifier.sort_descending)
 		_validate_and_assert(_duration_modifiers)
 
 @export_group("Callbacks")
@@ -186,67 +186,72 @@ func _init(_id: StringName = "") -> void:
 	for _function: int in AttributeEffectCallback._Function.values():
 		_callbacks_by_function[_function] = []
 	
+	# Register default callbacks
 	for callback: AttributeEffectCallback in _callbacks:
-		# Adds callbacks to the map that seperates them by which functions each implements
-		# This improves efficiency for calling functions as we dont need to call
-		# each function on *every callback*, just the callkbacks that implement them
-		AttributeEffectCallback._set_functions(callback)
-		for _function: AttributeEffectCallback._Function in callback._functions:
-			_callbacks_by_function[_function].append(callback)
-		# Call the added notifier
-		callback._added_to_effect(self)
+		_add_callback_internal(callback, false)
 	
 	# Sort Modifiers
-	_value_modifiers.sort_custom(AttributeEffectModifier.sort)
-	_period_modifiers.sort_custom(AttributeEffectModifier.sort)
-	_duration_modifiers.sort_custom(AttributeEffectModifier.sort)
+	_value_modifiers.sort_custom(AttributeEffectModifier.sort_descending)
+	_validate_and_assert(_value_modifiers)
+	if has_period():
+		_period_modifiers.sort_custom(AttributeEffectModifier.sort_descending)
+		_validate_and_assert(_period_modifiers)
+	if has_duration():
+		_duration_modifiers.sort_custom(AttributeEffectModifier.sort_descending)
+		_validate_and_assert(_duration_modifiers)
 
 
 func _validate_property(property: Dictionary) -> void:
 	if property.name == "emit_applied_signal":
-		if type != Type.PERMANENT:
+		if !can_emit_apply_signal():
 			_no_editor(property)
 		return
 	
 	if property.name == "duration_type":
-		var exclude: Array = [] if type == Type.PERMANENT else [DurationType.INSTANT]
+		var exclude: Array = [] if can_be_instant() else [DurationType.INSTANT]
 		property.hint_string = _format_enum(DurationType, exclude)
 		return
 	
 	if property.name == "duration_in_seconds":
-		if duration_type != DurationType.HAS_DURATION:
+		if !has_duration():
 			_no_editor(property)
 		return
 	
 	if property.name == "period_in_seconds":
-		if type != Type.PERMANENT || duration_type == DurationType.INSTANT:
+		if !has_period():
 			_no_editor(property)
 		return
 	
 	if property.name == "stack_mode":
-		if duration_type == DurationType.INSTANT:
+		if is_instant():
 			_no_editor(property)
 		return
 	
-	if property.name == "apply_conditions" || property.name == "process_conditions":
-		if type != Type.PERMANENT:
+	if property.name == "apply_conditions":
+		if !has_apply_conditions():
+			_no_editor(property)
+		return
+	
+	if property.name == "process_conditions":
+		if !has_process_conditions():
 			_no_editor(property)
 		return
 	
 	if property.name == "_period_modifiers":
-		if duration_type == DurationType.INSTANT || type != Type.PERMANENT:
+		if !has_period():
 			_no_editor(property)
 		return
 	
 	if property.name == "_duration_modifiers":
-		if duration_type == DurationType.INSTANT:
+		if !has_duration():
 			_no_editor(property)
 
 
 func _validate_and_assert(modifiers: Array[AttributeEffectModifier]) -> void:
-	for modifier: AttributeEffectModifier in modifiers:
-		if modifier != null:
-			modifier._validate_and_assert(self)
+	if OS.is_debug_build():
+		for modifier: AttributeEffectModifier in modifiers:
+			if modifier != null:
+				modifier._validate_and_assert(self)
 
 
 ## Helper method for _validate_property.
@@ -267,10 +272,16 @@ func _format_enum(_enum: Dictionary, exclude: Array) -> String:
 ## Adds the [param callback] from this effect. An assertion is in place to prevent
 ## multiple [AttributeEffectCallback]s of the same instance being added to an effect.
 func add_callback(callback: AttributeEffectCallback) -> void:
-	assert(!_callbacks.has(callback), "callback (%s) already exists" % callback)
+	_add_callback_internal(callback, true)
+
+
+func _add_callback_internal(callback: AttributeEffectCallback, add_to_list: bool) -> void:
+	assert(!add_to_list || !_callbacks.has(callback), "callback (%s) already exists" % callback)
 	AttributeEffectCallback._set_functions(callback)
-	_callbacks.append(callback)
+	if add_to_list:
+		_callbacks.append(callback)
 	for _function: AttributeEffectCallback._Function in callback._functions:
+		assert(AttributeEffectCallback._can_run(_function, self), "")
 		_callbacks_by_function[_function].append(callback)
 	callback._added_to_effect(self)
 
@@ -328,11 +339,13 @@ func has_value_modifier(modifier: AttributeEffectModifier) -> bool:
 
 ## TODO
 func has_period_modifier(modifier: AttributeEffectModifier) -> bool:
+	assert_has_period()
 	return _period_modifiers.has(modifier)
 
 
 ## TODO
 func has_duration_modifier(modifier: AttributeEffectModifier) -> bool:
+	assert_has_duration()
 	return _duration_modifiers.has(modifier)
 
 
@@ -343,11 +356,13 @@ func remove_value_modifier(modifier: AttributeEffectModifier, remove_all: bool =
 
 ## TODO
 func remove_period_modifier(modifier: AttributeEffectModifier, remove_all: bool = false) -> void:
+	assert_has_period()
 	_remove_modifier(modifier, remove_all, _period_modifiers)
 
 
 ## TODO
 func remove_duration_modifier(modifier: AttributeEffectModifier, remove_all: bool = false) -> void:
+	assert_has_duration()
 	_remove_modifier(modifier, remove_all, _duration_modifiers)
 
 
@@ -365,17 +380,18 @@ func get_value_modifiers() -> Array[AttributeEffectModifier]:
 
 
 func get_period_modifiers() -> Array[AttributeEffectModifier]:
+	assert_has_period()
 	return _period_modifiers.duplicate(false)
 
 
 func get_duration_modifiers() -> Array[AttributeEffectModifier]:
+	assert_has_duration()
 	return _duration_modifiers.duplicate(false)
 
 
 ## Returns the [member value] after applying all value [AttributeEffectModifier]s to it.
 func get_modified_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	assert(spec._effect == self, "spec._effect (%s) != self" % spec._effect)
-	return _get_modified(value, attribute, spec, _value_modifiers)
+	return modify_value(value, attribute, spec)
 
 
 ## Runs the [param _value] through all [AttributeEffectModifier]s for value.
@@ -384,42 +400,44 @@ func modify_value(_value: float, attribute: Attribute, spec: AttributeEffectSpec
 	return _get_modified(_value, attribute, spec, _value_modifiers)
 
 
-## Applies the [member value_calc_type] to [param attribute_value] and
-## [param effect_value], returning the result.
-func apply_calc_type(attribute_value: float, effect_value: float) -> float:
-	# TODO
+## First retrieves the value from [method get_modified_value], then applies it to
+## the [param attribute] using the [member value_calculator].
+func calulate_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
+	var modified_value: float = get_modified_value(attribute, spec)
+	var attribute_value: float = attribute.base_value
 	return 0.0
 
 
 ## Returns the [member period_in_seconds] after applying all period [AttributeEffectModifier]s to it.
 func get_modified_period(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	assert(spec._effect == self, "spec._effect (%s) != self" % spec._effect)
-	assert(duration_type != DurationType.INSTANT, "duration_type == INSTANT, there is no period")
-	return _get_modified(period_in_seconds, attribute, spec, _period_modifiers)
+	assert_has_period()
+	return modify_period_value(period_in_seconds, attribute, spec)
 
 
 ## Runs the [param duration_value] through all [AttributeEffectModifier]s for period.
 ## Useful for custom logic in modifiers, effects, & conditions.
 func modify_period_value(period_value: float, attribute: Attribute, spec: AttributeEffectSpec):
+	assert_has_period()
 	return _get_modified(period_value, attribute, spec, _period_modifiers)
 
 
 ## Returns the [member duration_in_seconds] after applying all duration [AttributeEffectModifier]s to it.
 func get_modified_duration(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	assert(spec._effect == self, "spec._effect (%s) != self" % spec._effect)
-	assert(duration_type == DurationType.HAS_DURATION, "duration_type != HAS_DURATION")
-	return _get_modified(duration_in_seconds, attribute, spec, _duration_modifiers)
+	assert_has_duration()
+	return modify_duration_value(duration_in_seconds, attribute, spec)
 
 
 ## Runs the [param duration_value] through all [AttributeEffectModifier]s for duration.
 ## Useful for custom logic in modifiers, effects, & conditions.
 func modify_duration_value(duration_value: float, attribute: Attribute, spec: AttributeEffectSpec):
+	assert_has_duration()
 	return _get_modified(duration_value, attribute, spec, _duration_modifiers)
 
 
 ## Helper function for the above functions
 func _get_modified(to_modify: float, attribute: Attribute, spec: AttributeEffectSpec, 
 modifiers: Array[AttributeEffectModifier]) -> float:
+	assert_spec_is_self(spec)
 	var modified: float = to_modify
 	for modifier: AttributeEffectModifier in _value_modifiers:
 		modified = modifier._modify(modified, attribute, spec)
@@ -429,9 +447,68 @@ modifiers: Array[AttributeEffectModifier]) -> float:
 
 
 ## Shorthand function to create an [AttributeEffectSpec] for this [AttributeEffect].
+## [br]Can be overridden for custom [AttributeEffectSpec] implementations if you know
+## what you are doing.
 func to_spec() -> AttributeEffectSpec:
 	return AttributeEffectSpec.new(self)
 
 
 func _to_string() -> String:
 	return "AttributeEffect(id:%s)" % id
+
+
+##########################################
+## Helper functions for feature support ##
+##########################################
+
+## Returns true if this effect supports [member duration_type] of 
+## [enum DurationType.INSTANT] and is currently INSTANT.
+func is_instant() -> bool:
+	return can_be_instant() && duration_type == DurationType.INSTANT
+
+
+## Returns true if this effect supports a [member duration_type] of 
+## [enum DurationType.INSTANT].
+func can_be_instant() -> bool:
+	return type == Type.PERMANENT
+
+
+## Whether or not this effect supports having apply [AttributeEffectCondition]s.
+func has_apply_conditions() -> bool:
+	return type == Type.PERMANENT
+
+
+## Whether or not this effect supports having process [AttributeEffectCondition]s.
+func has_process_conditions() -> bool:
+	return type == Type.PERMANENT
+
+
+## Whether or not this effect can emit [signal Attribute.effect_applied].
+func can_emit_apply_signal() -> bool:
+	return type == Type.PERMANENT
+
+
+## Returns true if this effect has a [member duration_in_seconds].
+func has_duration() -> bool:
+	return duration_type == DurationType.HAS_DURATION
+
+
+## [method assert]s that [method has_duration] is true.
+func assert_has_duration() -> void:
+	assert(has_duration(), "effect does not have a duration_in_seconds")
+
+
+## Returns true if this effect has a [member period_in_seconds].
+func has_period() -> bool:
+	return type == Type.PERMANENT && !is_instant()
+
+
+## [method has_period]s that [method has_duration] is true.
+func assert_has_period() -> void:
+	assert(has_period(), "effect does not have a period_in_seconds")
+
+
+## [method assert]s that [member AttributeEffectSpec._effect] for [param spec]
+## is equal to this instance.
+func assert_spec_is_self(spec: AttributeEffectSpec) -> void:
+	assert(spec._effect == self, "self != spec._effect (%s)" % spec._effect)
