@@ -132,13 +132,16 @@ enum DurationType {
 
 ## All [AttributeEffectCondition]s that must be met for this effect to be
 ## applied to an [Attribute]. This array can safely be directly modified or set.[br]
-## [br]NOTE: Only for [enum Type.PERMANENT] effects.
+## [br]NOTE: Only for [enum Type.PERMANENT] effects, as TEMPORARY effects are [b]always[/b]
+## applied if the effect was added.
+## [br]TBD: Decide if temporary effects should have apply conditions.
 @export var apply_conditions: Array[AttributeEffectCondition]
 
 ## All [AttributeEffectCondition]s that must be met for this effect to be
 ## processed (duration, period, etc) on an [Attribute]. This array can 
 ## safely be directly modified or set.
-## [br]NOTE: Only for [enum Type.PERMANENT] effects.
+## [br]NOTE: Only for [enum Type.PERMANENT] effects as TEMPORARY effects are
+## always processing.
 @export var process_conditions: Array[AttributeEffectCondition]
 
 @export_group("Modifiers")
@@ -467,6 +470,18 @@ func is_instant() -> bool:
 	return can_be_instant() && duration_type == DurationType.INSTANT
 
 
+## Helper function returning true if the effect's type is 
+## [enum AttributeEffect.Type.PERMANENT], false if not.
+func is_permanent() -> bool:
+	return type == AttributeEffect.Type.PERMANENT
+
+
+## Helper function returning true if the effect's type is 
+## [enum AttributeEffect.Type.TEMPORARY], false if not.
+func is_temporary() -> bool:
+	return type == AttributeEffect.Type.TEMPORARY
+
+
 ## Returns true if this effect supports a [member duration_type] of 
 ## [enum DurationType.INSTANT].
 func can_be_instant() -> bool:
@@ -480,7 +495,7 @@ func has_apply_conditions() -> bool:
 
 ## Whether or not this effect supports having process [AttributeEffectCondition]s.
 func has_process_conditions() -> bool:
-	return type == Type.PERMANENT
+	return type == Type.PERMANENT && duration_type != DurationType.INSTANT
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_applied].

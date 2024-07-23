@@ -17,7 +17,7 @@ var remaining_duration: float:
 var remaining_period: float = 0.0
 
 ## The amount of time, in seconds, of how long this effect has been active
-var _passed_duration: float
+var _passed_duration: float = 0.0
 
 ## The effect this [AttributeEffectSpec] was created for.
 var _effect: AttributeEffect
@@ -36,7 +36,7 @@ var _is_processing: bool = false
 var _apply_count: int = 0
 
 ## The condition that lasts blocks addition or application of this spec.
-var _blocked_by: AttributeEffectCondition
+var _last_blocked_by: AttributeEffectCondition
 
 ## The last frame this spec was processed on. If the value is -1, this
 ## spec has not yet been processed.
@@ -67,31 +67,6 @@ func _init(effect: AttributeEffect) -> void:
 func get_effect() -> AttributeEffect:
 	return _effect
 
-
-## Helper function returning true if the effect's type is 
-## [enum AttributeEffect.Type.PERMANENT], false if not.
-func is_permanent() -> bool:
-	return _effect.type == AttributeEffect.Type.PERMANENT
-
-
-## Helper function returning true if the effect's type is 
-## [enum AttributeEffect.Type.TEMPORARY], false if not.
-func is_temporary() -> bool:
-	return _effect.type == AttributeEffect.Type.TEMPORARY
-
-
-## Shorthand function that returns true [method get_effect] has a 
-## [member Attribute.duration_type] of [enum AttributeEffect.DurationType.INSTANT].
-func is_instant() -> bool:
-	return _effect.duration_type == AttributeEffect.DurationType.INSTANT
-
-
-## Shorthand function that returns true [method get_effect] has a 
-## [member Attribute.duration_type] of [enum AttributeEffect.DurationType.HAS_DURATION].
-func has_duration() -> bool:
-	return _effect.duration_type == AttributeEffect.DurationType.HAS_DURATION
-
-
 ## Returns true if this spec is currently added to an [Attribute].
 func is_added() -> bool:
 	return _is_added
@@ -115,33 +90,34 @@ func has_processed() -> bool:
 
 
 ## Returns the last process frame this spec was applied on. -1 if it has not
-## yet been applied.
+## yet been applied. Always returns -1 for TEMPORARY effects.
 func get_last_apply_frame() -> int:
 	return _last_apply_frame
 
 
-## Returns true if the effect has been applied.
+## Returns true if the effect has been applied. Always returns false for
+## TEMPORARY effects.
 func has_applied() -> bool:
 	return _last_apply_frame > -1
 
 
-## Returns the last value that was directly set to [member Attribute.value] based 
-## on [method get_last_value] and the effect's [enum AttributeEffect.ValueCalcType].
+## Returns the last value that was directly set to the [Attribute], either
+## current (for temporary effects) or base value (for permanent effects)
 func get_last_set_value() -> float:
 	return _last_set_value
 
 
 ## Returns the value that was last derived from [method AttributeEffect.get_modified_value].
-## This does NOT take into account the [enum AttributeEffect.ValueCalcType] of the
-## effect.
+## This does NOT take into account the [AttributeEffectCalculator].
 func get_last_value() -> float:
 	return _last_value
 
 
-## If currently blocked, returns the [AttributeEffectCondition] that blocked this spec.
-## Otherwise returns null.
-func get_blocked_by() -> AttributeEffectCondition:
-	return _blocked_by
+## If currently blocked, returns the [AttributeEffectCondition] that blocked this spec
+## when being added to an effect, in processing, or in applying. Returns null if it has
+## never been blocked.
+func get_last_blocked_by() -> AttributeEffectCondition:
+	return _last_blocked_by
 
 
 ## Returns the amount of time, in seconds, this effect has been active for.
@@ -149,7 +125,8 @@ func get_passed_duration() -> float:
 	return _passed_duration
 
 
-## Returns the total expected duration (passed + remaining) in seconds.
+## Returns the total [b]expected[/b] duration (passed + remaining) in seconds. If this
+## effect is infinite, this returns the same as [method get_passed_duration].
 func get_total_duration() -> float:
 	return _passed_duration + remaining_duration
 
@@ -162,7 +139,7 @@ func get_apply_count() -> int:
 ## Returns true if the effect expired due to duration, false if not. Can be useful
 ## to see if this spec was manually removed from an [Attribute] or if it expired.
 func is_expired() -> bool:
-	return !is_instant() && _expired
+	return !_effect.is_instant() && _effect.has_duration() && _expired
 
 
 ## If this effect is stackable.
@@ -205,9 +182,10 @@ func _remove_from_stack(attribute: Attribute, amount: int = 1) -> void:
 
 ## Checks if there is an [AttributeEffectCondition] blocking the processing of this
 ## spec on [param attribute]. Returns the condition that is blocking it, or
-## null if there is no blocking condition.
-func can_process(attribute: Attribute) -> AttributeEffectCondition:
-	if is_temporary():
+## null if there is no blocking condition. Also returns null if the effect
+## is temporary or instant (doesn't support process conditions).
+func _can_process(attribute: Attribute) -> AttributeEffectCondition:
+	if !_effect.has_process_conditions():
 		return null
 	return _check_conditions(attribute, _effect._process_conditions)
 
@@ -215,15 +193,16 @@ func can_process(attribute: Attribute) -> AttributeEffectCondition:
 ## Checks if there is an [AttributeEffectCondition] blocking the addition of this
 ## spec to the [param attribute]. Returns the condition that is blocking it, or
 ## null if there is no blocking condition.
-func can_add(attribute: Attribute) -> AttributeEffectCondition:
+func _can_add(attribute: Attribute) -> AttributeEffectCondition:
 	return _check_conditions(attribute, _effect._add_conditions)
 
 
 ## Checks if there is an [AttributeEffectCondition] blocking the application of this
 ## spec to the [param attribute]. Returns the condition that is blocking it, or
-## null if there is no blocking condition.
-func can_apply(attribute: Attribute) -> AttributeEffectCondition:
-	if is_temporary():
+## null if there is no blocking condition. Also returns null if the effect
+## is temporary (doesn't support apply conditions).
+func _can_apply(attribute: Attribute) -> AttributeEffectCondition:
+	if !_effect.has_apply_conditions():
 		return null
 	return _check_conditions(attribute, _effect._apply_conditions)
 
