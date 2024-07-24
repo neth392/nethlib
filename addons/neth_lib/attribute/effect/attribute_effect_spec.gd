@@ -187,7 +187,7 @@ func _remove_from_stack(attribute: Attribute, amount: int = 1) -> void:
 ## null if there is no blocking condition. Also returns null if the effect
 ## is temporary or instant (doesn't support process conditions).
 func _can_process(attribute: Attribute) -> AttributeEffectCondition:
-	if !_effect.has_process_conditions():
+	if _effect.assert_has_duration():
 		return null
 	return _check_conditions(attribute, _effect._process_conditions)
 
