@@ -116,8 +116,8 @@ func get_last_value() -> float:
 
 
 ## If currently blocked, returns the [AttributeEffectCondition] that blocked this spec
-## when being added to an effect, in processing, or in applying. Returns null if it has
-## never been blocked.
+## when being added to an effect, in processing, or in applying. Returns null if not
+## currently blocked.
 func get_last_blocked_by() -> AttributeEffectCondition:
 	return _last_blocked_by
 

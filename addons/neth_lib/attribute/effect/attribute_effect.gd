@@ -410,21 +410,12 @@ func modify_value(_value: float, attribute: Attribute, spec: AttributeEffectSpec
 	return _get_modified(_value, attribute, spec, _value_modifiers)
 
 
-## Retrieves the value from [method get_modified_value], determines which value 
-## to use from the [param attribute] (either [member Attribute._current_value]
-## or [member Attribute.base_value] depending on [member type]), and finally
-## uses the [member value_calculator] to calculate what the new value should be
-## and returns that value.
-func calulate_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	var modified_value: float = get_modified_value(attribute, spec)
-	match type:
-		Type.PERMANENT:
-			return value_calculator._calculate(attribute.base_value, modified_value)
-		Type.TEMPORARY:
-			return value_calculator._calculate(attribute._current_value, modified_value)
-		_:
-			assert(false, "no implementation written for type %s" % type)
-			return 0.0
+## Applies the [member value_calculator] on the [param attribute_value] and
+## [param effect_value], returning the result. It must always be ensured that
+## the [param effect_value] comes from [b]this effect[/b], otherwise results
+## will be unexpected.
+func apply_calculator(attribute_value: float, effect_value: float) -> float:
+	return value_calculator._calculate(attribute_value, effect_value)
 
 
 ## Returns the [member period_in_seconds] after applying all period [AttributeEffectModifier]s to it.
@@ -509,9 +500,19 @@ func has_apply_conditions() -> bool:
 	return type == Type.PERMANENT
 
 
+## [method assert]s that [method has_apply_conditions] is true.
+func assert_has_apply_conditions() -> void:
+	assert(has_process_conditions, "effect does not have apply conditions")
+
+
 ## Whether or not this effect supports having process [AttributeEffectCondition]s.
 func has_process_conditions() -> bool:
 	return type == Type.PERMANENT && duration_type != DurationType.INSTANT
+
+
+## [method assert]s that [method has_process_conditions] is true.
+func assert_has_process_conditions() -> void:
+	assert(has_process_conditions, "effect does not have process conditions")
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_applied].

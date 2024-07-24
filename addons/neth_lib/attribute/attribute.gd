@@ -179,38 +179,32 @@ func _process_effects(delta: float, current_frame: int) -> void:
 	var prev_base_value: float = base_value
 	var prev_current_value: float = _current_value
 	var emit_applied: Array[AttributeEffectSpec] = []
+	var expired_specs: Dictionary = {}
 	
 	_emit_base_value_changed = false
 	_emit_current_value_changed = false
-	
-	var update_range: bool = false
 	
 	# Reverse iteration of _specs for safe & efficient removal during iteration.
 	for index: int in _specs_range:
 		var spec: AttributeEffectSpec = _specs[index]
 		
-		if spec._last_process_frame == current_frame && !spec._effect.is_temporary():
+		var already_processed: bool = spec._last_process_frame == current_frame
+		if spec.get_effect().is_permanent() && already_processed:
 			continue
 		
-		# If spec wasn't processed this frame, process it
-		if spec._last_process_frame != current_frame:
-			# Ensure can process
-			var process_block: AttributeEffectCondition = spec._can_process(self)
-			if process_block != null:
+		if spec.get_effect().has_process_conditions():
+			spec._last_blocked_by = spec._can_process(self)
+			if spec._last_blocked_by != null:
 				spec._is_processing = false
-				spec._last_blocked_by = process_block
 				continue
-				
-		# If it was processed this frame and is permanent, return
-		elif spec._effect.is_permanent():
-			return
 		
 		# Mark as processing
 		spec._is_processing = true
 		spec._last_process_frame = current_frame
 		
 		# Duration Calculations
-		if spec.has_duration():
+		# (already_processed can only be false if the effect is temporary at this point)
+		if !already_processed && spec.get_effect().has_duration():
 			spec.remaining_duration -= delta
 			spec._passed_duration += delta
 			# Spec expired, remove it.
@@ -218,49 +212,69 @@ func _process_effects(delta: float, current_frame: int) -> void:
 				# Adjust remaining period as well
 				spec.remaining_period -= delta
 				spec._expired = true
-				_remove_effect_spec_at_index(spec, index)
-				update_range = true
+				expired_specs[index] = spec
 				continue
 		
-		
-		
-		# Period Calculations
-		spec.remaining_period -= delta
-		# Can not yet activate, proceed to next
-		if spec.remaining_period > 0.0:
-			continue
-		
-		# Add period
-		spec.remaining_period += spec._effect.get_modified_period(self, spec)
+		if spec.get_effect().has_period():
+			# Period Calculations
+			spec.remaining_period -= delta
+			# Can not yet activate, proceed to next
+			if spec.remaining_period > 0.0:
+				continue
+			# Add to remaining period
+			spec.remaining_period += spec._effect.get_modified_period(self, spec)
 		
 		# Check if can apply
-		var apply_block: AttributeEffectCondition = spec.can_apply(self)
-		if apply_block != null:
-			# Can't apply
-			spec._blocked_by = apply_block
-			if apply_block.emit_apply_blocked_signal:
-				effect_apply_blocked.emit(spec)
+		if spec.get_effect().has_apply_conditions():
+			spec._last_blocked_by = spec.can_apply(self)
+			if spec._last_blocked_by != null:
+				if spec._last_blocked_by.emit_blocked_signal:
+					effect_apply_blocked.emit(spec)
+				continue
+		
+		if spec.get_effect().is_temporary() && prev_base_value == base_value:
+			# Don't apply if temporary & there was no change to base value.
 			continue
 		
 		# Apply efffect
 		spec._last_apply_frame = current_frame
 		spec._apply_count += 1
 		spec._last_value = spec._effect.get_modified_value(self, spec)
-		value = spec._effect.apply_calc_type(value, spec._last_value)
-		spec._last_set_value = value
+		match spec._effect.type:
+			AttributeEffect.Type.PERMANENT:
+				base_value = spec._effect.apply_calculator(base_value, spec._last_value)
+				spec._last_set_value = base_value
+			AttributeEffect.Type.TEMPORARY:
+				_current_value = spec._effect.apply_calculator(_current_value, spec._last_value)
+				spec._last_set_value = _current_value
+			_:
+				assert(false, "no implementation for spec._effect.type %s" % spec._effect.type)
+		
 		# Add to emit list if it should be emitted
-		if spec._effect.emit_applied_signal:
+		if spec._effect.can_emit_apply_signal() && spec._effect.emit_applied_signal:
 			emit_applied.append(spec)
 	
-	if update_range:
-		_update_effects_range()
-	
+	# Allow auto-signal emitting for values again
 	_emit_base_value_changed = true
-	if previous_base_value != base_value:
-		base_value_changed.emit(previous_base_value)
-		_base_value_changed(previous_base_value)
+	_emit_current_value_changed = true
+	
+	# Emit value changed signals
+	if prev_base_value != base_value:
+		base_value_changed.emit(prev_base_value)
+		_base_value_changed(prev_base_value)
+	if prev_current_value != _current_value:
+		current_value_changed.emit(prev_current_value)
+		_current_value_changed(prev_current_value)
+	
+	# Emit applied signals
 	for spec: AttributeEffectSpec in emit_applied:
 		effect_applied.emit(spec)
+	
+	# Remove expired specs
+	if !expired_specs.is_empty():
+		for index: int in expired_specs:
+			_remove_effect_spec_at_index(expired_specs[index], index, false)
+		_update_specs_range()
 
 
 ## Called by the setter of [member base_value] with [param set_base_value] (what was manually
