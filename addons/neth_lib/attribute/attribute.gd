@@ -97,7 +97,10 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 			set_physics_process(effects_process_function == ProcessFunction.PHYSICS_PROCESS)
 
 ## Array of all [AttributeEffect]s.
-@export var _default_effects: Array[AttributeEffect] = []
+@export var _default_effects: Array[AttributeEffect] = []:
+	set(value):
+		_default_effects = value
+		update_configuration_warnings()
 
 ## Whether or not [StaminaEffect]s with a duration should have their duration tick.
 @export var tick_effect_durations: bool = true
@@ -145,12 +148,12 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	print("PROCESS")
-	_process_effects(delta, Engine.get_process_frames())
+	_process_effects(delta, Engine.get_process_frames(), _specs_range)
 
 
 func _physics_process(delta: float) -> void:
 	print("PHYISCS PROCESS")
-	_process_effects(delta, Engine.get_physics_frames())
+	_process_effects(delta, Engine.get_physics_frames(), _specs_range)
 
 
 func _exit_tree() -> void:
@@ -175,7 +178,7 @@ func _get_configuration_warnings() -> PackedStringArray:
 	return warnings
 
 
-func _process_effects(delta: float, current_frame: int) -> void:
+func _process_effects(delta: float, current_frame: int, indexes: Array) -> void:
 	var prev_base_value: float = base_value
 	var prev_current_value: float = _current_value
 	var emit_applied: Array[AttributeEffectSpec] = []
@@ -185,7 +188,7 @@ func _process_effects(delta: float, current_frame: int) -> void:
 	_emit_current_value_changed = false
 	
 	# Reverse iteration of _specs for safe & efficient removal during iteration.
-	for index: int in _specs_range:
+	for index: int in indexes:
 		var spec: AttributeEffectSpec = _specs[index]
 		
 		var already_processed: bool = spec._last_process_frame == current_frame
@@ -286,7 +289,6 @@ func _validate_base_value(set_base_value: float) -> float:
 	return set_base_value
 
 
-
 ## Called by the setter of [member _current_value] with [param set_current_value] (what was manually
 ## set to [member _current_value]). If the value fails any constraints it can be modified and
 ## returned, otherwise just return [param set_current_value].[br]
@@ -340,6 +342,10 @@ func update_current_value() -> void:
 		_current_value_changed(_prev_current_value)
 
 
+func add_effect(effect: AttributeEffect) -> bool:
+	return false ## TODO
+
+
 ## Adds & applies the [param spec], returning true if it was successfully
 ## added & applied, false if it wasn't due to an [AttributeEffectCondition]
 ## that was not met.
@@ -352,7 +358,11 @@ func add_effect_spec(spec: AttributeEffectSpec) -> bool:
 	assert(!spec.is_applied(), "spec (%s) already applied to an Attribute" % spec)
 	assert(spec.is_expired(), "spec (%s) already expired" % spec)
 	
-	if spec.is_instant():
+	# Check if it can be added
+	if !_check_condition(spec, spec._can_add, effect_add_blocked):
+		return false
+	
+	if spec.get_effect().is_instant():
 		var blocking_condition: AttributeEffectCondition = spec.get_effect().can_apply(self)
 		if blocking_condition != null:
 			spec._last_denied_by = blocking_condition
@@ -428,6 +438,15 @@ func _remove_effect_spec_at_index(spec: AttributeEffectSpec, index: int, _update
 
 func _update_specs_range() -> void:
 	_specs_range = range(_specs.size(), -1, -1)
+
+
+func _check_condition(spec: AttributeEffectSpec, callable: Callable, _signal: Signal) -> bool:
+	spec._last_blocked_by = callable.call(self)
+	if spec._last_blocked_by != null:
+		if spec._last_blocked_by.emit_blocked_signal && !_signal.is_null():
+			_signal.emit(spec)
+		return false
+	return true
 
 
 func _to_string() -> String:
