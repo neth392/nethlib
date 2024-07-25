@@ -111,6 +111,7 @@ var _container: WeakRef
 
 ## Array of all added [AttributeEffectSpec]s that are of [enum AttributeEffect.Type.PERMANENT]
 var _specs: Array[AttributeEffectSpec] = []
+
 ## Stores _effects range (in reverse) to iterate so it doesn't need to be 
 ## reconstructed every _process call.
 var _specs_range: Array = [0]
@@ -205,16 +206,18 @@ func _process_effects(delta: float, current_frame: int, indexes: Array) -> void:
 		
 		# Duration Calculations
 		# (already_processed can only be false if the effect is temporary at this point)
-		if !already_processed && spec.get_effect().has_duration():
-			spec.remaining_duration -= delta
+		if !already_processed:
+			# Keep track of passed duration for infinite as well
 			spec._passed_duration += delta
-			# Spec expired, remove it.
-			if spec.remaining_duration <= 0.0:
-				# Adjust remaining period as well
-				spec.remaining_period -= delta
-				spec._expired = true
-				expired_specs[index] = spec
-				continue
+			if spec.get_effect().has_duration():
+				spec.remaining_duration -= delta
+				# Spec expired, remove it.
+				if spec.remaining_duration <= 0.0:
+					# Adjust remaining period as well
+					spec.remaining_period -= delta
+					spec._expired = true
+					expired_specs[index] = spec
+					continue
 		
 		if spec.get_effect().has_period():
 			# Period Calculations
@@ -382,7 +385,6 @@ func add_effect(spec: AttributeEffectSpec, re_init: bool = false) -> bool:
 			assert(existing != null, "no existing spec found for effect (%s)" % spec._effect)
 			existing._add_to_stack(self, spec._stack_count)
 			return true
-			# Get existing
 	
 	# Check if it can be added
 	if !_check_add_conditions(spec):
@@ -449,6 +451,14 @@ func _remove_effect_spec_at_index(spec: AttributeEffectSpec, index: int, _update
 
 func _update_specs_range() -> void:
 	_specs_range = range(_specs.size(), -1, -1)
+
+
+func _initialize_spec(spec: AttributeEffectSpec) -> void:
+	if spec._effect.has_period():
+		spec.remaining_period = spec.get_effect().get_modified_period(self, spec)
+	if spec._effect.has_duration():
+		spec.remaining_duration = spec.get_effect().get_modified_duration(self, spec)
+	spec._initialized = true
 
 
 func _check_add_conditions(spec: AttributeEffectSpec) -> bool:

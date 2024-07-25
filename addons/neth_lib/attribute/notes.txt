@@ -1,0 +1,8 @@
+Multiplayer Conversion Notes;
+ - EffectManager singleton for all attribute effects.
+ 	- EffectManager.register_effects(EffectRegistry) # EffectRegistry is a custom resource containing list of all effects
+ - AttributeEffectSpec must be a Node. It will be replicated below Attributes.
+ - AttributeContainer must have the tag property synced.
+
+Need to research:
+	- Can I disable multiplayer easily? Perhaps a bool & dynamically add a Synchronizer & Spawner if enabled at boot.
