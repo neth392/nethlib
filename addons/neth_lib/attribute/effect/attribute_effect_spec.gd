@@ -18,6 +18,9 @@ var remaining_duration: float:
 ## delay.
 var remaining_period: float = 0.0
 
+## If this spec has been initialized by an [Attribute].
+var _initialized: bool = false
+
 ## The amount of time, in seconds, of how long this effect has been active
 var _passed_duration: float = 0.0
 
@@ -68,6 +71,14 @@ func _init(effect: AttributeEffect) -> void:
 ## Returns the [AttributeEffect] instance this spec was created for.
 func get_effect() -> AttributeEffect:
 	return _effect
+
+
+## Whether or not this instance has been initialized by an [Attribute].
+## [br]Initialization means that the default duration, period, & all other
+## necessary properties have been set so this effect can be processed & applied.
+func is_initialized() -> bool:
+	return _initialized
+
 
 ## Returns true if this spec is currently added to an [Attribute].
 func is_added() -> bool:
@@ -157,6 +168,7 @@ func get_stack_count() -> int:
 
 ## Adds [param amount] to the effect stack. This effect must be stackable
 ## (see [method is_stackable]) and [param amount] must be > 0.
+## [br]Automatically emits [signal Attribute.effect_stack_count_changed].
 func _add_to_stack(attribute: Attribute, amount: int = 1) -> void:
 	assert(is_stackable(), "_effect (%s) not stackable" % _effect)
 	assert(amount > 0, "amount(%s) <= 0" % amount)
@@ -170,6 +182,7 @@ func _add_to_stack(attribute: Attribute, amount: int = 1) -> void:
 ## Removes [param amount] from the effect stack. This effect must be stackable
 ## (see [method is_stackable]), [param amount] must be > 0, and 
 ## [method get_stack_count] - [param amount] must be > 0.
+## [br]Automatically emits [signal Attribute.effect_stack_count_changed].
 func _remove_from_stack(attribute: Attribute, amount: int = 1) -> void:
 	assert(is_stackable(), "_effect (%s) not stackable" % _effect)
 	assert(amount > 0, "amount(%s) <= 0" % amount)
@@ -187,16 +200,16 @@ func _remove_from_stack(attribute: Attribute, amount: int = 1) -> void:
 ## null if there is no blocking condition. Also returns null if the effect
 ## is temporary or instant (doesn't support process conditions).
 func _can_process(attribute: Attribute) -> AttributeEffectCondition:
-	if _effect.assert_has_duration():
+	if !_effect.has_process_conditions():
 		return null
-	return _check_conditions(attribute, _effect._process_conditions)
+	return _check_conditions(attribute, _effect.process_conditions)
 
 
 ## Checks if there is an [AttributeEffectCondition] blocking the addition of this
 ## spec to the [param attribute]. Returns the condition that is blocking it, or
 ## null if there is no blocking condition.
 func _can_add(attribute: Attribute) -> AttributeEffectCondition:
-	return _check_conditions(attribute, _effect._add_conditions)
+	return _check_conditions(attribute, _effect.add_conditions)
 
 
 ## Checks if there is an [AttributeEffectCondition] blocking the application of this
@@ -206,7 +219,7 @@ func _can_add(attribute: Attribute) -> AttributeEffectCondition:
 func _can_apply(attribute: Attribute) -> AttributeEffectCondition:
 	if !_effect.has_apply_conditions():
 		return null
-	return _check_conditions(attribute, _effect._apply_conditions)
+	return _check_conditions(attribute, _effect.apply_conditions)
 
 
 func _check_conditions(attribute: Attribute, conditions: Array[AttributeEffectCondition]) \

@@ -7,7 +7,6 @@ class_name AttributeEffectCallback extends Resource
 enum _Function {
 	PRE_ADD,
 	ADDED,
-	PRE_APPLY,
 	APPLIED,
 	PRE_REMOVE,
 	REMOVED,
@@ -25,7 +24,6 @@ static var _temporary_functions: Array[_Function] = [
 static var _functions_by_name: Dictionary = {
 	"_pre_add": _Function.PRE_ADD,
 	"_added": _Function.ADDED,
-	"_pre_apply": _Function.PRE_APPLY,
 	"_applied": _Function.APPLIED,
 	"_pre_remove": _Function.PRE_REMOVE,
 	"_removed": _Function.REMOVED,
@@ -35,7 +33,6 @@ static var _functions_by_name: Dictionary = {
 static var _function_names: Dictionary = {
 	_Function.PRE_ADD: "_pre_add",
 	_Function.ADDED: "_added",
-	_Function.PRE_APPLY: "_pre_apply",
 	_Function.APPLIED: "_applied",
 	_Function.PRE_REMOVE: "_pre_remove",
 	_Function.REMOVED: "_removed",
@@ -104,12 +101,6 @@ func _pre_add(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 ## Called after the [param spec] has been added to the [param attribute].
 ## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
 func _added(attribute: Attribute, spec: AttributeEffectSpec) -> void:
-	pass
-
-
-## Called before the [param spec] is to be applied to the [param attribute].
-## [br]NOTE: ONLY called for PERMANENT effects.
-func _pre_apply(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	pass
 
 
