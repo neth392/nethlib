@@ -206,6 +206,7 @@ func _process_effects(delta: float, current_frame: int, indexes: Array) -> void:
 		# Check if can process
 		if !_check_process_conditions(spec):
 			spec._is_processing = false
+			continue
 		
 		# Mark as processing
 		spec._is_processing = true
@@ -331,12 +332,10 @@ func get_current_value() -> float:
 func update_current_value() -> void:
 	var new_current_value: float = _current_value
 	
-	for spec: AttributeEffectSpec in _specs:
+	for spec: AttributeEffectSpec in _specs_range:
 		var effect: AttributeEffect = spec.get_effect()
 		if !effect.is_temporary():
-			# We can break here because AttributeEffect.sort_ascending ensures
-			# temporary effects are ALWAYS before permanent.
-			break
+			continue
 		var effect_value: float = effect.get_modified_value(self, spec)
 		new_current_value = effect.apply_calculator(new_current_value, effect_value)
 	
@@ -439,7 +438,7 @@ func remove_effect_spec(spec: AttributeEffectSpec) -> bool:
 		return false
 	
 	# Only update the current value if it is a temporary effect & _update_current_value is true
-	_remove_effect_spec_at_index(spec, index, spec._effect.is_temporary())
+	_remove_effect_spec_at_index(spec, index, spec.get_effect().is_temporary())
 	return true
 
 
