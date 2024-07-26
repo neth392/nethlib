@@ -43,6 +43,9 @@ var _apply_count: int = 0
 ## The condition that lasts blocks addition or application of this spec.
 var _last_blocked_by: AttributeEffectCondition
 
+## The [enum Attribute.EffectResult] from the last attempt to add this spec to an [Attribute].
+var _last_add_result: Attribute.EffectResult = Attribute.EffectResult.NEVER_ADDED
+
 ## The last frame this spec was processed on. If the value is -1, this
 ## spec has not yet been processed.
 var _last_process_frame: int = -1
@@ -131,6 +134,12 @@ func get_last_value() -> float:
 ## currently blocked.
 func get_last_blocked_by() -> AttributeEffectCondition:
 	return _last_blocked_by
+
+
+## Returns the [enum Attriubte.EffectResult] from the last attempt to add this
+## spec to an [Attribute].
+func get_last_add_result() -> Attriubte.EffectResult:
+	return _last_add_result
 
 
 ## Returns the amount of time, in seconds, this effect has been active for.

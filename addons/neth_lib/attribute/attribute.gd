@@ -22,6 +22,21 @@ enum ProcessFunction {
 	PROCESS,
 	## [method Node._phyics_process] is used.
 	PHYSICS_PROCESS,
+	## No processing is enabled.
+	NONE,
+}
+
+## The result of adding an [AttributeEffectSpec] to an [Attribute].
+enum EffectResult {
+	## No attempt was ever made to add the Effect to an [Attribute].
+	NEVER_ADDED,
+	## Effect was successfully added.
+	SUCCESS,
+	## Effect was blocked by an [AttributeEffectCondition], retrieve it via
+	## [method get_last_blocked_by].
+	BLOCKED_BY_CONDITION,
+	## Effect was already added to the [Attribute] and stack_mode is set to DENY.
+	STACK_DENIED,
 }
 
 ###################
@@ -77,10 +92,8 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 		base_value = _validate_base_value(value)
 		
 		if prev_base_value != base_value:
-			if _emit_base_value_changed:
-				base_value_changed.emit(prev_base_value)
-				_base_value_changed(prev_base_value)
-			
+			base_value_changed.emit(prev_base_value)
+			_base_value_changed(prev_base_value)
 			update_current_value()
 		
 		update_configuration_warnings()
@@ -120,16 +133,12 @@ var _specs_range: Array = [0]
 ## applied [AttributeEffectSpec]s with that effect.
 var _effect_counts: Dictionary = {}
 
-## Internal flag used to mark if [signal base_value_changed] should be emitted or not.
-var _emit_base_value_changed: bool = true
-var _emit_current_value_changed: bool = true
-
 ## The internal current value
 var _current_value: float:
 	set(value):
 		var prev_current_value: float = _current_value
 		_current_value = _validate_current_value(value)
-		if _current_value != prev_current_value && _emit_current_value_changed:
+		if _current_value != prev_current_value:
 			current_value_changed.emit(prev_current_value)
 			_current_value_changed(prev_current_value)
 		update_configuration_warnings()
@@ -180,13 +189,10 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 
 func _process_effects(delta: float, current_frame: int, indexes: Array) -> void:
-	var prev_base_value: float = base_value
-	var prev_current_value: float = _current_value
+	var new_base_value: float = base_value
+	var new_current_value: float = _current_value
 	var emit_applied: Array[AttributeEffectSpec] = []
 	var expired_specs: Dictionary = {}
-	
-	_emit_base_value_changed = false
-	_emit_current_value_changed = false
 	
 	# Reverse iteration of _specs for safe & efficient removal during iteration.
 	for index: int in indexes:
@@ -229,7 +235,7 @@ func _process_effects(delta: float, current_frame: int, indexes: Array) -> void:
 			spec.remaining_period += spec._effect.get_modified_period(self, spec)
 		
 		# Don't apply if temporary & there was no change to base value.
-		if spec.get_effect().is_temporary() && prev_base_value == base_value:
+		if spec.get_effect().is_temporary() && new_base_value == base_value:
 			continue
 		
 		# Check if can apply
@@ -242,11 +248,13 @@ func _process_effects(delta: float, current_frame: int, indexes: Array) -> void:
 		spec._last_value = spec._effect.get_modified_value(self, spec)
 		match spec._effect.type:
 			AttributeEffect.Type.PERMANENT:
-				base_value = spec._effect.apply_calculator(base_value, spec._last_value)
-				spec._last_set_value = base_value
+				new_base_value = spec._effect.apply_calculator(new_base_value, spec._last_value)
+				# Update current value
+				new_current_value = new_base_value
+				spec._last_set_value = new_base_value
 			AttributeEffect.Type.TEMPORARY:
-				_current_value = spec._effect.apply_calculator(_current_value, spec._last_value)
-				spec._last_set_value = _current_value
+				new_current_value = spec._effect.apply_calculator(new_current_value, spec._last_value)
+				spec._last_set_value = new_current_value
 			_:
 				assert(false, "no implementation for spec._effect.type %s" % spec._effect.type)
 		
@@ -257,17 +265,12 @@ func _process_effects(delta: float, current_frame: int, indexes: Array) -> void:
 		if spec._effect.can_emit_apply_signal() && spec._effect.emit_applied_signal:
 			emit_applied.append(spec)
 	
-	# Allow auto-signal emitting for values again
-	_emit_base_value_changed = true
-	_emit_current_value_changed = true
 	
 	# Emit value changed signals
-	if prev_base_value != base_value:
-		base_value_changed.emit(prev_base_value)
-		_base_value_changed(prev_base_value)
-	if prev_current_value != _current_value:
-		current_value_changed.emit(prev_current_value)
-		_current_value_changed(prev_current_value)
+	if base_value != new_base_value:
+		base_value = new_base_value
+	if _current_value != new_current_value:
+		_current_value = new_current_value
 	
 	# Emit applied signals
 	for spec: AttributeEffectSpec in emit_applied:
@@ -342,7 +345,14 @@ func update_current_value() -> void:
 		_current_value_changed(_prev_current_value)
 
 
-## Adds (& applies if PERMANENT) the [param spec], returning true if it was successfully
+## See [method add_effects]; this function calls that with just [param spec].
+func add_effect(spec: AttributeEffectSpec) -> EffectResult:
+	assert(spec != null, "spec is null")
+	add_effects([spec])
+	return spec._last_add_result
+
+
+## Adds (& applies if PERMANENT) the [param specs], returning true if it was successfully
 ## added (and applied if PERMANENT), false if it wasn't due to an [AttributeEffectCondition]
 ## that was not met or stacking not being allowed.
 ## [br][b]There are multiple considerations when calling this function:[/b]
@@ -353,47 +363,58 @@ func update_current_value() -> void:
 ##  it is not re-initialized unless [param re_init] is true.
 ## [br]  - If stack_mode is COMBINE and the effect already exists, the [param spec]'s
 ## stack_count will be added to the existing spec and [param spec] will NOT be added or intialized.
-func add_effect(spec: AttributeEffectSpec, re_init: bool = false) -> bool:
-	# Assert stack mode isnt DENY_ERROR, if it is assert it isn't a stack
-	assert(spec._effect.stack_mode != AttributeEffect.StackMode.DENY_ERROR\
-	or !has_effect(spec._effect), "stacking attempted on unstackable spec._effect (%s)"\
-	 % spec._effect)
+func add_effects(specs_to_add: Array[AttributeEffectSpec]) -> void:
 	
-	# Assert spec not already applied elsewhere
-	assert(!spec.is_applied(), "spec (%s) already applied to an Attribute" % spec)
-	assert(spec.is_expired(), "spec (%s) already expired" % spec)
-	
-	# Check if it isn't seperate stacking & exists already
-	if spec._effect.stack_mode != AttributeEffect.StackMode.SEPERATE && has_effect(spec._effect):
-		# Check if it can't be stacked
-		if spec._effect.stack_mode == AttributeEffect.StackMode.DENY \
-		# Leave below line here for release more (assert above doesnt run there)
-		or spec._effect.stack_mode == AttributeEffect.StackMode.DENY_ERROR:
-			# Can't stack, return false
-			return false
+	for spec: AttributeEffectSpec in specs_to_add:
+		assert(spec != null, "specs_to_add has null element")
+		# Assert stack mode isnt DENY_ERROR, if it is assert it isn't a stack
+		assert(spec._effect.stack_mode != AttributeEffect.StackMode.DENY_ERROR\
+		or !has_effect(spec._effect), "stacking attempted on unstackable spec._effect (%s)"\
+		 % spec._effect)
 		
-		# Check if it should be combined
-		if spec._effect.stack_mode == AttributeEffect.StackMode.COMBINE:
-			# Check if it can be added before combining
-			if !_check_add_conditions(spec):
-				return false
-			var existing: AttributeEffectSpec
-			for other: AttributeEffectSpec in _specs:
-				if other._effect == spec._effect:
-					existing = other
-					break
-			assert(existing != null, "no existing spec found for effect (%s)" % spec._effect)
-			existing._add_to_stack(self, spec._stack_count)
-			return true
+		# Assert spec not already applied elsewhere
+		assert(!spec.is_applied(), "spec (%s) already applied to an Attribute" % spec)
+		assert(spec.is_expired(), "spec (%s) already expired" % spec)
+		
+		# Check if it isn't seperate stacking & exists already
+		if spec._effect.stack_mode != AttributeEffect.StackMode.SEPERATE && has_effect(spec._effect):
+			# Check if it can't be stacked
+			if spec._effect.stack_mode == AttributeEffect.StackMode.DENY \
+			# Leave below line here for release more (assert above doesnt run there)
+			or spec._effect.stack_mode == AttributeEffect.StackMode.DENY_ERROR:
+				# Can't stack
+				spec._effect._last_add_result = EffectResult.STACK_DENIED
+				continue
+			
+			# Check if it should be combined
+			if spec._effect.stack_mode == AttributeEffect.StackMode.COMBINE:
+				# Check if it can be added before combining
+				if !_check_add_conditions(spec):
+					spec._effect._last_add_result = EffectResult.BLOCKED_BY_CONDITION
+					continue
+				var existing: AttributeEffectSpec
+				for other: AttributeEffectSpec in _specs:
+					if other._effect == spec._effect:
+						existing = other
+						break
+				assert(existing != null, "no existing spec found for effect (%s)" % spec._effect)
+				existing._add_to_stack(self, spec._stack_count)
+				continue
+		
+		# Check if it can be added
+		if !_check_add_conditions(spec):
+			spec._effect._last_add_result = EffectResult.BLOCKED_BY_CONDITION
+			continue
+		
+		# If instant, apply it instantly
+		if spec.get_effect().is_instant():
+			# APPLY SPEC
+			continue
+		
+		# Intialize it if not already done
+		if !spec.is_initialized():
+			_initialize_spec(spec)
 	
-	# Check if it can be added
-	if !_check_add_conditions(spec):
-		return false
-	
-	if !spec.is_initialized():
-		pass
-	
-	return true
 
 
 ## Returns true if the [param effect] is present and has one or more [AttributeEffectSpec]s
