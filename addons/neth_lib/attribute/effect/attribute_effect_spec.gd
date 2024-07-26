@@ -4,8 +4,8 @@ class_name AttributeEffectSpec extends Resource
 
 ## Helper function that calls [method AttributeEffect.sort_ascending] from the
 ## [member _effect] of each [param a] and [param b].
-static func sort_ascending(a: AttributeEffectSpec, b: AttributeEffectSpec) -> bool:
-	return AttributeEffect.sort_ascending(a._effect, b._effect)
+static func sort_a_before_b(a: AttributeEffectSpec, b: AttributeEffectSpec) -> bool:
+	return AttributeEffect.sort_a_before_b(a._effect, b._effect)
 
 
 ## The remaining duration in seconds, can not be set to less than 0.0.

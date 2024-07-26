@@ -8,7 +8,7 @@ class_name AttributeEffect extends Resource
 ##[br]- LESSER priority effects are before GREATER priority effects.
 ##[br]NOTE: This sorting order takes into account the reverse iteration of
 ## the effects array in [Attribute]'s implementation.
-static func sort_ascending(a: AttributeEffect, b: AttributeEffect) -> bool:
+static func sort_a_before_b(a: AttributeEffect, b: AttributeEffect) -> bool:
 	if a.type != b.type:
 		return a.type != Type.PERMANENT
 	return a.priority < b.priority
