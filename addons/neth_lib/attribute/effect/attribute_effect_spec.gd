@@ -2,12 +2,6 @@
 ## which was (or can be) applied to an [Attribute].
 class_name AttributeEffectSpec extends Resource
 
-## Helper function that calls [method AttributeEffect.sort_ascending] from the
-## [member _effect] of each [param a] and [param b].
-static func sort_a_before_b(a: AttributeEffectSpec, b: AttributeEffectSpec) -> bool:
-	return AttributeEffect.sort_a_before_b(a._effect, b._effect)
-
-
 ## The remaining duration in seconds, can not be set to less than 0.0.
 var remaining_duration: float:
 	set(_value):
@@ -65,6 +59,10 @@ var _last_value: float
 
 ## Whether or not this spec expired.
 var _expired: bool = false
+
+## Internal flag used in processing of specs in [Attribute], true if it should
+## be applied after processing, false if not.
+var _flag_should_apply: bool = false
 
 func _init(effect: AttributeEffect) -> void:
 	assert(effect != null, "effect is null")

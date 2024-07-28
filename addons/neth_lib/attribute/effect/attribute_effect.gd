@@ -2,17 +2,6 @@
 @tool
 class_name AttributeEffect extends Resource
 
-## For use in [method Array.sort_custom], returns a bool that ensures the provided
-## effects are sorted by the following criteria, in order:
-##[br]- TEMPORARY effects are before PERMANENT effects
-##[br]- LESSER priority effects are before GREATER priority effects.
-##[br]NOTE: This sorting order takes into account the reverse iteration of
-## the effects array in [Attribute]'s implementation.
-static func sort_a_before_b(a: AttributeEffect, b: AttributeEffect) -> bool:
-	if a.type != b.type:
-		return a.type != Type.PERMANENT
-	return a.priority < b.priority
-
 ## The type of effect.
 enum Type {
 	## Makes permanent changes to the [member Attribute.base_value].

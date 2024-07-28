@@ -199,42 +199,12 @@ func _process_effects(delta: float, current_frame: int, indexes: Array) -> void:
 		var spec: AttributeEffectSpec = _specs[index]
 		var effect: AttributeEffect = spec.get_effect()
 		
-		var already_processed: bool = spec._last_process_frame == current_frame
-		if effect.is_permanent() && already_processed:
+		_process_effect(spec, current_frame, delta)
+		if spec._expired:
+			expired_specs[index] = spec
 			continue
-		
-		# Check if can process
-		if !_check_process_conditions(spec):
-			spec._is_processing = false
+		elif !spec._flag_should_apply:
 			continue
-		
-		# Mark as processing
-		spec._is_processing = true
-		spec._last_process_frame = current_frame
-		
-		# Duration Calculations
-		# (already_processed can only be false if the effect is temporary at this point)
-		if !already_processed:
-			# Keep track of passed duration for infinite as well
-			spec._passed_duration += delta
-			if effect.has_duration():
-				spec.remaining_duration -= delta
-				# Spec expired, remove it.
-				if spec.remaining_duration <= 0.0:
-					# Adjust remaining period as well
-					spec.remaining_period -= delta
-					spec._expired = true
-					expired_specs[index] = spec
-					continue
-		
-		if effect.has_period():
-			# Period Calculations
-			spec.remaining_period -= delta
-			# Can not yet activate, proceed to next
-			if spec.remaining_period > 0.0:
-				continue
-			# Add to remaining period
-			spec.remaining_period += effect.get_modified_period(self, spec)
 		
 		# Don't apply if temporary & there was no change to base value.
 		if effect.is_temporary() && new_base_value == base_value:
@@ -509,6 +479,76 @@ func _check_conditions(spec: AttributeEffectSpec, callable: Callable, _signal: S
 			_signal.emit(spec)
 		return false
 	return true
+
+
+func _process_effect(spec: AttributeEffectSpec, current_frame: int, delta: float) -> void:
+	var effect: AttributeEffect = spec.get_effect()
+	spec._flag_should_apply = false
+	
+	var already_processed: bool = spec._last_process_frame == current_frame
+	if effect.is_permanent() && already_processed:
+		return
+	
+	# Check if can process
+	if !_check_process_conditions(spec):
+		spec._is_processing = false
+		return
+	
+	# Mark as processing
+	spec._is_processing = true
+	spec._last_process_frame = current_frame
+	
+	# Duration Calculations
+	# (already_processed can only be false if the effect is temporary at this point)
+	if !already_processed:
+		# Keep track of passed duration for infinite as well
+		spec._passed_duration += delta
+		if effect.has_duration():
+			spec.remaining_duration -= delta
+			# Spec expired, remove it.
+			if spec.remaining_duration <= 0.0:
+				# Adjust remaining period as well
+				spec.remaining_period -= delta
+				spec._expired = true
+				return
+	
+	if effect.has_period():
+		# Period Calculations
+		spec.remaining_period -= delta
+		# Can not yet activate, proceed to next
+		if spec.remaining_period > 0.0:
+			return
+		# Add to remaining period
+		spec.remaining_period += effect.get_modified_period(self, spec)
+	
+	spec._flag_should_apply = true
+
+
+
+static func sort_a_before_b(a: AttributeEffect, b: AttributeEffect) -> bool:
+	if a.type != b.type:
+		return a.type != Type.PERMANENT
+	return a.priority < b.priority
+
+## For use in [method Array.sort_custom] with [member _specs]. Returns the bool
+## that ensures:
+##[br]- TEMPORARY effects are before PERMANENT effects
+##[br]- TEMPORARY effects 
+##[br]- LESSER priority effects are before GREATER priority effects.
+##[br]NOTE: This sorting order takes into account the reverse iteration of
+## the effects array in [Attribute]'s implementation.
+func _compare_spec(a: AttributeEffect, b: AttributeEffect) -> bool:
+	if a.type != b.type:
+		return a.type != AttributeEffect.Type.PERMANENT
+	match a.type:
+		AttributeEffect.Type.PERMANENT:
+			a.p
+			return false
+		AttributeEffect.Type.TEMPORARY:
+			return false
+		_:
+			assert(false, "no implementation for type %s" % a.type)
+			return false
 
 
 func _to_string() -> String:
