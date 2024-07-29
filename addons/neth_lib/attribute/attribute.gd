@@ -12,31 +12,27 @@
 @tool
 class_name Attribute extends Node
 
-enum Property {
-	VALUE,
-}
-
 ## Which _process function is used to execute effects.
 enum ProcessFunction {
 	## [method Node._process] is used.
-	PROCESS,
+	PROCESS = 0,
 	## [method Node._phyics_process] is used.
-	PHYSICS_PROCESS,
+	PHYSICS_PROCESS = 1,
 	## No processing is enabled.
-	NONE,
+	NONE = 2,
 }
 
 ## The result of adding an [AttributeEffectSpec] to an [Attribute].
 enum EffectResult {
 	## No attempt was ever made to add the Effect to an [Attribute].
-	NEVER_ADDED,
+	NEVER_ADDED = 0,
 	## Effect was successfully added.
-	SUCCESS,
+	SUCCESS = 1,
 	## Effect was blocked by an [AttributeEffectCondition], retrieve it via
 	## [method get_last_blocked_by].
-	BLOCKED_BY_CONDITION,
+	BLOCKED_BY_CONDITION = 2,
 	## Effect was already added to the [Attribute] and stack_mode is set to DENY.
-	STACK_DENIED,
+	STACK_DENIED = 3,
 }
 
 ###################
@@ -190,7 +186,7 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 func _process_effects(delta: float, current_frame: int, indexes: Array) -> void:
 	var new_base_value: float = base_value
-	var new_current_value: float = _current_value
+	var new_current_value: float = base_value
 	var emit_applied: Array[AttributeEffectSpec] = []
 	var expired_specs: Dictionary = {}
 	
@@ -220,12 +216,12 @@ func _process_effects(delta: float, current_frame: int, indexes: Array) -> void:
 		spec._last_value = effect.get_modified_value(self, spec)
 		match effect.type:
 			AttributeEffect.Type.PERMANENT:
-				new_base_value = effect.apply_calculator(new_base_value, spec._last_value)
+				new_base_value = effect.apply_calculator(new_base_value, new_current_value, spec._last_value)
 				# Update current value
 				new_current_value = new_base_value
 				spec._last_set_value = new_base_value
 			AttributeEffect.Type.TEMPORARY:
-				new_current_value = effect.apply_calculator(new_current_value, spec._last_value)
+				new_current_value = effect.apply_calculator(new_base_value, new_current_value, spec._last_value)
 				spec._last_set_value = new_current_value
 			_:
 				assert(false, "no implementation for effect.type %s" % effect.type)
@@ -238,10 +234,9 @@ func _process_effects(delta: float, current_frame: int, indexes: Array) -> void:
 			emit_applied.append(spec)
 	
 	
-	# Emit value changed signals
+	# Set new values if changed
 	if base_value != new_base_value:
 		base_value = new_base_value
-	if _current_value != new_current_value:
 		_current_value = new_current_value
 	
 	# Emit applied signals
@@ -384,6 +379,7 @@ func add_effect(spec: AttributeEffectSpec) -> void:
 		if !spec.is_initialized():
 			_initialize_spec(spec)
 	
+	_process_effects(0.0, Engine.get_process_frames())
 	# Apply spec
 	# TODO
 
@@ -527,8 +523,9 @@ func _process_effect(spec: AttributeEffectSpec, current_frame: int, delta: float
 
 static func sort_a_before_b(a: AttributeEffect, b: AttributeEffect) -> bool:
 	if a.type != b.type:
-		return a.type != Type.PERMANENT
+		return a.type != AttributeEffect.Type.PERMANENT
 	return a.priority < b.priority
+
 
 ## For use in [method Array.sort_custom] with [member _specs]. Returns the bool
 ## that ensures:
@@ -549,6 +546,21 @@ func _compare_spec(a: AttributeEffect, b: AttributeEffect) -> bool:
 		_:
 			assert(false, "no implementation for type %s" % a.type)
 			return false
+
+
+func _get_frames() -> int:
+	match effects_process_function:
+		ProcessFunction.PROCESS:
+			return Engine.get_process_frames()
+		ProcessFunction.PHYSICS_PROCESS:
+			return Engine.get_physics_frames()
+		_:
+			assert(false, "no implementation for effects_process_function (%s)" % effects_process_function)
+			return 0
+
+
+func _is_processing_enabled() -> bool:
+	return effects_process_function != ProcessFunction.NONE
 
 
 func _to_string() -> String:

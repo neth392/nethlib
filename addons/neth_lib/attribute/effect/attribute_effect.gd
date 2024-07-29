@@ -5,36 +5,36 @@ class_name AttributeEffect extends Resource
 ## The type of effect.
 enum Type {
 	## Makes permanent changes to the [member Attribute.base_value].
-	PERMANENT,
+	PERMANENT = 0,
 	## Makes temporary changes to the value returned by [method Attribute.get_current_value].
-	TEMPORARY,
+	TEMPORARY = 1,
 }
 
 ## Determines how this effect can be stacked on an [Attribute], if at all.
 enum StackMode {
 	## Stacking is not allowed.
-	DENY,
+	DENY = 0,
 	## Stacking is not allowed and an assertion will be called
 	## if there is an attempt to stack this effect on an [Attribute].
-	DENY_ERROR,
+	DENY_ERROR = 1,
 	## Attribute effects are seperate, a new [AppliedAttributeEffect] is created
 	## for every instance added to an [Attribute].
-	SEPERATE,
+	SEPERATE = 2,
 	## Attribute effects are combined into one [AppliedAttributeEffect].
-	COMBINE,
+	COMBINE = 3,
 }
 
 ## Determines how the effect is applied time-wise.
 enum DurationType {
 	## The effect is applied to an [Attribute] and remains until it is explicitly
 	## removed.
-	INFINITE,
+	INFINITE = 0,
 	## The effect is applied to an [Attribute] and is removed automatically
 	## after [member duration_seconds].
-	HAS_DURATION,
+	HAS_DURATION = 1,
 	## The effect is immediately applied to an [Attribute] and does not remain
 	## stored on it.
-	INSTANT,
+	INSTANT = 2,
 }
 
 
@@ -45,10 +45,15 @@ enum DurationType {
 @export var type: Type = Type.PERMANENT:
 	set(_value):
 		type = _value
-		if type == Type.TEMPORARY:
-			# INSTANT not compatible with TEMPORARY
-			if duration_type == DurationType.INSTANT:
-				duration_type = DurationType.INFINITE
+		match type:
+			Type.TEMPORARY:
+				# INSTANT not compatible with TEMPORARY
+				if duration_type == DurationType.INSTANT:
+					duration_type = DurationType.INFINITE
+			Type.PERMANENT:
+				pass # TODO remove this statement if not needed
+			_:
+				assert(false, "no implementation written for type %s" % type)
 		notify_property_list_changed()
 
 ## The direct effect to [member Attribute.value]
@@ -201,6 +206,7 @@ func _init(_id: StringName = "") -> void:
 
 
 func _validate_property(property: Dictionary) -> void:
+	
 	if property.name == "emit_applied_signal":
 		if !can_emit_apply_signal():
 			_no_editor(property)
@@ -403,8 +409,8 @@ func modify_value(_value: float, attribute: Attribute, spec: AttributeEffectSpec
 ## [param effect_value], returning the result. It must always be ensured that
 ## the [param effect_value] comes from [b]this effect[/b], otherwise results
 ## will be unexpected.
-func apply_calculator(attribute_value: float, effect_value: float) -> float:
-	return value_calculator._calculate(attribute_value, effect_value)
+func apply_calculator(attr_base_value: float, attr_current_value: float, effect_value: float) -> float:
+	return value_calculator._calculate(attr_base_value, attr_current_value, effect_value)
 
 
 ## Returns the [member period_in_seconds] after applying all period [AttributeEffectModifier]s to it.

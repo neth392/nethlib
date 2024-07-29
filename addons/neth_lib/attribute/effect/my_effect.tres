@@ -37,6 +37,7 @@ id = &""
 type = 0
 value = 0.0
 value_calculator = SubResource("Resource_85b3q")
+calculate_with_value = 0
 priority = 0
 emit_added_signal = false
 emit_applied_signal = false
