@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://u4jv4pqhe7va"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/util/execution_time_test.gd" id="1_ogm5f"]
+
+[node name="ExecutionTimeTest" type="Node"]
+script = ExtResource("1_ogm5f")

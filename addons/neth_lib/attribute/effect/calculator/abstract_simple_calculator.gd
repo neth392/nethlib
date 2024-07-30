@@ -1,7 +1,6 @@
 ## Abstract class for simple built-in implementations of [method AttributeEffectCalculator]
 class_name AbstractSimpleCalculator extends AttributeEffectCalculator
 
-
 ## Determines which value of an [Attribute] should be used in the calculation. 
 enum AttributeValue {
 	## The [member Attribute.base_value] is used in the calculation alongside the provided
@@ -13,8 +12,10 @@ enum AttributeValue {
 }
 
 ## Determines which value of an [Attribute] should be used in the calculation. 
-## [br]See [enum AttributeValue].
+## [br]See [enum AttributeValue]. This is very important and should usually be
+## set according to the [enum AttributeEffect.Type] of the effect.
 @export var attribute_value_to_use: AttributeValue
+
 
 func _calculate(attribute_base_value: float, attribute_current_value: float, effect_value: float) -> float:
 	match attribute_value_to_use:

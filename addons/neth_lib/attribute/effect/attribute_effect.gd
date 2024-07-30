@@ -62,12 +62,14 @@ enum DurationType {
 ## Determines how the effect is applied to an [Attribute] (i.e. added, multiplied, etc).
 @export var value_calculator: AttributeEffectCalculator
 
-## The priority to be used to determine the order of execution of [AttributeEffect]s
-## on an [Attribute]. Greater priorities will be executed first. So if you want an
-## effect to override a value on an attribute and not be modified by any other attributes,
-## it is important to make this priority lower than other effects that can be applied.
+## The priority to be used to determine the order when applying [AttributeEffect]s
+## on an [Attribute]. Greater priorities will be applied first. One example; if you want an
+## effect to override a value on an attribute & not have that value modified by any other effects,
+## then the priority should be lesser than other effects that can be applied so the override
+## effect is applied last.
 ## [br]NOTE: Effects of [enum Type.PERMANENT] are processed BEFORE ALL effects of 
-## [enum Type.TEMPORARY].
+## [enum Type.TEMPORARY], despite priority.
+## [br]NOTE: Priority is not used in processing of period & duration.
 @export var priority: int = 0
 
 @export_group("Signals")
