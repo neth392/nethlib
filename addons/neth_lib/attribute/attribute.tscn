@@ -4,5 +4,3 @@
 
 [node name="Attribute" type="Node"]
 script = ExtResource("1_auulm")
-
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]

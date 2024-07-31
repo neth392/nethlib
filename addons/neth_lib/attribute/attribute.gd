@@ -190,10 +190,9 @@ func __core_loop(process_specs: bool, delta: float, current_frame: int) -> void:
 		# Process TEMPORARY effects
 		temp_spec_removed = _process_specs(_temporary_specs, current_frame, delta)
 	
-	# Apply PERMANENT effects
 	var old_base_value: float = base_value
 	
-	# TODO: Apply permanent specs.
+	# Apply PERMANENT effects
 	_apply_permanent_specs(current_frame)
 	
 	if base_value != old_base_value || temp_spec_removed:
@@ -294,10 +293,13 @@ func _apply_permanent_specs(current_frame: int) -> void:
 		# Emit signal if necessary
 		if spec.get_effect().can_emit_apply_signal() && spec.get_effect().emit_applied_signal:
 			effect_applied.emit(spec)
+	
+	if base_value != new_base_value:
+		base_value = new_base_value
 
 
-## Updates the value returned by [method get_current_value] by re-executing all
-## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY] on the [member base_value].
+## Updates the value returned by [method get_current_value] by re-applying all
+## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY].
 func _update_current_value(current_frame: int) -> void:
 	var new_current_value: float = base_value
 	
@@ -310,6 +312,17 @@ func _update_current_value(current_frame: int) -> void:
 	
 	if _current_value != new_current_value:
 		_current_value = new_current_value
+
+
+func _get_spec_array(spec: AttributeEffectSpec) -> AttributeEffectSpecArray:
+	match spec.get_effect().type:
+		AttributeEffect.Type.PERMANENT:
+			return _permanent_specs
+		AttributeEffect.Type.TEMPORARY:
+			return _temporary_specs
+		_:
+			assert(false, "no implementation for type (%s)" % spec.get_effect().type)
+			return null
 
 
 ## Queues the addition (& application if PERMANENT) of the [param spec], unless
@@ -325,8 +338,8 @@ func _update_current_value(current_frame: int) -> void:
 func queue_add_effect(spec: AttributeEffectSpec) -> void:
 	assert(spec != null, "specs_to_add has null element")
 	
-	if _in_process_loop:
-		_after_process_callables.append(queue_add_effect.bind(spec))
+	if _in_core_loop:
+		_to_run_after_core_loop.append(queue_add_effect.bind(spec))
 		return
 	
 	var effect: AttributeEffect = spec.get_effect()
@@ -355,7 +368,9 @@ func queue_add_effect(spec: AttributeEffectSpec) -> void:
 			if !_check_add_conditions(spec):
 				return
 			var existing_spec: AttributeEffectSpec
-			for other_spec: AttributeEffectSpec in _specs:
+			var spec_array: AttributeEffectSpecArray = _get_spec_array(spec)
+			for index: int in spec_array.iterate_indexes_reverse():
+				var other_spec: AttributeEffectSpec = spec_array.get_at_index(index)
 				if other_spec.get_effect() == effect:
 					existing_spec = other_spec
 					break
@@ -363,7 +378,7 @@ func queue_add_effect(spec: AttributeEffectSpec) -> void:
 			spec._last_add_result = EffectResult.STACKED
 			existing_spec._add_to_stack(self, spec._stack_count)
 			if existing_spec.get_effect().is_temporary():
-				_update_current_value()
+				_update_current_value(_get_frames())
 			return
 	
 	# Check if it can be added
