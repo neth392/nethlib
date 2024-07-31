@@ -70,7 +70,7 @@ enum DurationType {
 ## [br]NOTE: Effects of [enum Type.PERMANENT] are processed BEFORE ALL effects of 
 ## [enum Type.TEMPORARY], despite priority.
 ## [br]NOTE: Priority is not used in processing of period & duration.
-@export var priority: int = 0
+@export var apply_priority: int = 0
 
 @export_group("Signals")
 
@@ -115,6 +115,11 @@ enum DurationType {
 @export var period_in_seconds: float = 0.0:
 	set(_value):
 		period_in_seconds = max(0.0, _value)
+
+## If [member period_in_seconds] should apply as a "delay" between when this effect 
+## is added to an [Attribute] and its first time applying.
+## [br]NOTE: ONLY AVAILABLE FOR [enum Type.PERMANENT].
+@export var initial_period: bool = false
 
 @export_group("Stacking")
 
@@ -224,7 +229,7 @@ func _validate_property(property: Dictionary) -> void:
 			_no_editor(property)
 		return
 	
-	if property.name == "period_in_seconds":
+	if property.name == "period_in_seconds" || property.name == "initial_period":
 		if !has_period():
 			_no_editor(property)
 		return
