@@ -387,15 +387,8 @@ func queue_add_effect(spec: AttributeEffectSpec) -> void:
 	
 	# If not instant, add & initialize
 	if !effect.is_instant():
-		var added: bool = false
-		for index: int in _specs.size():
-			var other_spec: AttributeEffectSpec = _specs[index]
-			if _sort_a_before_b(effect, other_spec.get_effect()):
-				_specs.insert(index, spec)
-				added = true
-				break
-		if !added:
-			_specs.append(spec)
+		var spec_array: AttributeEffectSpecArray = _get_spec_array(spec)
+		spec_array.add(spec, true)
 		spec._is_added = true
 		if effect.emit_added_signal:
 			effect_added.emit(spec)
