@@ -45,7 +45,7 @@ func add(spec: AttributeEffectSpec, _update_reverse_range: bool = false) -> void
 		_reversed_range.push_front(_array.size() - 1)
 
 
-func remove_at_index(index: int, _update_reverse_range: bool = false) -> void:
+func remove_at(index: int, _update_reverse_range: bool = false) -> void:
 	_array.remove_at(index)
 	if _update_reverse_range:
 		_reversed_range.pop_front()
@@ -54,6 +54,10 @@ func remove_at_index(index: int, _update_reverse_range: bool = false) -> void:
 ## Returns the reverse range of the array for iteration purposes ONLY.
 func iterate_indexes_reverse() -> Array:
 	return _reversed_range
+
+
+func is_empty() -> bool:
+	return _array.is_empty()
 
 
 func clear() -> void:

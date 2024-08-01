@@ -265,14 +265,15 @@ func get_current_value() -> float:
 
 
 ## Applies all permanent specs whose _flag_should_apply is true.
-func _apply_permanent_specs(spec_array: AttributeEffectSpecArray, current_frame: int) -> void:
+func _apply_permanent_specs(spec_array: AttributeEffectSpecArray, current_frame: int,
+check_flag: bool = true) -> void:
 	assert(spec_array.get_type() == AttributeEffect.Type.PERMANENT, 
 	"spec_array.get_type() (%s) != PERMANENT" % spec_array.get_type())
 	var new_base_value: float = _base_value
 	for index: int in spec_array.iterate_indexes_reverse():
 		var spec: AttributeEffectSpec = spec_array.get_at_index(index)
 		# Apply spec
-		if _apply_permanent_spec(spec, current_frame, new_base_value):
+		if _apply_permanent_spec(spec, current_frame, new_base_value, check_flag):
 			new_base_value = spec._last_set_value
 	
 	if _base_value != new_base_value:
@@ -282,10 +283,11 @@ func _apply_permanent_specs(spec_array: AttributeEffectSpecArray, current_frame:
 ## Applies [param spec] based on the [param new_base_value], setting what should be the
 ## new base value to [member AttributeEffectSpec._last_set_value].
 ## [br]NOTE: Does NOT set [member base_value].
-func _apply_permanent_spec(spec: AttributeEffectSpec, current_frame: int, new_base_value: float) -> bool:
+func _apply_permanent_spec(spec: AttributeEffectSpec, current_frame: int, new_base_value: float,
+check_flag: bool = true) -> bool:
 	assert(spec.get_effect().is_permanent(), "spec (%s) is not PERMANENT" % spec)
 	# Check if it should apply (has it's flag set to true & passes all conditions)
-	if !spec._flag_should_apply || !_check_apply_conditions(spec):
+	if (check_flag && !spec._flag_should_apply) || !_check_apply_conditions(spec):
 		return false
 	# Set flag back to false
 	spec._flag_should_apply = false
@@ -382,11 +384,33 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	
 	var perm_specs: AttributeEffectSpecArray = \
 	AttributeEffectSpecArray.new(AttributeEffect.Type.PERMANENT)
+	var temp_specs:  AttributeEffectSpecArray = \
+	AttributeEffectSpecArray.new(AttributeEffect.Type.TEMPORARY)
 	
+	# Sort specs into arrays ordered by priority
 	for spec: AttributeEffectSpec in specs:
-		
+		var effect: AttributeEffect = spec.get_effect()
+		match effect.type:
+			AttributeEffect.Type.PERMANENT:
+				perm_specs.add(spec)
+			AttributeEffect.Type.TEMPORARY:
+				temp_specs.add(spec)
+			_:
+				assert(false, "no implementation for type (%s)" % effect.type)
+	perm_specs.update_reversed_range()
+	temp_specs.update_reversed_range()
 	
-	var effect: AttributeEffect = spec.get_effect()
+	# Add specs
+	
+	
+	if !perm_specs.is_empty():
+		for index: int in perm_specs.iterate_indexes_reverse():
+			var perm_spec: AttributeEffectSpec = perm_specs.get_at_index(index)
+			pass
+	
+	if !temp_specs.is_empty():
+		pass
+	
 	# Assert stack mode isnt DENY_ERROR, if it is assert it isn't a stack
 	assert(effect.stack_mode != AttributeEffect.StackMode.DENY_ERROR || !has_effect(effect),
 	"stacking attempted on unstackable effect (%s)" % effect)
@@ -448,7 +472,6 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 ## Manually removes all [param specs] from this [Attribute].
 func remove_specs(specs: Array[AttributeEffectSpec]) -> void:
 	assert(!specs.has(null), "spec is null")
-	assert(spec._is_added, "spec._is_added is false")
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	
 	var index: int = _specs.find(spec)
@@ -501,7 +524,7 @@ index: int, _update_current_value: bool, _update_reverse_range: bool) -> void:
 	
 	spec._is_processing = false
 	spec._is_added = false
-	array.remove_at_index(index, _update_reverse_range)
+	array.remove_at(index, _update_reverse_range)
 	
 	var new_count: int = _effect_counts[effect] - 1
 	if new_count <= 0:
