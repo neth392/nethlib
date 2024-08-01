@@ -392,6 +392,10 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		var effect: AttributeEffect = spec.get_effect()
 		match effect.type:
 			AttributeEffect.Type.PERMANENT:
+				if spec.get_effect().is_instant() \
+				or (spec.get_effect().has_period() && spec.get_effect().initial_period):
+					spec._flag_should_apply = true
+				
 				perm_specs.add(spec)
 			AttributeEffect.Type.TEMPORARY:
 				temp_specs.add(spec)
@@ -402,6 +406,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	
 	# Add specs
 	
+	# Apply specs
 	
 	if !perm_specs.is_empty():
 		for index: int in perm_specs.iterate_indexes_reverse():
