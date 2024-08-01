@@ -29,9 +29,8 @@ func _validate_and_assert(effect: AttributeEffect) -> void:
 
 
 ## Called every time the modified property of an [AttributeEffect] is requested.
-## [br]NOTE: The [param attribute]'s [member Attribute.base_value] and 
-## [method Attribute.get_current_value] should NOT be modified here and will reflect
-## the previous frame's values as the new calculated values are not set until after all
+## [br]NOTE: [param attribute] should NOT be modified here and it's values will reflect
+## those from the previous frame as the new calculated values are not set until after all
 ## effects have been processed on a frame.
 func _modify(current_modified: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	return current_modified

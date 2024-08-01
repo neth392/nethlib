@@ -4,9 +4,10 @@ class_name AttributeEffect extends Resource
 
 ## The type of effect.
 enum Type {
-	## Makes permanent changes to the [member Attribute.base_value].
+	## Makes permanent changes to an [Attribute]'s base value.
 	PERMANENT = 0,
-	## Makes temporary changes to the value returned by [method Attribute.get_current_value].
+	## Makes temporary changes to an [Attribute] reflected in 
+	## [method Attribute.get_current_value].
 	TEMPORARY = 1,
 }
 

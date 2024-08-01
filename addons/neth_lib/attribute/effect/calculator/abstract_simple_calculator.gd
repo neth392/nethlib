@@ -3,7 +3,7 @@ class_name AbstractSimpleCalculator extends AttributeEffectCalculator
 
 ## Determines which value of an [Attribute] should be used in the calculation. 
 enum AttributeValue {
-	## The [member Attribute.base_value] is used in the calculation alongside the provided
+	## The [method Attribute.get_base_value] is used in the calculation alongside the provided
 	## [AttributeEffect] value.
 	BASE_VALUE = 0,
 	## The [method Attribute.get_current_value] is used in the calculation alongside the provided

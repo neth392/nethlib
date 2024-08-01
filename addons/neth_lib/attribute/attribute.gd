@@ -18,8 +18,8 @@ enum ProcessFunction {
 	PROCESS = 0,
 	## [method Node._phyics_process] is used.
 	PHYSICS_PROCESS = 1,
-	## No processing is enabled.
-	NONE = 2,
+	## No processing is used.
+	NONE = 99,
 }
 
 ## The result of adding an [AttributeEffectSpec] to an [Attribute].
@@ -83,20 +83,19 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 		id = _value
 		update_configuration_warnings()
 
-## The attribute value.
-@export var base_value: float:
+## The base value of the attribute which permanent effects will apply to.
+## [br]WARNING: Setting this directly can break the current value, use [method set_base_value].
+@export var _base_value: float:
 	set(value):
-		var prev_base_value: float = base_value
-		base_value = _validate_base_value(value)
-		
-		if prev_base_value != base_value:
+		var prev_base_value: float = _base_value
+		_base_value = _validate_base_value(value)
+		if prev_base_value != _base_value:
 			base_value_changed.emit(prev_base_value)
 			_base_value_changed(prev_base_value)
-			if !_in_core_loop:
+			if Engine.is_editor_hint():
 				_update_current_value(_get_frames())
 		
 		update_configuration_warnings()
-		return true
 
 @export_group("Effects")
 
@@ -141,10 +140,7 @@ var _current_value: float:
 		update_configuration_warnings()
 
 ## Whether or not [method __core_loop] is currently running
-var _in_core_loop: bool = false
-
-## Callables to execute after [method __process] is running.
-var _to_run_after_core_loop: Array[Callable] = []
+var _locked: bool = false
 
 
 func _enter_tree() -> void:
@@ -168,43 +164,34 @@ func _exit_tree() -> void:
 
 func _process(delta: float) -> void:
 	print("PROCESS")
-	__core_loop(true, delta, Engine.get_process_frames())
+	__core_loop(delta, Engine.get_process_frames())
 
 
 func _physics_process(delta: float) -> void:
 	print("PHYISCS PROCESS")
-	__core_loop(true, delta, Engine.get_physics_frames())
+	__core_loop(delta, Engine.get_physics_frames())
 
 
 ## The heart & soul of Attribute, responsible for processing & applying [AttriubteEffectSpec]s.
 ## NOT meant to be overridden at all.
-func __core_loop(process_specs: bool, delta: float, current_frame: int) -> void:
-	assert(!_in_core_loop, "already in __core_loop")
-	_in_core_loop = true
+func __core_loop(delta: float, current_frame: int) -> void:
+	assert(!_locked, "attribute is locked")
+	_locked = true
 	
-	var temp_spec_removed: bool = false
+	# Process PERMANENT effects
+	_process_specs(_permanent_specs, current_frame, delta)
+	# Process TEMPORARY effects
+	var temp_spec_removed: bool = _process_specs(_temporary_specs, current_frame, delta)
 	
-	if process_specs:
-		# Process PERMANENT effects
-		_process_specs(_permanent_specs, current_frame, delta)
-		# Process TEMPORARY effects
-		temp_spec_removed = _process_specs(_temporary_specs, current_frame, delta)
-	
-	var old_base_value: float = base_value
+	var old_base_value: float = _base_value
 	
 	# Apply PERMANENT effects
-	_apply_permanent_specs(current_frame)
+	_apply_permanent_specs(_permanent_specs, current_frame)
 	
-	if base_value != old_base_value || temp_spec_removed:
+	if _base_value != old_base_value || temp_spec_removed:
 		_update_current_value(current_frame)
 	
-	# Execute post core-loop callables (my hacky method of "call_deferred")
-	_in_core_loop = false
-	if !_to_run_after_core_loop.is_empty():
-		var callables: Array[Callable] = _to_run_after_core_loop.duplicate(false)
-		_to_run_after_core_loop.clear()
-		for callable: Callable in _to_run_after_core_loop:
-			callable.call()
+	_locked = false
 
 
 func _get_configuration_warnings() -> PackedStringArray:
@@ -221,6 +208,24 @@ func _get_configuration_warnings() -> PackedStringArray:
 	if _default_effects.has(null):
 		warnings.append("_default_effects has a null element")
 	return warnings
+
+
+## Returns the [AttributeContainer] this [Attribute] belongs to, null if there
+## is no container (which shouldn't happen with proper [Node] management).
+func get_container() -> AttributeContainer:
+	return _container.get_ref() as AttributeContainer
+
+
+## Returns the base value of this attribute.
+func get_base_value() -> float:
+	return _base_value
+
+
+## Sets the base value, also updating the current value.
+func set_base_value(new_base_value: float) -> void:
+	if _base_value != new_base_value:
+		_base_value = new_base_value
+		_update_current_value(_get_frames())
 
 
 ## Called by the setter of [member base_value] with [param set_base_value] (what was manually
@@ -253,20 +258,6 @@ func _current_value_changed(prev_current_value: float) -> void:
 	pass
 
 
-## Returns true if currently in the core loop, false if not. While in the
-## core loop, certain function calls are "queued" and automatically called after
-## the loop is complete to ensure that code ran in signals emitted from this
-## attribute can not break the core loop & result in wacky behavior.
-func is_in_core_loop() -> bool:
-	return _in_core_loop
-
-
-## Returns the [AttributeContainer] this [Attribute] belongs to, null if there
-## is no container (which shouldn't happen with proper [Node] management).
-func get_container() -> AttributeContainer:
-	return _container.get_ref() as AttributeContainer
-
-
 ## Returns the current value, which is the [member base_value] affected by
 ## all [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY]
 func get_current_value() -> float:
@@ -274,47 +265,60 @@ func get_current_value() -> float:
 
 
 ## Applies all permanent specs whose _flag_should_apply is true.
-func _apply_permanent_specs(current_frame: int) -> void:
-	var new_base_value: float = base_value
-	for index: int in _permanent_specs.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = _permanent_specs.get_at_index(index)
-		# Check if it should apply (has it's flag set to true & passes all conditions)
-		if !spec._flag_should_apply || !_check_apply_conditions(spec):
-			continue
-		# Set flag back to false
-		spec._flag_should_apply = false
-		spec._last_apply_frame = current_frame
-		spec._apply_count += 1
-		spec._last_value = spec.get_effect().get_modified_value(self, spec)
-		new_base_value = spec.get_effect().apply_calculator(new_base_value, 
-		_current_value, spec._last_value)
-		spec._last_set_value = new_base_value
-		
-		# Emit signal if necessary
-		if spec.get_effect().can_emit_apply_signal() && spec.get_effect().emit_applied_signal:
-			effect_applied.emit(spec)
+func _apply_permanent_specs(spec_array: AttributeEffectSpecArray, current_frame: int) -> void:
+	assert(spec_array.get_type() == AttributeEffect.Type.PERMANENT, 
+	"spec_array.get_type() (%s) != PERMANENT" % spec_array.get_type())
+	var new_base_value: float = _base_value
+	for index: int in spec_array.iterate_indexes_reverse():
+		var spec: AttributeEffectSpec = spec_array.get_at_index(index)
+		# Apply spec
+		if _apply_permanent_spec(spec, current_frame, new_base_value):
+			new_base_value = spec._last_set_value
 	
-	if base_value != new_base_value:
-		base_value = new_base_value
+	if _base_value != new_base_value:
+		_base_value = new_base_value
+
+
+## Applies [param spec] based on the [param new_base_value], setting what should be the
+## new base value to [member AttributeEffectSpec._last_set_value].
+## [br]NOTE: Does NOT set [member base_value].
+func _apply_permanent_spec(spec: AttributeEffectSpec, current_frame: int, new_base_value: float) -> bool:
+	assert(spec.get_effect().is_permanent(), "spec (%s) is not PERMANENT" % spec)
+	# Check if it should apply (has it's flag set to true & passes all conditions)
+	if !spec._flag_should_apply || !_check_apply_conditions(spec):
+		return false
+	# Set flag back to false
+	spec._flag_should_apply = false
+	spec._last_apply_frame = current_frame
+	spec._apply_count += 1
+	spec._last_value = spec.get_effect().get_modified_value(self, spec)
+	spec._last_set_value = spec.get_effect().apply_calculator(new_base_value, 
+	_current_value, spec._last_value)
+	
+	# Emit signal if necessary
+	if spec.get_effect().can_emit_apply_signal() && spec.get_effect().emit_applied_signal:
+		effect_applied.emit(spec)
+	return true
 
 
 ## Updates the value returned by [method get_current_value] by re-applying all
 ## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY].
 func _update_current_value(current_frame: int) -> void:
-	var new_current_value: float = base_value
+	var new_current_value: float = _base_value
 	
 	for index: int in _temporary_specs.iterate_indexes_reverse():
 		var spec: AttributeEffectSpec = _temporary_specs.get_at_index(index)
 		spec._apply_count += 1
 		spec._last_apply_frame = current_frame
 		spec._last_value = spec.get_effect().get_modified_value(self, spec)
-		new_current_value = spec.get_effect().apply_calculator(base_value, new_current_value, spec._last_value)
+		new_current_value = spec.get_effect().apply_calculator(_base_value, new_current_value, spec._last_value)
 	
 	if _current_value != new_current_value:
 		_current_value = new_current_value
 
 
 func _get_spec_array(spec: AttributeEffectSpec) -> AttributeEffectSpecArray:
+	assert(spec != null, "spec is null")
 	match spec.get_effect().type:
 		AttributeEffect.Type.PERMANENT:
 			return _permanent_specs
@@ -325,22 +329,62 @@ func _get_spec_array(spec: AttributeEffectSpec) -> AttributeEffectSpecArray:
 			return null
 
 
-## Queues the addition (& application if PERMANENT) of the [param spec], unless
-## [method is_in_process_loop] is false, then the addition/application occurs instantly.
+## Returns true if the [param effect] is present and has one or more [AttributeEffectSpec]s
+## applied to this [Attribute], false if not.
+func has_effect(effect: AttributeEffect) -> bool:
+	assert(effect != null, "effect is null")
+	return _effect_counts.has(effect)
+
+
+## Returns true if [param spec] is currently applied to this [Attribute], false if not.
+func has_spec(spec: AttributeEffectSpec) -> bool:
+	assert(spec != null, "spec is null")
+	return _get_spec_array(spec).has(spec)
+
+
+## Creates an [AttributeEffectSpec] from the [param effect] via [method AttriubteEffect.to_spec]
+## and then calls [method add_specs]
+func add_effect(effect: AttributeEffect) -> void:
+	assert(!_locked, "Attribute is locked, use call_deferred on this function")
+	add_effects([effect])
+
+
+## Creates an [AttributeEffectSpec] from each of the [param effects] via 
+## [method AttriubteEffect.to_spec] and then calls [method add_specs]
+func add_effects(effects: Array[AttributeEffect]) -> void:
+	assert(!effects.has(null), "effects has null element")
+	assert(!_locked, "Attribute is locked, use call_deferred on this function")
+	var specs: Array[AttributeEffectSpec] = []
+	for effect: AttributeEffect in effects:
+		specs.append(effect.to_spec())
+	add_specs(specs)
+
+
+## Adds [param spec] to a new [Array], then calls [method add_specs]
+func add_spec(spec: AttributeEffectSpec) -> void:
+	assert(spec != null, "spec is null")
+	assert(!_locked, "Attribute is locked, use call_deferred on this function")
+	add_specs([spec])
+
+
+## Adds (& possibly applies) of each of the [param specs].
 ## [br][b]There are multiple considerations when calling this function:[/b]
-## [br]  - If PERMANENT, effect is applied when it is added unless the spec has a pre-set period.
+## [br]  - If a spec is PERMANENT, it is applied when it is added unless the spec has an initial period.
 ## [br]  - If TEMPORARY, it is not applied, however the current_value is updated instantly.
 ## [br]  - If INSTANT, it is not added, only applied.
 ## [br]  - If not already initialized (see [method AttributeEffectSpec.is_initialized])
 ##  it is not re-initialized unless [param re_init] is true.
 ## [br]  - If stack_mode is COMBINE and the effect already exists, the [param spec]'s
 ## stack_count will be added to the existing spec and [param spec] will NOT be added or intialized.
-func queue_add_effect(spec: AttributeEffectSpec) -> void:
-	assert(spec != null, "specs_to_add has null element")
+func add_specs(specs: Array[AttributeEffectSpec]) -> void:
+	assert(!specs.has(null), "specs has null element")
+	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	
-	if _in_core_loop:
-		_to_run_after_core_loop.append(queue_add_effect.bind(spec))
-		return
+	var perm_specs: AttributeEffectSpecArray = \
+	AttributeEffectSpecArray.new(AttributeEffect.Type.PERMANENT)
+	
+	for spec: AttributeEffectSpec in specs:
+		
 	
 	var effect: AttributeEffect = spec.get_effect()
 	# Assert stack mode isnt DENY_ERROR, if it is assert it isn't a stack
@@ -401,26 +445,11 @@ func queue_add_effect(spec: AttributeEffectSpec) -> void:
 	# TODO
 
 
-## Returns true if the [param effect] is present and has one or more [AttributeEffectSpec]s
-## applied to this [Attribute], false if not.
-func has_effect(effect: AttributeEffect) -> bool:
-	return _effect_counts.has(effect)
-
-
-## Returns true if [param spec] is currently applied to this [Attribute], false if not.
-func has_effect_spec(spec: AttributeEffectSpec) -> bool:
-	return _specs.has(spec)
-
-
-## Queues the manual removal of [param spec] from this [Attribute], or done instantly
-## if [method is_in_process_loop] returns false.
-func queue_remove_effect(spec: AttributeEffectSpec) -> void:
-	assert(spec != null, "spec is null")
+## Manually removes all [param specs] from this [Attribute].
+func remove_specs(specs: Array[AttributeEffectSpec]) -> void:
+	assert(!specs.has(null), "spec is null")
 	assert(spec._is_added, "spec._is_added is false")
-	
-	if _in_process_loop:
-		_after_process_callables.append(queue_add_effect.bind(spec))
-		return
+	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	
 	var index: int = _specs.find(spec)
 	if index < 0:
@@ -430,16 +459,23 @@ func queue_remove_effect(spec: AttributeEffectSpec) -> void:
 	_remove_effect_at_index(spec, index, spec.get_effect().is_temporary(), true)
 
 
-## Queues the removal of all [AttributeEffectSpec]s, or instantly removes them if
+## Manually removes all [AttributeEffectSpec]s, or instantly removes them if
 ## [method is_in_process_loop] returns false.
-func queue_remove_all_effects() -> void:
-	if is_in_process_loop():
-		_after_process_callables.append(queue_remove_all_effects)
-		return
-	var specs: Array[AttributeEffectSpec] = _specs.duplicate(false)
-	_specs.clear()
+func remove_all_effects() -> void:
+	assert(!_locked, "Attribute is locked, use call_deferred on this function")
+	_locked = true
+	var perm_specs: Array[AttributeEffectSpec] = _permanent_specs._array.duplicate(false)
+	var temp_specs: Array[AttributeEffectSpec] = _temporary_specs._array.duplicate(false)
+	_permanent_specs.clear()
+	_temporary_specs.clear()
 	_effect_counts.clear()
-	_update_specs_range_reverse()
+	_set_specs_removed(perm_specs)
+	_set_specs_removed(temp_specs)
+	_current_value = _base_value
+	_locked = false
+
+
+func _set_specs_removed(specs: Array[AttributeEffectSpec]) -> void:
 	for spec: AttributeEffectSpec in specs:
 		spec._is_added = false
 		spec._is_processing = false
@@ -449,7 +485,7 @@ func queue_remove_all_effects() -> void:
 
 ## More efficient function to remove an [AttributeEffectSpec] with a known [param index]
 ## in [member _specs].
-func _remove_effect_at_index(array: AttributeEffectSpecArray, spec: AttributeEffectSpec, 
+func _remove_spec_at_index(array: AttributeEffectSpecArray, spec: AttributeEffectSpec, 
 index: int, _update_current_value: bool, _update_reverse_range: bool) -> void:
 	assert(spec != null, "spec is null")
 	assert(spec._is_added, "spec._is_added is false (%s)" % spec)
@@ -544,8 +580,8 @@ func _process_specs(specs: AttributeEffectSpecArray, current_frame: int, delta: 
 			if effect.has_duration():
 				spec.remaining_duration -= delta
 				# Spec expired, remove it.
-					# Adjust remaining period as well
 				if spec.remaining_duration <= 0.0:
+					# Adjust remaining period as well
 					spec.remaining_period -= delta
 					spec._expired = true
 					_remove_effect_at_index(specs, spec, index, false, false)
@@ -568,16 +604,6 @@ func _process_specs(specs: AttributeEffectSpecArray, current_frame: int, delta: 
 	return spec_removed
 
 
-# Sets various properties when the effect is to be applied.
-func _set_apply_properties(spec: AttributeEffectSpec, base_val: float, 
-current_val: float, current_frame: int) -> void:
-	var effect: AttributeEffect = spec.get_effect()
-	spec._last_apply_frame = current_frame
-	spec._apply_count += 1
-	spec._last_value = effect.get_modified_value(self, spec)
-	spec._last_set_value = effect.apply_calculator(base_val, current_val, spec._last_value)
-
-
 ## Gets the current frame count based on [member effects_process_function]
 func _get_frames() -> int:
 	match effects_process_function:
@@ -588,12 +614,6 @@ func _get_frames() -> int:
 		_:
 			assert(false, "no implementation for effects_process_function (%s)" % effects_process_function)
 			return 0
-
-
-## Returns true if [member effects_process_function] is set to anything other than 
-## [enum ProcessFunction.NONE], false otherwise.
-func _is_processing_enabled() -> bool:
-	return effects_process_function != ProcessFunction.NONE
 
 
 func _to_string() -> String:

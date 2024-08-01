@@ -19,6 +19,10 @@ func _init(type: AttributeEffect.Type = -1, internal_array: Array[AttributeEffec
 	_array.sort()
 
 
+func get_type() -> AttributeEffect.Type:
+	return _type
+
+
 func update_reversed_range() -> void:
 	_reversed_range = range(_array.size() - 1, -1, -1)
 
@@ -31,7 +35,7 @@ func add(spec: AttributeEffectSpec, _update_reverse_range: bool = false) -> void
 	_assert_type(spec)
 	var _added: bool = false
 	for index: int in _array.size():
-		if _sort_a_before_b(spec, _array[index].get_effect().apply_priority):
+		if _sort_a_before_b(spec, _array[index]):
 			_array.insert(index, spec)
 			_added = true
 			break
@@ -50,6 +54,11 @@ func remove_at_index(index: int, _update_reverse_range: bool = false) -> void:
 ## Returns the reverse range of the array for iteration purposes ONLY.
 func iterate_indexes_reverse() -> Array:
 	return _reversed_range
+
+
+func clear() -> void:
+	_array.clear()
+	_reversed_range = []
 
 
 func _assert_type(spec: AttributeEffectSpec) -> void:
