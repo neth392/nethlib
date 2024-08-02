@@ -382,15 +382,16 @@ func add_spec(spec: AttributeEffectSpec) -> void:
 	add_specs([spec])
 
 
-## Adds (& possibly applies) of each of the [param specs].
+## Adds (& possibly applies) of each of the [param specs]. Can result in immediate
+## changes to the base value & current value, depending on the provided [param specs].
 ## [br][b]There are multiple considerations when calling this function:[/b]
+## [br]  - If a spec has stack_mode COMBINE, it is stacked to the existing spec of the same 
+## [AttributeEffect], and thus not added. The new stack count is the existing's + the new spec's
+## stack count.
 ## [br]  - If a spec is PERMANENT, it is applied when it is added unless the spec has an initial period.
 ## [br]  - If TEMPORARY, it is not applied, however the current_value is updated instantly.
 ## [br]  - If INSTANT, it is not added, only applied.
-## [br]  - If not already initialized (see [method AttributeEffectSpec.is_initialized])
-##  it is not re-initialized unless [param re_init] is true.
-## [br]  - If stack_mode is COMBINE and the effect already exists, the [param spec]'s
-## stack_count will be added to the existing spec and [param spec] will NOT be added or intialized.
+## [br]  - Specs are initialized unless already initialized or are stacked instead of added.
 func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	assert(!specs.is_empty(), "specs is empty")
 	assert(!specs.has(null), "specs has null element")
@@ -424,10 +425,6 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		if !_check_add_conditions(spec):
 			continue
 		
-		# Initialize if not done so
-		if !spec.is_initialized():
-			spec._initialize(self)
-		
 		# Handle COMBINE stacking (only if a spec of the same effect already exists)
 		if spec.get_effect().stack_mode == AttributeEffect.StackMode.COMBINE \
 		and has_effect(spec.get_effect()):
@@ -438,6 +435,10 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 			spec._last_add_result = AddEffectResult.STACKED
 			existing[0]._add_to_stack(self, spec.get_stack_count())
 			continue
+		
+		# Initialize if not done so
+		if !spec.is_initialized():
+			spec._initialize(self)
 		
 		# At this point it can be added
 		spec._is_added = true
