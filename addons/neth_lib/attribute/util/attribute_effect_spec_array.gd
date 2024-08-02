@@ -65,6 +65,11 @@ func clear() -> void:
 	_reversed_range = []
 
 
+func for_each(spec_consumer: Callable) -> void:
+	for spec: AttributeEffectSpec in _array:
+		spec_consumer.call(spec)
+
+
 func _assert_type(spec: AttributeEffectSpec) -> void:
 	assert(_type == spec.get_effect().type, "_type (%s) != to type of spec (%s)" \
 	% [_type, spec])

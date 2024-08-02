@@ -296,6 +296,7 @@ func _apply_permanent_spec(spec: AttributeEffectSpec, current_frame: int, new_ba
 	spec._last_set_value = spec.get_effect().apply_calculator(new_base_value, 
 	_current_value, spec._last_value)
 	
+	spec._run_callbacks(AttributeEffectCallback._Function.APPLIED, self)
 	# Emit signal if necessary
 	if spec.get_effect().can_emit_apply_signal() && spec.get_effect().emit_applied_signal:
 		effect_applied.emit(spec)
@@ -396,59 +397,89 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	
 	_locked = true
-	var new_perm_specs: AttributeEffectSpecArray = \
+	var perm_specs_to_apply: AttributeEffectSpecArray = \
 	AttributeEffectSpecArray.new(AttributeEffect.Type.PERMANENT)
-	var new_temp_specs:  AttributeEffectSpecArray = \
-	AttributeEffectSpecArray.new(AttributeEffect.Type.TEMPORARY)
+	var temp_spec_added: bool = false
 	
 	# Initialize specs
 	# Sort specs into arrays ordered by priority
 	# Set permanent specs to apply if they should
 	for spec: AttributeEffectSpec in specs:
 		assert(spec != null, "specs has null element")
+		assert(!spec.is_added(), "spec (%s) already added" % spec)
+		
+		# Throw error if spec's effect exists & has StackMode.DENY_ERROR
+		assert(spec.get_effect().stack_mode != AttributeEffect.StackMode.DENY_ERROR or \
+		!has_effect(spec.get_effect()), 
+		"spec (%s)'s effect stack_mode == DENY_ERROR but stacking was attempted" % spec)
+		
+		# Do not stack if DENY or DENY_ERROR & effect already exists
+		if (spec.get_effect().stack_mode == AttributeEffect.StackMode.DENY or \
+		spec.get_effect().stack_mode == AttributeEffect.StackMode.DENY_ERROR) and \
+		has_effect(spec.get_effect()):
+			spec._last_add_result = AddEffectResult.STACK_DENIED
+			continue
+		
+		# Check add conditions
+		if !_check_add_conditions(spec):
+			continue
+		
 		# Initialize if not done so
 		if !spec.is_initialized():
 			spec._initialize(self)
+		
+		# Handle COMBINE stacking (only if a spec of the same effect already exists)
+		if spec.get_effect().stack_mode == AttributeEffect.StackMode.COMBINE \
+		and has_effect(spec.get_effect()):
+			var existing: Array[AttributeEffectSpec] = find_specs(spec.get_effect())
+			assert(existing.size() == 1, ("effect (%s) has stack_mode COMBINE but " + \
+			"> or < 1 specs exists on this attribute (%s)") % [spec.get_effect(), self])
+			
+			spec._last_add_result = AddEffectResult.STACKED
+			existing[0]._add_to_stack(self, spec.get_stack_count())
+			continue
+		
+		# At this point it can be added
+		spec._is_added = true
+		
+		# Run pre_add callbacks
+		spec._run_callbacks(AttributeEffectCallback._Function.PRE_ADD, self)
+		
+		# Not stackable, add it
 		match spec.get_effect().type:
 			AttributeEffect.Type.PERMANENT:
 				# Determine if it should be applied (if instant, or remaining period < 0)
 				if spec.get_effect().is_instant() \
 				or (spec.get_effect().has_period() && spec.remaining_period <= 0):
 					spec._flag_should_apply = true
+					perm_specs_to_apply.add(spec)
 				
-				new_perm_specs.add(spec)
+				if !spec.get_effect().is_instant():
+					_permanent_specs.add(spec)
+				
 			AttributeEffect.Type.TEMPORARY:
-				new_temp_specs.add(spec)
+				_temporary_specs.add(spec)
+				temp_spec_added = true
 			_:
 				assert(false, "no implementation for type (%s)" % spec.get_effect())
+		
+		spec._run_callbacks(AttributeEffectCallback._Function.ADDED, self)
+		effect_added.emit(spec)
 	
-	new_perm_specs.update_reversed_range()
-	new_temp_specs.update_reversed_range()
-	
-	# Add specs
-	_add_spec_array(new_perm_specs, _permanent_specs)
-	_add_spec_array(new_temp_specs, _temporary_specs)
+	perm_specs_to_apply.update_reversed_range()
+	_permanent_specs.update_reversed_range()
+	_temporary_specs.update_reversed_range()
 	
 	var current_frame: int = _get_frames()
 	
 	# Apply permanent specs
-	var base_value_changed: bool = _apply_permanent_specs(new_perm_specs, current_frame)
+	var base_value_changed: bool = _apply_permanent_specs(perm_specs_to_apply, current_frame)
 	
 	# Update current value if perm specs were applied & 
-	if base_value_changed || !new_temp_specs.is_empty():
+	if base_value_changed || temp_spec_added:
 		_update_current_value(current_frame)
 	
 	_locked = false
-
-
-func _add_spec_array(new_specs: AttributeEffectSpecArray, target_array: AttributeEffectSpecArray) -> void:
-	for index: int in new_specs.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = new_specs.get_at_index(index)
-		# Do not add instant specs
-		if spec.get_effect().is_instant():
-			continue
-		target_array.add(spec, false)
-	target_array.update_reversed_range()
 
 
 func remove_effect(effect: AttributeEffect) -> void:
@@ -484,8 +515,9 @@ func _remove_by_effect(array: AttributeEffectSpecArray, effect_callable: Callabl
 	for index: int in array.iterate_indexes_reverse():
 		var spec: AttributeEffectSpec = array.get_at_index(index)
 		if effect_callable.call(spec.get_effect()):
+			_pre_remove_spec(spec)
 			array.remove_at(index, false)
-			_set_spec_removed(spec)
+			_post_remove_spec(spec)
 			removed = true
 	
 	if removed:
@@ -508,65 +540,43 @@ func remove_specs(specs: Array[AttributeEffectSpec]) -> void:
 func remove_all_effects() -> void:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	_locked = true
-	var perm_specs: Array[AttributeEffectSpec] = _permanent_specs._array.duplicate(false)
-	var temp_specs: Array[AttributeEffectSpec] = _temporary_specs._array.duplicate(false)
+	_permanent_specs.for_each(_pre_remove_spec)
+	_temporary_specs.for_each(_pre_remove_spec)
+	var removed_perm_specs: Array[AttributeEffectSpec] = _permanent_specs._array.duplicate(false)
+	var removed_temp_specs: Array[AttributeEffectSpec] = _temporary_specs._array.duplicate(false)
 	_permanent_specs.clear()
 	_temporary_specs.clear()
 	_effect_counts.clear()
-	_set_specs_removed(perm_specs)
-	_set_specs_removed(temp_specs)
+	
+	for spec: AttributeEffectSpec in removed_perm_specs:
+		_post_remove_spec(spec)
+	
+	for spec: AttributeEffectSpec in removed_temp_specs:
+		_post_remove_spec(spec)
+	
 	_current_value = _base_value
 	_locked = false
 
 
-func _set_specs_removed(specs: Array[AttributeEffectSpec]) -> void:
-	for spec: AttributeEffectSpec in specs:
-		_set_specs_removed(spec)
+func _remove_from_effect_counts(spec: AttributeEffectSpec) -> void:
+	if _effect_counts.has(spec.get_effect()):
+		var new_count: int = _effect_counts[spec.get_effect()] - 1
+		if new_count <= 0:
+			_effect_counts.erase(spec.get_effect())
+		else:
+			_effect_counts[spec.get_effect()] = new_count
 
 
 func _pre_remove_spec(spec: AttributeEffectSpec) -> void:
+	spec._run_callbacks(AttributeEffectCallback._Function.PRE_REMOVE, self)
 	spec._is_added = false
 	spec._is_processing = false
-	spec._run_callbacks(AttributeEffectCallback._Function.REMOVED, self)
-	if spec.get_effect().emit_removed_signal:
-		effect_removed.emit(spec)
 
 
 func _post_remove_spec(spec: AttributeEffectSpec) -> void:
-	spec._run_callbacks(AttributeEffectCallback._Function.PRE_REMOVE, self)
-
-
-### More efficient function to remove an [AttributeEffectSpec] with a known [param index]
-### in [member _specs].
-#func _remove_spec_at_index(array: AttributeEffectSpecArray, spec: AttributeEffectSpec, 
-#index: int, current_frame: int, _update_current_value: bool, _update_reverse_range: bool) -> void:
-	#assert(spec != null, "spec is null")
-	#assert(spec._is_added, "spec._is_added is false (%s)" % spec)
-	#assert(spec.get_effect() != null, "spec.get_efect() returned null")
-	#assert(index >= 0, "index(%s) < 0" % index)
-	#assert(index < array.size(), "index(%s) >= array.size() (%s)" % [index, array.size()])
-	#assert(array.get_at_index(index) == spec, "element @ index (%s) in array != spec (%s)" \
-	#% [index, spec])
-	#assert(_effect_counts.has(spec.get_effect()), "_effect_counts does not have effect (%s)" \
-	#% spec.get_effect())
-	#
-	#var effect: AttributeEffect = spec.get_effect()
-	#
-	#spec._is_processing = false
-	#spec._is_added = false
-	#array.remove_at(index, _update_reverse_range)
-	#
-	#var new_count: int = _effect_counts[effect] - 1
-	#if new_count <= 0:
-		#_effect_counts.erase(effect)
-	#else:
-		#_effect_counts[effect] = new_count
-	#
-	#if effect.emit_removed_signal:
-		#effect_removed.emit(spec)
-	#
-	#if effect.is_temporary() && _update_current_value:
-		#_update_current_value(current_frame)
+	if spec.get_effect().emit_removed_signal:
+		effect_removed.emit(spec)
+	spec._run_callbacks(AttributeEffectCallback._Function.REMOVED, self)
 
 
 func _check_add_conditions(spec: AttributeEffectSpec) -> bool:
