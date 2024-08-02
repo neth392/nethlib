@@ -37,8 +37,8 @@ var _apply_count: int = 0
 ## The condition that lasts blocks addition or application of this spec.
 var _last_blocked_by: AttributeEffectCondition
 
-## The [enum Attribute.EffectResult] from the last attempt to add this spec to an [Attribute].
-var _last_add_result: Attribute.EffectResult = Attribute.EffectResult.NEVER_ADDED
+## The [enum Attribute.AddEffectResult] from the last attempt to add this spec to an [Attribute].
+var _last_add_result: Attribute.AddEffectResult = Attribute.AddEffectResult.NEVER_ADDED
 
 ## The last frame this spec was processed on. If the value is -1, this
 ## spec has not yet been processed.
@@ -75,10 +75,19 @@ func get_effect() -> AttributeEffect:
 
 
 ## Whether or not this instance has been initialized by an [Attribute].
-## [br]Initialization means that the default duration, period, & all other
-## necessary properties have been set so this effect can be processed & applied.
+## [br]Initialization means that the default duration & initial period have been set
+## so this effect can be processed & applied.
 func is_initialized() -> bool:
 	return _initialized
+
+
+## De-initializes the spec (only if already initialized), setting [member remaining_period] 
+## and [member remaining_duration] to 0.0.
+func deinitialize() -> void:
+	if is_initialized():
+		remaining_period = 0.0
+		remaining_duration = 0.0
+		_initialized = false
 
 
 ## Returns true if this spec is currently added to an [Attribute].
@@ -134,9 +143,9 @@ func get_last_blocked_by() -> AttributeEffectCondition:
 	return _last_blocked_by
 
 
-## Returns the [enum Attriubte.EffectResult] from the last attempt to add this
+## Returns the [enum Attribute.AddEffectResult] from the last attempt to add this
 ## spec to an [Attribute].
-func get_last_add_result() -> Attriubte.EffectResult:
+func get_last_add_result() -> Attribute.AddEffectResult:
 	return _last_add_result
 
 
@@ -171,6 +180,15 @@ func is_stackable() -> bool:
 ## Can't be less than 1.
 func get_stack_count() -> int:
 	return _stack_count
+
+
+func _initialize(attribute: Attribute) -> void:
+	assert(!is_initialized(), "spec already initialized")
+	if _effect.has_period() && _effect.initial_period:
+		remaining_period = _effect.get_modified_period(attribute, self)
+	if _effect.has_duration():
+		remaining_duration = _effect.get_modified_duration(attribute, self)
+	_initialized = true
 
 
 ## Adds [param amount] to the effect stack. This effect must be stackable
