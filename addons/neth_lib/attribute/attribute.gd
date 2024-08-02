@@ -483,57 +483,56 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	_locked = false
 
 
-func remove_effect(effect: AttributeEffect) -> void:
+## Removes all [AttributeEffectSpec]s whose effect equals [param effect]. Returns true
+## if 1 or more specs were removed, false if none were removed.
+func remove_effect(effect: AttributeEffect) -> bool:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	_locked = true
+	
 	var array: AttributeEffectSpecArray = _get_effect_array(effect)
-	var removed: bool = false
-	for index: int in array.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = array.get_at_index(index)
-		if spec.get_effect() == effect:
-			array.remove_at(index, false)
-			_set_spec_removed(spec)
-			removed = true
+	var removed: bool = _remove_multiple(array, func(_effect) -> bool: return _effect == effect)
 	
-	if removed:
-		array.update_reversed_range()
-		if effect.is_temporary():
-			_update_current_value(_get_frames())
-	_locked = false
-
-
-func remove_effects(effects: Array[AttributeEffect]) -> void:
-	assert(!_locked, "Attribute is locked, use call_deferred on this function")
-	_locked = true
-	_remove_by_effect(_permanent_specs, func (effect) -> bool: return effects.has(effect))
-	if _remove_by_effect(_temporary_specs, func (effect) -> bool: return effects.has(effect)):
+	if effect.type == AttributeEffect.Type.TEMPORARY && removed:
 		_update_current_value(_get_frames())
-	_locked = false
-
-
-func _remove_by_effect(array: AttributeEffectSpecArray, effect_callable: Callable) -> bool:
-	var removed: bool = false
-	for index: int in array.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = array.get_at_index(index)
-		if effect_callable.call(spec.get_effect()):
-			_pre_remove_spec(spec)
-			array.remove_at(index, false)
-			_post_remove_spec(spec)
-			removed = true
 	
-	if removed:
-		array.update_reversed_range()
+	_locked = false
 	return removed
 
 
-## Manually removes all [param specs] from this [Attribute].
-func remove_specs(specs: Array[AttributeEffectSpec]) -> void:
+## Removes all [AttributeEffectSpec]s whose effect is present in [param effects]. 
+## Returns true if 1 or more specs were removed, false if none were removed.
+func remove_effects(effects: Array[AttributeEffect]) -> bool:
+	assert(!_locked, "Attribute is locked, use call_deferred on this function")
+	_locked = true
+	
+	var perm_removed: bool = _remove_multiple(_permanent_specs, 
+	_remove_effects_predicate.bind(effects))
+	
+	var temp_removed: bool = _remove_multiple(_temporary_specs, 
+	_remove_effects_predicate.bind(effects))
+	
+	if temp_removed:
+		_update_current_value(_get_frames())
+	
+	_locked = false
+	return perm_removed || temp_removed
+
+
+## Removes the [param spec], returning true if removed, false if not.
+func remove_spec(spec: AttributeEffectSpec) -> bool:
+	return false
+
+
+## Removes all [param specs], returning true if 1 or more were removed, false if 
+## none were removed.
+func remove_specs(specs: Array[AttributeEffectSpec]) -> bool:
 	assert(!specs.has(null), "spec is null")
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	
 	_locked = true
 	
 	_locked = false
+	return false
 
 
 ## Manually removes all [AttributeEffectSpec]s, or instantly removes them if
@@ -557,6 +556,25 @@ func remove_all_effects() -> void:
 	
 	_current_value = _base_value
 	_locked = false
+
+
+func _remove_effects_predicate(spec: AttributeEffectSpec, effects: Array[AttributeEffect]) -> bool:
+	return effects.has(spec.get_effect())
+
+
+func _remove_multiple(array: AttributeEffectSpecArray, spec_predicate: Callable) -> bool:
+	var removed: bool = false
+	for index: int in array.iterate_indexes_reverse():
+		var spec: AttributeEffectSpec = array.get_at_index(index)
+		if spec_predicate.call(spec):
+			_pre_remove_spec(spec)
+			array.remove_at(index, false)
+			_post_remove_spec(spec)
+			removed = true
+	
+	if removed:
+		array.update_reversed_range()
+	return removed
 
 
 func _remove_from_effect_counts(spec: AttributeEffectSpec) -> void:
