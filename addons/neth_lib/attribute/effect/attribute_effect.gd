@@ -1,4 +1,4 @@
-## A configurable resource that affects [member Attribute.value].
+## A configurable resource that causes changes to an [Attribute].
 @tool
 class_name AttributeEffect extends Resource
 
@@ -51,10 +51,6 @@ enum DurationType {
 				# INSTANT not compatible with TEMPORARY
 				if duration_type == DurationType.INSTANT:
 					duration_type = DurationType.INFINITE
-			Type.PERMANENT:
-				pass # TODO remove this statement if not needed
-			_:
-				assert(false, "no implementation written for type %s" % type)
 		notify_property_list_changed()
 
 ## The direct effect to [member Attribute.value]
@@ -217,6 +213,16 @@ func _validate_property(property: Dictionary) -> void:
 	
 	if property.name == "emit_applied_signal":
 		if !can_emit_apply_signal():
+			_no_editor(property)
+		return
+	
+	if property.name == "emit_added_signal":
+		if !can_emit_added_signal():
+			_no_editor(property)
+		return
+	
+	if property.name == "emit_removed_signal":
+		if !can_emit_removed_signal():
 			_no_editor(property)
 		return
 	
@@ -518,9 +524,19 @@ func assert_has_process_conditions() -> void:
 	assert(has_process_conditions, "effect does not have process conditions")
 
 
+## Whether or not this effect can emit [signal Attribute.effect_added].
+func can_emit_added_signal() -> bool:
+	return duration_type != DurationType.INSTANT
+
+
 ## Whether or not this effect can emit [signal Attribute.effect_applied].
 func can_emit_apply_signal() -> bool:
 	return type == Type.PERMANENT
+
+
+## Whether or not this effect can emit [signal Attribute.effect_removed].
+func can_emit_removed_signal() -> bool:
+	return duration_type != DurationType.INSTANT
 
 
 ## Returns true if this effect has a [member duration_in_seconds].

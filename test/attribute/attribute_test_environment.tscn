@@ -1,0 +1,15 @@
+[gd_scene load_steps=4 format=3 uid="uid://s8ry7xrdqlp4"]
+
+[ext_resource type="Script" path="res://test/attribute/attribute_test_environment.gd" id="1_6thqn"]
+[ext_resource type="PackedScene" uid="uid://84fe3nd5qp4l" path="res://addons/neth_lib/attribute/attribute_container.tscn" id="2_mg524"]
+[ext_resource type="PackedScene" uid="uid://vcxekr41wjqt" path="res://addons/neth_lib/attribute/attribute.tscn" id="3_thicr"]
+
+[node name="AttributeTestEnvironment" type="Node" node_paths=PackedStringArray("attr")]
+script = ExtResource("1_6thqn")
+attr = NodePath("AttributeContainer/HealthAttribute")
+
+[node name="AttributeContainer" parent="." instance=ExtResource("2_mg524")]
+
+[node name="HealthAttribute" parent="AttributeContainer" instance=ExtResource("3_thicr")]
+id = &"health"
+_base_value = 100.0

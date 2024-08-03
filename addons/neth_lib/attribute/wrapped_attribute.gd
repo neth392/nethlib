@@ -4,11 +4,17 @@ class_name WrappedAttribute extends Attribute
 
 ## Emitted when value hits the [member minimum]'s value. [param old_value] is 
 ## the [member value] value before it hit the minimum.
-signal value_hit_minimum(old_value: float)
+signal current_value_hit_minimum(old_current_value: float)
 
 ## Emitted when value hits the [member maximum]'s value. [param old_value] is 
 ## the [member value] value before it hit the minimum.
-signal value_hit_maximum(old_value: float)
+signal current_value_hit_maximum(old_current_value: float)
+
+
+signal base_value_hit_minimum(old_base_vlaue: float)
+
+
+signal base_value_hit_maximum(old_base_vlaue: float)
 
 ## Emitted when the [member minimum]'s [member Attribute.value] changes, or the
 ## [member minimum] instance changes to a new [Attribute] with a different value.[br]
