@@ -92,8 +92,8 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 		if prev_base_value != _base_value:
 			base_value_changed.emit(prev_base_value)
 			_base_value_changed(prev_base_value)
-			if Engine.is_editor_hint():
-				_update_current_value(_get_frames())
+		if Engine.is_editor_hint():
+			_update_current_value(_get_frames())
 		
 		update_configuration_warnings()
 
@@ -104,8 +104,7 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 	set(_value):
 		effects_process_function = _value
 		if !Engine.is_editor_hint():
-			set_process(effects_process_function == ProcessFunction.PROCESS)
-			set_physics_process(effects_process_function == ProcessFunction.PHYSICS_PROCESS)
+			_update_processing()
 
 ## Array of all [AttributeEffect]s.
 @export var _default_effects: Array[AttributeEffect] = []:
@@ -134,10 +133,12 @@ var _current_value: float:
 	set(value):
 		var prev_current_value: float = _current_value
 		_current_value = _validate_current_value(value)
-		if _current_value != prev_current_value:
+		if _current_value_initiated && _current_value != prev_current_value:
 			current_value_changed.emit(prev_current_value)
 			_current_value_changed(prev_current_value)
 		update_configuration_warnings()
+
+var _current_value_initiated: bool = false
 
 ## Whether or not [method __core_loop] is currently running
 var _locked: bool = false
@@ -151,9 +152,13 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
+	_current_value = _base_value
+	_current_value_initiated = true
 	if Engine.is_editor_hint():
 		set_process(false)
 		set_physics_process(false)
+	else:
+		_update_processing()
 
 
 func _exit_tree() -> void:
@@ -163,12 +168,10 @@ func _exit_tree() -> void:
 
 
 func _process(delta: float) -> void:
-	print("PROCESS")
 	__core_loop(delta, Engine.get_process_frames())
 
 
 func _physics_process(delta: float) -> void:
-	print("PHYISCS PROCESS")
 	__core_loop(delta, Engine.get_physics_frames())
 
 
@@ -704,6 +707,11 @@ func _get_frames() -> int:
 		_:
 			assert(false, "no implementation for effects_process_function (%s)" % effects_process_function)
 			return 0
+
+
+func _update_processing() -> void:
+	set_process(effects_process_function == ProcessFunction.PROCESS)
+	set_physics_process(effects_process_function == ProcessFunction.PHYSICS_PROCESS)
 
 
 func _to_string() -> String:

@@ -255,12 +255,12 @@ func _check_conditions(attribute: Attribute, conditions: Array[AttributeEffectCo
 	return null
 
 
-## Runs the callback [param _function] on all [AttributeEffectCallback] who have
+## Runs the callback [param _function] on all [AttributeEffectCallback]s who have
 ## implemented that function.
 func _run_callbacks(_function: AttributeEffectCallback._Function, attribute: Attribute) -> void:
 	if !AttributeEffectCallback._can_run(_function, _effect):
 		return
-	var function_name: String = AttributeEffectCallback._functions_by_name[_function]
+	var function_name: String = AttributeEffectCallback._function_names[_function]
 	for callback: AttributeEffectCallback in _effect._callbacks_by_function.get(_function):
 		callback.call(function_name, attribute, self)
 

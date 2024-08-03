@@ -66,22 +66,21 @@ func get_attribute(id: StringName) -> Attribute:
 	return _attributes.get(id).get_ref()
 
 
-## Adds the [param tag], returning true if added, false if not as it already existed.
+## Adds the [param tag], returning true if added, false if not as it already existed. # TODO return
 func add_tag(tag: StringName) -> bool:
-	assert(!tag.is_empty(), "tag is empty")
-	if has_tag(tag):
-		return false
-	_tags[tag] = null
-	tag_added.emit(tag)
-	return true
+	return add_tags([tag])
 
 
-## Adds all of the [param tags] which are not yet added.
-func add_tags(tags: Array[StringName]) -> void:
+## Adds all of the [param tags] which are not yet added. # TODO Return 
+func add_tags(tags: Array[StringName]) -> bool:
+	assert(!tags.has("") && !tags.has(null), "tags has empty element")
+	var added: bool = false
 	for tag in tags:
-		if !_tags.has(tag):
+		if !has_tag(tag):
 			_tags[tag] = null
 			tag_added.emit(tag)
+			added = true
+	return added
 
 
 ## Returns true if the [param] tag exists on this container, false if not.
@@ -109,8 +108,12 @@ func _on_child_entered_tree(child: Node) -> void:
 		assert(!child.id.is_empty(), "child (%s)'s id is empty" % child.name)
 		assert(!_attributes.has(child.id), "duplicate Attribute ids found (%s)" % child.id)
 		_attributes[child.id] = weakref(child)
+		attribute_added.emit(child)
 
 
 func _on_child_exited_tree(child: Node) -> void:
+	if !is_inside_tree():
+		return
 	if child is Attribute:
 		_attributes.erase(child.id)
+		attribute_removed.emit(child)

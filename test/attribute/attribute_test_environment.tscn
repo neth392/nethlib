@@ -4,8 +4,9 @@
 [ext_resource type="PackedScene" uid="uid://84fe3nd5qp4l" path="res://addons/neth_lib/attribute/attribute_container.tscn" id="2_mg524"]
 [ext_resource type="PackedScene" uid="uid://vcxekr41wjqt" path="res://addons/neth_lib/attribute/attribute.tscn" id="3_thicr"]
 
-[node name="AttributeTestEnvironment" type="Node" node_paths=PackedStringArray("attr")]
+[node name="AttributeTestEnvironment" type="Node" node_paths=PackedStringArray("container", "attr")]
 script = ExtResource("1_6thqn")
+container = NodePath("AttributeContainer")
 attr = NodePath("AttributeContainer/HealthAttribute")
 
 [node name="AttributeContainer" parent="." instance=ExtResource("2_mg524")]
