@@ -304,7 +304,8 @@ update_periods_of_applied: bool = false) -> bool:
 
 
 ## Applies [param spec] based on the [param new_base_value], setting what should be the
-## new base value to [member AttributeEffectSpec._last_set_value].
+## new base value to [member AttributeEffectSpec._last_set_value]. Returns true if applied,
+## false if not
 ## [br]NOTE: Does NOT set [member base_value].
 func _apply_permanent_spec(spec: AttributeEffectSpec, current_tick: int, new_base_value: float,
 update_period_if_applied: bool) -> bool:
@@ -327,8 +328,6 @@ update_period_if_applied: bool) -> bool:
 	
 	if update_period_if_applied && spec.get_effect().has_period():
 		spec.remaining_period += spec.get_effect().get_modified_period(self, spec)
-	
-	
 	
 	return true
 

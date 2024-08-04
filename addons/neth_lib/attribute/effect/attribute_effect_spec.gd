@@ -210,6 +210,13 @@ func get_stack_count() -> int:
 	return _stack_count
 
 
+## Returns true if the effect has an apply limit and this spec has been applied >=
+## that limit.
+func hit_apply_limit() -> bool:
+	return _effect.can_have_apply_limit() and _effect.apply_limit \
+	and _apply_count >= _effect.apply_limit_count
+
+
 func _initialize(attribute: Attribute) -> void:
 	assert(!is_initialized(), "spec already initialized")
 	if _effect.has_period() && _effect.initial_period:
