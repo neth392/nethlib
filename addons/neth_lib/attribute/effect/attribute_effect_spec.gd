@@ -2,6 +2,21 @@
 ## which was (or can be) applied to an [Attribute].
 class_name AttributeEffectSpec extends Resource
 
+## TODO Implement & Document
+signal remaining_duration_changed(prev_duration: float)
+
+## TODO Implement & Document
+signal stack_count_changed(prev_stack_count: int)
+
+## TODO Implement & Document
+signal added(to: Attribute)
+
+## TODO Implement & Document
+signal applied(to: Attribute)
+
+## TODO Implement & Document
+signal removed(from: Attribute)
+
 ## The remaining duration in seconds, can not be set to less than 0.0.
 var remaining_duration: float:
 	set(_value):
