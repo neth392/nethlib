@@ -4,10 +4,22 @@
 [ext_resource type="PackedScene" uid="uid://84fe3nd5qp4l" path="res://addons/neth_lib/attribute/attribute_container.tscn" id="2_mg524"]
 [ext_resource type="PackedScene" uid="uid://vcxekr41wjqt" path="res://addons/neth_lib/attribute/attribute.tscn" id="3_thicr"]
 
-[node name="AttributeTestEnvironment" type="Node" node_paths=PackedStringArray("container", "attr")]
+[node name="AttributeTestEnvironment" type="CanvasLayer" node_paths=PackedStringArray("container", "attr", "attr_label")]
 script = ExtResource("1_6thqn")
 container = NodePath("AttributeContainer")
 attr = NodePath("AttributeContainer/HealthAttribute")
+attr_label = NodePath("VBoxContainer/AttrLabel")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="AttrLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Attribute ID: %s"
+
+[node name="AttrValueLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
 
 [node name="AttributeContainer" parent="." instance=ExtResource("2_mg524")]
 

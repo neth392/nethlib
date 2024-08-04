@@ -267,14 +267,15 @@ func get_current_value() -> float:
 
 ## Applies all permanent specs whose _flag_should_apply is true. Returns true if
 ## base value was changed, false if not.
-func _apply_permanent_specs(spec_array: AttributeEffectSpecArray, current_frame: int) -> bool:
+func _apply_permanent_specs(spec_array: AttributeEffectSpecArray, current_frame: int,
+update_periods_of_applied: bool = false) -> bool:
 	assert(spec_array.get_type() == AttributeEffect.Type.PERMANENT, 
 	"spec_array.get_type() (%s) != PERMANENT" % spec_array.get_type())
 	var new_base_value: float = _base_value
 	for index: int in spec_array.iterate_indexes_reverse():
 		var spec: AttributeEffectSpec = spec_array.get_at_index(index)
 		# Apply spec
-		if _apply_permanent_spec(spec, current_frame, new_base_value):
+		if _apply_permanent_spec(spec, current_frame, new_base_value, update_periods_of_applied):
 			new_base_value = spec._last_set_value
 	
 	if _base_value != new_base_value:
@@ -286,7 +287,8 @@ func _apply_permanent_specs(spec_array: AttributeEffectSpecArray, current_frame:
 ## Applies [param spec] based on the [param new_base_value], setting what should be the
 ## new base value to [member AttributeEffectSpec._last_set_value].
 ## [br]NOTE: Does NOT set [member base_value].
-func _apply_permanent_spec(spec: AttributeEffectSpec, current_frame: int, new_base_value: float) -> bool:
+func _apply_permanent_spec(spec: AttributeEffectSpec, current_frame: int, new_base_value: float,
+update_period_if_applied: bool) -> bool:
 	assert(spec.get_effect().is_permanent(), "spec (%s) is not PERMANENT" % spec)
 	# Check if it should apply (has it's flag set to true & passes all conditions)
 	if !spec._flag_should_apply || !_check_apply_conditions(spec):
@@ -303,6 +305,10 @@ func _apply_permanent_spec(spec: AttributeEffectSpec, current_frame: int, new_ba
 	# Emit signal if necessary
 	if spec.get_effect().can_emit_apply_signal() && spec.get_effect().emit_applied_signal:
 		effect_applied.emit(spec)
+	
+	if update_period_if_applied && spec.get_effect().has_period():
+		spec.remaining_period += spec.get_effect().get_modified_period(self, spec)
+	
 	return true
 
 
@@ -478,7 +484,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	var current_frame: int = _get_frames()
 	
 	# Apply permanent specs
-	var base_value_changed: bool = _apply_permanent_specs(perm_specs_to_apply, current_frame)
+	var base_value_changed: bool = _apply_permanent_specs(perm_specs_to_apply, current_frame, true)
 	
 	# Update current value if perm specs were applied & 
 	if base_value_changed || temp_spec_added:
@@ -674,8 +680,9 @@ func _process_specs(specs: AttributeEffectSpecArray, current_frame: int, delta: 
 				spec.remaining_duration -= delta
 				# Spec expired, remove it.
 				if spec.remaining_duration <= 0.0:
-					# Adjust remaining period as well
-					spec.remaining_period -= delta
+					# Adjust remaining period as well if it has a period
+					if effect.has_period():
+						spec.remaining_period -= delta
 					spec._expired = true
 					_remove_spec_at_index(specs, spec, index, false)
 					spec_removed = true
