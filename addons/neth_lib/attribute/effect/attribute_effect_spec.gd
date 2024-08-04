@@ -20,7 +20,9 @@ signal removed(from: Attribute)
 ## The remaining duration in seconds, can not be set to less than 0.0.
 var remaining_duration: float:
 	set(_value):
+		var previous: float = remaining_duration
 		remaining_duration = max(0.0, _value)
+		remaining_duration_changed.emit(previous)
 
 ## The remaining amount of time, in seconds, until this effect is next triggered.
 ## Can be manually set before applying to an [Attribute] to create an initial
@@ -29,9 +31,6 @@ var remaining_period: float = 0.0
 
 ## If this spec has been initialized by an [Attribute].
 var _initialized: bool = false
-
-## The amount of time, in seconds, of how long this effect has been added
-var _passed_duration: float = 0.0
 
 ## The effect this [AttributeEffectSpec] was created for.
 var _effect: AttributeEffect
@@ -176,14 +175,17 @@ func get_last_add_result() -> Attribute.AddEffectResult:
 
 
 ## Returns the amount of time, in seconds, this effect has been added to an [Attribute] for.
+## Returns 0.0 if never added to an [Attribute].
 func get_passed_duration() -> float:
-	return _passed_duration
+	if !is_added() || _tick_added_on < 0:
+		return 0.0
+	return Attribute._ticks_to_second(Attribute._get_ticks() - _tick_added_on)
 
 
 ## Returns the total [b]expected[/b] duration (passed + remaining) in seconds. If this
 ## effect is infinite, this returns the same as [method get_passed_duration].
 func get_total_duration() -> float:
-	return _passed_duration + remaining_duration
+	return get_passed_duration() + remaining_duration
 
 
 ## Amount of times this [AttributeEffectSpec] was applied to an [Attribute].

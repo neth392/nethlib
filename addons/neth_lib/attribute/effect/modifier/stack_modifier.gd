@@ -1,4 +1,5 @@
 ## Modifies a value based on the current stack count of an [AttributeEffectSpec].
+@tool
 class_name StackModifier extends AttributeEffectModifier
 
 enum Mode {

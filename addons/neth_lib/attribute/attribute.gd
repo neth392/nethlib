@@ -12,6 +12,22 @@
 @tool
 class_name Attribute extends Node
 
+## Helper function currently for [method Time.get_ticks_usec], created so that
+## it can be swapped to other time units if deemed necessary.
+static func _get_ticks() -> int:
+	return Time.get_ticks_usec()
+
+
+## Converts [param ticks] to secounds based.
+static func _ticks_to_second(ticks: int) -> float:
+	return ticks / 1_000_000.0
+
+
+## Converts [param seconds] to ticks.
+static func _seconds_to_tick(seconds: int) -> float:
+	return seconds * 1_000_000.0
+
+
 ## Which _process function is used to execute effects.
 enum ProcessFunction {
 	## [method Node._process] is used.
@@ -20,14 +36,6 @@ enum ProcessFunction {
 	PHYSICS_PROCESS = 1,
 	## No processing is used.
 	NONE = 99,
-}
-
-## Which method of [Time] is used to retrieve the current tick for all time-based operations.
-enum TickPrecision {
-	## [method Time.get_ticks_msec] is used.
-	MILLISECOND,
-	## [method Time.get_ticks_usec]s is used.
-	MICROSECOND,
 }
 
 ## The result of adding an [AttributeEffectSpec] to an [Attribute].
@@ -101,14 +109,11 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 			base_value_changed.emit(prev_base_value)
 			_base_value_changed(prev_base_value)
 		if Engine.is_editor_hint():
-			_update_current_value(_get_frames())
+			_update_current_value()
 		
 		update_configuration_warnings()
 
 @export_group("Effects")
-
-## Which [TickPrecision] is used when processing [AttributeEffect]s.
-@export var effects_tick_precision: TickPrecision = TickPrecision.MILLISECOND
 
 ## Which [ProcessFunction] is used when processing [AttributeEffect]s.
 @export var effects_process_function: ProcessFunction = ProcessFunction.PROCESS:
@@ -193,7 +198,7 @@ func __core_loop(current_frame: int) -> void:
 	_locked = true
 	
 	## Store the current ticks in msec
-	var current_tick: int = Time.get_ticks_msec()
+	var current_tick: int = _get_ticks()
 	
 	# Process PERMANENT effects
 	_process_specs(_permanent_specs, current_tick)
@@ -465,7 +470,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		
 		# At this point it can be added
 		spec._is_added = true
-		spec._tick_added_at = Time.get_ticks_msec()
+		spec._tick_added_on = _get_ticks()
 		
 		# Run pre_add callbacks
 		spec._run_callbacks(AttributeEffectCallback._Function.PRE_ADD, self)
@@ -496,14 +501,12 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	_permanent_specs.update_reversed_range()
 	_temporary_specs.update_reversed_range()
 	
-	var current_frame: int = _get_frames()
-	
 	# Apply permanent specs
-	var base_value_changed: bool = _apply_permanent_specs(perm_specs_to_apply, current_frame, true)
+	var base_value_changed: bool = _apply_permanent_specs(perm_specs_to_apply, _get_ticks(), true)
 	
 	# Update current value if perm specs were applied & 
 	if base_value_changed || temp_spec_added:
-		_update_current_value(current_frame)
+		_update_current_value()
 	
 	_locked = false
 
@@ -522,7 +525,7 @@ func remove_effect(effect: AttributeEffect) -> bool:
 	)
 	
 	if effect.type == AttributeEffect.Type.TEMPORARY && removed:
-		_update_current_value(_get_frames())
+		_update_current_value()
 	
 	_locked = false
 	return removed
@@ -595,7 +598,7 @@ func _remove_multiple_from_both_arrays(spec_predicate: Callable) -> bool:
 	var temp_removed: bool = _remove_multiple_from_one_array(_temporary_specs, spec_predicate)
 	
 	if temp_removed:
-		_update_current_value(_get_frames())
+		_update_current_value()
 	
 	return perm_removed || temp_removed
 
@@ -682,21 +685,22 @@ func _process_specs(specs: AttributeEffectSpecArray, ticks: int) -> bool:
 			spec._is_processing = false
 			continue
 		
+		# The amount of ticks since last processed (or added)
+		var ticks_since_last_process: int = spec.get_ticks_since_last_process(ticks)
+		var seconds_since_last_process: float = _ticks_to_second(ticks_since_last_process)
+		
 		# Mark as processing
 		spec._is_processing = true
-		spec._last_process_tick_msec = ticks
-		
-		# Keep track of passed duration for all effects
-		spec._passed_duration = _ticks_to_second(ticks_msec - spec._tick_added_on)
+		spec._tick_last_processed = ticks
 		
 		# Duration Calculations
 		if effect.has_duration():
-			spec.remaining_duration -= delta
+			spec.remaining_duration -= seconds_since_last_process
 			# Spec expired, remove it.
 			if spec.remaining_duration <= 0.0:
 				# Adjust remaining period as well if it has a period
 				if effect.has_period():
-					spec.remaining_period -= delta
+					spec.remaining_period -= seconds_since_last_process
 				spec._expired = true
 				_remove_spec_at_index(specs, spec, index, false)
 				spec_removed = true
@@ -704,7 +708,7 @@ func _process_specs(specs: AttributeEffectSpecArray, ticks: int) -> bool:
 		
 		if effect.has_period():
 			# Period Calculations
-			spec.remaining_period -= delta
+			spec.remaining_period -= seconds_since_last_process
 			# Can not yet activate, proceed to next
 			if spec.remaining_period > 0.0:
 				continue
@@ -716,32 +720,6 @@ func _process_specs(specs: AttributeEffectSpecArray, ticks: int) -> bool:
 	if spec_removed:
 		specs.update_reversed_range()
 	return spec_removed
-
-
-### Gets the current frame count based on [member effects_process_function]
-func _get_ticks() -> int:
-	match effects_tick_precision:
-		TickPrecision.MILLISECOND:
-			return Time.get_ticks_msec()
-		TickPrecision.MICROSECOND:
-			return Time.get_ticks_usec()
-		_:
-			assert(false, "no implementation for effects_tick_precision (%s)" \
-			% effects_tick_precision)
-			return -1
-
-
-## Converts [param] ticks to secounds based on [member effects_tick_precision].
-func _ticks_to_second(ticks: int) -> float:
-	match effects_tick_precision:
-		TickPrecision.MILLISECOND:
-			return ticks / 1_000.0
-		TickPrecision.MICROSECOND:
-			return ticks / 1_000_000.0
-		_:
-			assert(false, "no implementation for effects_tick_precision (%s)" \
-			% effects_tick_precision)
-			return -1
 
 
 func _update_processing() -> void:

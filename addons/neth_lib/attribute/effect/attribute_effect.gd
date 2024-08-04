@@ -272,7 +272,6 @@ func _validate_and_assert(modifiers: Array[AttributeEffectModifier]) -> void:
 			if modifier != null:
 				modifier._validate_and_assert(self)
 
-
 ## Helper method for _validate_property.
 func _no_editor(property: Dictionary) -> void:
 	property.usage = PROPERTY_USAGE_NO_EDITOR
