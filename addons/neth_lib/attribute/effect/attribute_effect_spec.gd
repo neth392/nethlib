@@ -30,7 +30,7 @@ var remaining_period: float = 0.0
 ## If this spec has been initialized by an [Attribute].
 var _initialized: bool = false
 
-## The amount of time, in seconds, of how long this effect has been active
+## The amount of time, in seconds, of how long this effect has been added
 var _passed_duration: float = 0.0
 
 ## The effect this [AttributeEffectSpec] was created for.
@@ -55,13 +55,17 @@ var _last_blocked_by: AttributeEffectCondition
 ## The [enum Attribute.AddEffectResult] from the last attempt to add this spec to an [Attribute].
 var _last_add_result: Attribute.AddEffectResult = Attribute.AddEffectResult.NEVER_ADDED
 
-## The last frame this spec was processed on. If the value is -1, this
-## spec has not yet been processed.
-var _last_process_frame: int = -1
+## The tick (in milliseconds) this spec was added to an [Attribute] at. -1 if it was 
+## not yet added.
+var _tick_added_on: int = -1
 
-## The last frame this spec was applied on. If the value is -1, this spec
+## The last [method Time.get_ticks_msec] this spec was processed on. If the value is -1, this
+## spec has not yet been processed.
+var _tick_last_processed: int = -1
+
+## The last [method Time.get_ticks_msec] this spec was applied on. If the value is -1, this spec
 ## has not yet been applied.
-var _last_apply_frame: int = -1
+var _tick_last_applied: int = -1
 
 ## The last value that was set to [member Attribute.value] based on the
 ## [enum AttributeEffect.ValueCalcType].
@@ -116,27 +120,34 @@ func is_processing() -> bool:
 	return _is_processing
 
 
-## Returns the last process frame this spec was processed on. -1 if it has not
+## Returns the amount of ticks since the last 
+func get_ticks_since_last_process(current_tick: int) -> int:
+	if _tick_last_processed > -1:
+		return current_tick - _tick_last_processed
+	return current_tick - _tick_added_on
+
+
+## Returns the last [method Time.get_ticks_msec] this spec was processed on. -1 if it has not
 ## yet been processed.
-func get_last_process_frame() -> int:
-	return _last_process_frame
+func get_tick_last_processed() -> int:
+	return _tick_last_processed
 
 
 ## Returns true if the effect has been processed.
 func has_processed() -> bool:
-	return _last_process_frame > -1
+	return _tick_last_processed > -1
 
 
-## Returns the last process frame this spec was applied on. -1 if it has not
+## Returns the last [method Time.get_ticks_msec] this spec was applied on. -1 if it has not
 ## yet been applied. Always returns -1 for TEMPORARY effects.
-func get_last_apply_frame() -> int:
-	return _last_apply_frame
+func get_tick_last_applied() -> int:
+	return _tick_last_applied
 
 
 ## Returns true if the effect has been applied. Always returns false for
 ## TEMPORARY effects.
 func has_applied() -> bool:
-	return _last_apply_frame > -1
+	return _tick_last_applied > -1
 
 
 ## Returns the last value that was directly set to the [Attribute], either
@@ -164,7 +175,7 @@ func get_last_add_result() -> Attribute.AddEffectResult:
 	return _last_add_result
 
 
-## Returns the amount of time, in seconds, this effect has been active for.
+## Returns the amount of time, in seconds, this effect has been added to an [Attribute] for.
 func get_passed_duration() -> float:
 	return _passed_duration
 
