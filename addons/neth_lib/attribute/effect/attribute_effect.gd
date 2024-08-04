@@ -104,19 +104,50 @@ enum DurationType {
 		duration_in_seconds = max(0.0, _value)
 		notify_property_list_changed()
 
+## If the effect should automatically be applied when it's duration expires.
+## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
+@export var apply_on_expire: bool = false:
+	set(_value):
+		apply_on_expire = _value
+		notify_property_list_changed()
+
+@export_group("Apply Limit")
+
+## If true, [member apply_limit_amount] is the maximum amount of times an effect
+## can apply. See [member apply_limit_amount] for more information.
+## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
+@export var apply_limit: bool = false:
+	set(_value):
+		apply_limit = _value
+		notify_property_list_changed()
+
+## The maximum amount of times this effect can be applied to an [Attribute]. If this
+## number is reached, the effect is then instantly removed from the [Attribute].
+## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
+@export var apply_limit_amount: int = 10
+
 @export_group("Period")
 
 ## Amount of time, in seconds, between when this effect is applied to an [Attribute].
 ## [br]Zero or less means every frame.
-## [br]NOTE: ONLY AVAILABLE FOR [enum Type.PERMANENT].
+## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
 @export var period_in_seconds: float = 0.0:
 	set(_value):
 		period_in_seconds = max(0.0, _value)
 
 ## If [member period_in_seconds] should apply as a "delay" between when this effect 
 ## is added to an [Attribute] and its first time applying.
-## [br]NOTE: ONLY AVAILABLE FOR [enum Type.PERMANENT].
+## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
 @export var initial_period: bool = false
+
+## For special edge cases, if true the effect will be applied on it's expiration if
+## the remaining period has reached 0.0 at the same frame. If [member apply_on_expire]
+## is true, this property is meaningless.
+## [br]For example, if an effect has a duration of 5 seconds, and a period of 1, it
+## will be applied when it expires as the remaining period for the next application
+## will reach zero on the same frame.
+## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
+@export var apply_on_expire_if_period_is_zero: bool = false
 
 @export_group("Stacking")
 
@@ -139,7 +170,6 @@ enum DurationType {
 ## applied to an [Attribute]. This array can safely be directly modified or set.[br]
 ## [br]NOTE: Only for [enum Type.PERMANENT] effects, as TEMPORARY effects are [b]always[/b]
 ## applied if the effect was added.
-## [br]TBD: Decide if temporary effects should have apply conditions.
 @export var apply_conditions: Array[AttributeEffectCondition]
 
 ## All [AttributeEffectCondition]s that must be met for this effect to be
@@ -236,8 +266,28 @@ func _validate_property(property: Dictionary) -> void:
 			_no_editor(property)
 		return
 	
+	if property.name == "apply_on_expire":
+		if !can_apply_on_expire():
+			_no_editor(property)
+		return
+	
+	if property.name == "apply_limit":
+		if !can_have_apply_limit():
+			_no_editor(property)
+		return
+	
+	if property.name == "apply_limit_amount":
+		if !can_have_apply_limit() || !apply_limit:
+			_no_editor(property)
+		return
+	
 	if property.name == "period_in_seconds" || property.name == "initial_period":
 		if !has_period():
+			_no_editor(property)
+		return
+	
+	if property.name == "apply_on_expire_if_period_is_zero":
+		if !can_apply_on_expire() || !has_period() || (can_apply_on_expire() && apply_on_expire):
 			_no_editor(property)
 		return
 	
@@ -536,6 +586,16 @@ func can_emit_apply_signal() -> bool:
 ## Whether or not this effect can emit [signal Attribute.effect_removed].
 func can_emit_removed_signal() -> bool:
 	return duration_type != DurationType.INSTANT
+
+
+## Whether or not this effect supports [member apply_on_expire]
+func can_apply_on_expire() -> bool:
+	return duration_type == DurationType.HAS_DURATION && type == Type.PERMANENT
+
+
+## Whether or not this effect supports [member apply_limit] & [member apply_limit_amount]
+func can_have_apply_limit() -> bool:
+	return duration_type != DurationType.INSTANT && type == Type.PERMANENT
 
 
 ## Returns true if this effect has a [member duration_in_seconds].

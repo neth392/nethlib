@@ -32,7 +32,7 @@ static func _seconds_to_tick(seconds: int) -> float:
 enum ProcessFunction {
 	## [method Node._process] is used.
 	PROCESS = 0,
-	## [method Node._phyics_process] is used.
+	## [method Node._physics_process] is used.
 	PHYSICS_PROCESS = 1,
 	## No processing is used.
 	NONE = 99,
@@ -327,6 +327,8 @@ update_period_if_applied: bool) -> bool:
 	
 	if update_period_if_applied && spec.get_effect().has_period():
 		spec.remaining_period += spec.get_effect().get_modified_period(self, spec)
+	
+	
 	
 	return true
 
@@ -698,9 +700,21 @@ func _process_specs(specs: AttributeEffectSpecArray, ticks: int) -> bool:
 			spec.remaining_duration -= seconds_since_last_process
 			# Spec expired, remove it.
 			if spec.remaining_duration <= 0.0:
+				var apply_on_expire: bool = spec.get_effect().can_apply_on_expire() \
+				and spec.get_effect().apply_on_expire
+				
 				# Adjust remaining period as well if it has a period
 				if effect.has_period():
 					spec.remaining_period -= seconds_since_last_process
+					if !apply_on_expire and spec.remaining_period < 0 \
+					and spec.get_effect().apply_on_expire_if_period_is_zero:
+						apply_on_expire = true
+				
+				# Apply it
+				if apply_on_expire:
+					pass # TODO figure out how to apply it here
+				
+				# Set expired & remove
 				spec._expired = true
 				_remove_spec_at_index(specs, spec, index, false)
 				spec_removed = true
@@ -709,16 +723,17 @@ func _process_specs(specs: AttributeEffectSpecArray, ticks: int) -> bool:
 		if effect.has_period():
 			# Period Calculations
 			spec.remaining_period -= seconds_since_last_process
-			# Can not yet activate, proceed to next
 			if spec.remaining_period > 0.0:
+				# Can not yet apply, proceed to next
 				continue
-			# Add to remaining period
+			# Can apply, add next period to remaining period
 			spec.remaining_period += effect.get_modified_period(self, spec)
 		
 		spec._flag_should_apply = true
 	
 	if spec_removed:
 		specs.update_reversed_range()
+	
 	return spec_removed
 
 
