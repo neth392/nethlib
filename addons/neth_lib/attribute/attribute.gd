@@ -151,7 +151,8 @@ var _current_value: float:
 
 var _current_value_initiated: bool = false
 
-## Whether or not [method __core_loop] is currently running
+## A lock mechanism to ensure code ran from signals emitted from this attribute does not
+## attempt any unsafe changes that would break the logic & predictability of effects.
 var _locked: bool = false
 
 ## For use in [method __process] ONLY. Per testing, it is more efficient to use
@@ -197,8 +198,9 @@ func __process(current_frame: int) -> void:
 	
 	## Store the current ticks in msec
 	var current_tick: int = _get_ticks()
-	var update_current_value: bool = false
 	var update_current: bool = false
+	var new_base_value: float = _base_value
+	var new_current_value: float = _base_value
 	
 	for index: int in _specs.iterate_indexes_reverse():
 		var spec: AttributeEffectSpec = _specs.get_at_index(index)
@@ -230,9 +232,11 @@ func __process(current_frame: int) -> void:
 				spec.__process_index = index
 				# Add it to be removed at the end of this function
 				__process_to_remove.append(spec)
-				# Set current value to update if this is a temporary spec
+				# Set current value to update if this is a temporary spec that expired
 				if spec.get_effect().is_temporary():
 					update_current = true
+				
+				if !effect.apply_on_expire && eff
 				
 				# Account for period
 				if effect.has_period():
@@ -253,22 +257,22 @@ func __process(current_frame: int) -> void:
 			spec.remaining_period += effect.get_modified_period(self, spec)
 		
 		# TODO apply
+		# Effect can be applied at this point
+		match effect.type:
+			AttributeEffect.Type.PERMANENT:
+				# TODO: Apply Permanent
+				pass
+			AttributeEffect.Type.TEMPORARY:
+				if !update_current: # Skip if not updating current value
+					continue
+				## TODO: Apply Current
+			
 	
 	if __process_to_remove.size() > 0:
 		for spec: AttributeEffectSpec in __process_to_remove:
 			_remove_spec_at_index(spec, spec.__process_index, false)
+		__process_to_remove.clear()
 		_specs.update_reversed_range()
-	
-	# Process PERMANENT effects
-	_process_specs(_permanent_specs, current_tick)
-	# Process TEMPORARY effects
-	var temp_spec_removed: bool = _process_specs(_temporary_specs, current_tick)
-	
-	# Apply PERMANENT effects
-	var base_value_changed: bool = _apply_permanent_specs(_permanent_specs, current_tick)
-	
-	if base_value_changed || temp_spec_removed:
-		_update_current_value()
 	
 	_locked = false
 
@@ -391,17 +395,23 @@ update_period_if_applied: bool) -> bool:
 	return true
 
 
+## Sets [member AttributeEffectSpec._last_value] and [member AttributeEffectSpec._last_set_value]
+## of [param spec] based on [param base_value] and [param current_value]. For use when applying
+## an effect.
+func _set_apply_properties(spec: AttributeEffectSpec, base_value: float, current_value: float) -> void:
+	spec._last_value = spec.get_effect().get_modified_value(self, spec)
+	spec._last_set_value = spec.get_effect().apply_calculator(base_value, current_value, spec._last_value)
+
+
 ## Updates the value returned by [method get_current_value] by re-applying all
 ## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY].
 func _update_current_value() -> void:
 	var new_current_value: float = _base_value
 	
-	for index: int in _temporary_specs.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = _temporary_specs.get_at_index(index)
-		spec._apply_count += 1
-		spec._last_value = spec.get_effect().get_modified_value(self, spec)
-		new_current_value = spec.get_effect().apply_calculator(_base_value, new_current_value, spec._last_value)
-		spec._last_set_value = new_current_value
+	for index: int in _specs._temp_specs.iterate_indexes_reverse():
+		var spec: AttributeEffectSpec = _specs._temp_specs.get_at_index(index)
+		_set_apply_properties(spec, _base_value, new_current_value)
+		new_current_value = spec._last_set_value
 	
 	if _current_value != new_current_value:
 		_current_value = new_current_value
@@ -700,71 +710,71 @@ func _check_conditions(spec: AttributeEffectSpec, callable: Callable, _signal: S
 	return true
 
 
-## Returns true if a spec was removed, false if not.
-func _process_specs(specs: AttributeEffectSpecArray, ticks: int) -> bool:
-	var spec_removed: bool = false
-	for index: int in specs.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = specs.get_at_index(index)
-		var effect: AttributeEffect = spec.get_effect()
-		spec._flag_should_apply = false
-		
-		# Skip if it was already processed this tick
-		if spec._tick_last_processed == ticks:
-			continue
-		
-		# Check if can process
-		if !_check_process_conditions(spec):
-			spec._is_processing = false
-			continue
-		
-		# The amount of ticks since last processed (or added)
-		var ticks_since_last_process: int = spec.get_ticks_since_last_process(ticks)
-		var seconds_since_last_process: float = _ticks_to_second(ticks_since_last_process)
-		
-		# Mark as processing
-		spec._is_processing = true
-		spec._tick_last_processed = ticks
-		
-		# Duration Calculations
-		if effect.has_duration():
-			spec.remaining_duration -= seconds_since_last_process
-			# Spec expired, remove it.
-			if spec.remaining_duration <= 0.0:
-				var apply_on_expire: bool = spec.get_effect().can_apply_on_expire() \
-				and spec.get_effect().apply_on_expire
-				
-				# Adjust remaining period as well if it has a period
-				if effect.has_period():
-					spec.remaining_period -= seconds_since_last_process
-					if !apply_on_expire and spec.remaining_period < 0 \
-					and spec.get_effect().apply_on_expire_if_period_is_zero:
-						apply_on_expire = true
-				
-				# Apply it
-				if apply_on_expire:
-					pass # TODO figure out how to apply it here
-				
-				# Set expired & remove
-				spec._expired = true
-				_remove_spec_at_index(spec, index, false)
-				spec_removed = true
-				continue
-		
-		if effect.has_period():
-			# Period Calculations
-			spec.remaining_period -= seconds_since_last_process
-			if spec.remaining_period > 0.0:
-				# Can not yet apply, proceed to next
-				continue
-			# Can apply, add next period to remaining period
-			spec.remaining_period += effect.get_modified_period(self, spec)
-		
-		spec._flag_should_apply = true
-	
-	if spec_removed:
-		specs.update_reversed_range()
-	
-	return spec_removed
+### Returns true if a spec was removed, false if not.
+#func _process_specs(specs: AttributeEffectSpecArray, ticks: int) -> bool:
+	#var spec_removed: bool = false
+	#for index: int in specs.iterate_indexes_reverse():
+		#var spec: AttributeEffectSpec = specs.get_at_index(index)
+		#var effect: AttributeEffect = spec.get_effect()
+		#spec._flag_should_apply = false
+		#
+		## Skip if it was already processed this tick
+		#if spec._tick_last_processed == ticks:
+			#continue
+		#
+		## Check if can process
+		#if !_check_process_conditions(spec):
+			#spec._is_processing = false
+			#continue
+		#
+		## The amount of ticks since last processed (or added)
+		#var ticks_since_last_process: int = spec.get_ticks_since_last_process(ticks)
+		#var seconds_since_last_process: float = _ticks_to_second(ticks_since_last_process)
+		#
+		## Mark as processing
+		#spec._is_processing = true
+		#spec._tick_last_processed = ticks
+		#
+		## Duration Calculations
+		#if effect.has_duration():
+			#spec.remaining_duration -= seconds_since_last_process
+			## Spec expired, remove it.
+			#if spec.remaining_duration <= 0.0:
+				#var apply_on_expire: bool = spec.get_effect().can_apply_on_expire() \
+				#and spec.get_effect().apply_on_expire
+				#
+				## Adjust remaining period as well if it has a period
+				#if effect.has_period():
+					#spec.remaining_period -= seconds_since_last_process
+					#if !apply_on_expire and spec.remaining_period < 0 \
+					#and spec.get_effect().apply_on_expire_if_period_is_zero:
+						#apply_on_expire = true
+				#
+				## Apply it
+				#if apply_on_expire:
+					#pass # TODO figure out how to apply it here
+				#
+				## Set expired & remove
+				#spec._expired = true
+				#_remove_spec_at_index(spec, index, false)
+				#spec_removed = true
+				#continue
+		#
+		#if effect.has_period():
+			## Period Calculations
+			#spec.remaining_period -= seconds_since_last_process
+			#if spec.remaining_period > 0.0:
+				## Can not yet apply, proceed to next
+				#continue
+			## Can apply, add next period to remaining period
+			#spec.remaining_period += effect.get_modified_period(self, spec)
+		#
+		#spec._flag_should_apply = true
+	#
+	#if spec_removed:
+		#specs.update_reversed_range()
+	#
+	#return spec_removed
 
 
 func _update_processing() -> void:

@@ -99,39 +99,43 @@ enum DurationType {
 		notify_property_list_changed()
 
 ## The amount of time in seconds this [AttributeEffect] lasts.
-@export var duration_in_seconds: float = 0.0:
+@export_range(0.0, 100.0, 1.0, "or_greater", "hide_slider") var duration_in_seconds: float = 0.0:
 	set(_value):
 		duration_in_seconds = max(0.0, _value)
 		notify_property_list_changed()
 
 ## If the effect should automatically be applied when it's duration expires.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var apply_on_expire: bool = false:
+@export var _apply_on_expire: bool = false:
 	set(_value):
-		apply_on_expire = _value
+		_apply_on_expire = _value
 		notify_property_list_changed()
 
 @export_group("Apply Limit")
 
 ## If true, [member apply_limit_amount] is the maximum amount of times an effect
-## can apply. See [member apply_limit_amount] for more information.
+## can apply. If the limit is hit, the effect is removed immediately.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var apply_limit: bool = false:
+@export var _apply_limit: bool = false:
 	set(_value):
-		apply_limit = _value
+		_apply_limit = _value
 		notify_property_list_changed()
 
-## The maximum amount of times this effect can be applied to an [Attribute]. If this
+## The maximum amount of times this effect can be applied to an [Attribute], inclusive. If this
 ## number is reached, the effect is then instantly removed from the [Attribute].
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var apply_limit_amount: int = 10
+@export_range(0, 100, 1, "or_greater", "hide_slider") var apply_limit_amount: int:
+	set(_value):
+		if !Engine.is_editor_hint():
+			assert(_value > 0, "apply_limit_amount must be > 0")
+		apply_limit_amount = _value
 
 @export_group("Period")
 
 ## Amount of time, in seconds, between when this effect is applied to an [Attribute].
 ## [br]Zero or less means every frame.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var period_in_seconds: float = 0.0:
+@export_range(0.0, 100.0, 1, "or_greater", "hide_slider") var period_in_seconds: float = 0.0:
 	set(_value):
 		period_in_seconds = max(0.0, _value)
 
@@ -141,13 +145,13 @@ enum DurationType {
 @export var initial_period: bool = false
 
 ## For special edge cases, if true the effect will be applied on it's expiration if
-## the remaining period has reached 0.0 at the same frame. If [member apply_on_expire]
+## the remaining period has reached 0.0 at the same frame. If [member _apply_on_expire]
 ## is true, this property is meaningless.
 ## [br]For example, if an effect has a duration of 5 seconds, and a period of 1, it
 ## will be applied when it expires as the remaining period for the next application
 ## will reach zero on the same frame.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var apply_on_expire_if_period_is_zero: bool = false
+@export var _apply_on_expire_if_period_is_zero: bool = false
 
 @export_group("Stacking")
 
@@ -266,18 +270,18 @@ func _validate_property(property: Dictionary) -> void:
 			_no_editor(property)
 		return
 	
-	if property.name == "apply_on_expire":
+	if property.name == "_apply_on_expire":
 		if !can_apply_on_expire():
 			_no_editor(property)
 		return
 	
-	if property.name == "apply_limit":
+	if property.name == "_apply_limit":
 		if !can_have_apply_limit():
 			_no_editor(property)
 		return
 	
 	if property.name == "apply_limit_amount":
-		if !can_have_apply_limit() || !apply_limit:
+		if !can_have_apply_limit() || !_apply_limit:
 			_no_editor(property)
 		return
 	
@@ -286,8 +290,8 @@ func _validate_property(property: Dictionary) -> void:
 			_no_editor(property)
 		return
 	
-	if property.name == "apply_on_expire_if_period_is_zero":
-		if !can_apply_on_expire() || !has_period() || (can_apply_on_expire() && apply_on_expire):
+	if property.name == "_apply_on_expire_if_period_is_zero":
+		if !can_apply_on_expire_if_period_is_zero() || is_apply_on_expire():
 			_no_editor(property)
 		return
 	
@@ -593,9 +597,35 @@ func can_apply_on_expire() -> bool:
 	return duration_type == DurationType.HAS_DURATION && type == Type.PERMANENT
 
 
-## Whether or not this effect supports [member apply_limit] & [member apply_limit_amount]
+## Whether or not this effect should automatically apply on the same frame that it expires.
+## Returns true if [method can_apply_on_expire] and [member _apply_on_expire] are both true.
+func is_apply_on_expire() -> bool:
+	return can_apply_on_expire() && _apply_on_expire
+
+
+## Whether or not this effect supports [member _apply_on_expire_if_period_is_zero]
+func can_apply_on_expire_if_period_is_zero() -> bool:
+	return type == Type.PERMANENT && has_period()
+
+
+## Whether or not this effect should automatically apply on the same frame that it expires
+## ONLY IF the remaining period is <= 0.0
+## Returns true if [method can_apply_on_expire_if_period_is_zero] and 
+## [member _apply_on_expire_if_period_is_zero] are both true.
+func is_apply_on_expire_if_period_is_zero() -> bool:
+	return can_apply_on_expire_if_period_is_zero() && _apply_on_expire_if_period_is_zero
+
+
+## Whether or not this effect supports [member _apply_limit] & [member apply_limit_amount]
 func can_have_apply_limit() -> bool:
 	return duration_type != DurationType.INSTANT && type == Type.PERMANENT
+
+
+## Whether or not this effect has an [member apply_limit_amount] (that maximum number
+## of times it can apply before being instantly removed)
+## Returns true if [method can_have_apply_limit] and [member _apply_limit] are both true.
+func has_apply_limit() -> bool:
+	return can_have_apply_limit() && _apply_limit
 
 
 ## Returns true if this effect has a [member duration_in_seconds].

@@ -45,7 +45,8 @@ var _is_added: bool = false
 ## blocked by an [AttributeEffectCondition].
 var _is_processing: bool = false
 
-## Amount of times the [AttributeEffect] was applied to the [Attribute].
+## Amount of times the [AttributeEffect] was applied to the [Attribute]. Only
+## valid for PERMANENT effects.
 var _apply_count: int = 0
 
 ## The condition that lasts blocks addition or application of this spec.
@@ -192,7 +193,8 @@ func get_total_duration() -> float:
 	return get_passed_duration() + remaining_duration
 
 
-## Amount of times this [AttributeEffectSpec] was applied to an [Attribute].
+## Amount of times this [AttributeEffectSpec] was applied to an [Attribute]. Does not
+## track for TEMPORARY effects, thus the value is always 0 in that case.
 func get_apply_count() -> int:
 	return _apply_count
 
