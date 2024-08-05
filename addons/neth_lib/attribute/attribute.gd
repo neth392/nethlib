@@ -236,7 +236,7 @@ func __process(current_frame: int) -> void:
 				if spec.get_effect().is_temporary():
 					update_current = true
 				
-				if !effect.apply_on_expire && eff
+				## TODO check if apply on expire
 				
 				# Account for period
 				if effect.has_period():
