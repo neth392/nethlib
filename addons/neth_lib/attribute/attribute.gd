@@ -241,9 +241,7 @@ func __process(current_frame: int) -> void:
 						if !apply_on_expire:
 							continue
 					else:
-						
-					
-				
+						pass
 		
 		if effect.has_period():
 			# Period Calculations
@@ -256,9 +254,10 @@ func __process(current_frame: int) -> void:
 		
 		# TODO apply
 	
-	if spec_removed:
-		specs.update_reversed_range()
-	
+	if __process_to_remove.size() > 0:
+		for spec: AttributeEffectSpec in __process_to_remove:
+			_remove_spec_at_index(spec, spec.__process_index, false)
+		_specs.update_reversed_range()
 	
 	# Process PERMANENT effects
 	_process_specs(_permanent_specs, current_tick)
