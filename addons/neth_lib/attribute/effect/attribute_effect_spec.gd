@@ -80,7 +80,11 @@ var _expired: bool = false
 
 ## Internal flag used in processing of specs in [Attribute], true if it should
 ## be applied after processing, false if not.
-var _flag_should_apply: bool = false
+var __process_should_apply: bool = false
+
+## Internal flag used in [method Attribute.__process] to store the index of a spec
+## to be removed.
+var __process_index: int
 
 func _init(effect: AttributeEffect) -> void:
 	assert(effect != null, "effect is null")

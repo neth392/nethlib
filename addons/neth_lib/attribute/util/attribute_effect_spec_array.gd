@@ -23,6 +23,10 @@ func get_type() -> AttributeEffect.Type:
 	return _type
 
 
+func size() -> int:
+	return _array.size()
+
+
 func update_reversed_range() -> void:
 	_reversed_range = range(_array.size() - 1, -1, -1)
 

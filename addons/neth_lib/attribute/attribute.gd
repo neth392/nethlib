@@ -132,13 +132,8 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 ## circular reference safety.
 var _container: WeakRef
 
-## Array of all added [AttributeEffectSpec]s that are of [enum AttributeEffect.Type.PERMANENT]
-var _permanent_specs: AttributeEffectSpecArray = \
-AttributeEffectSpecArray.new(AttributeEffect.Type.PERMANENT)
-
-## Array of all added [AttributeEffectSpec]s that are of [enum AttributeEffect.Type.TEMPORARY]
-var _temporary_specs: AttributeEffectSpecArray =\
- AttributeEffectSpecArray.new(AttributeEffect.Type.TEMPORARY)
+## Cluster of all added [AttributeEffectSpec]s.
+var _specs: AttributeEffectSpecCluster = AttributeEffectSpecCluster.new()
 
 ## Dictionary of in the format of [code]{[member AttributeEffect.id] : int}[/code] count of all 
 ## applied [AttributeEffectSpec]s with that effect.
@@ -159,6 +154,9 @@ var _current_value_initiated: bool = false
 ## Whether or not [method __core_loop] is currently running
 var _locked: bool = false
 
+## For use in [method __process] ONLY. Per testing, it is more efficient to use
+## a global array than create a new one every frame.
+var __process_to_remove: Array[AttributeEffectSpec] = []
 
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
@@ -184,21 +182,83 @@ func _exit_tree() -> void:
 
 
 func _process(delta: float) -> void:
-	__core_loop(delta)
+	__process(delta)
 
 
 func _physics_process(delta: float) -> void:
-	__core_loop(delta)
+	__process(delta)
 
 
 ## The heart & soul of Attribute, responsible for processing & applying [AttriubteEffectSpec]s.
 ## NOT meant to be overridden at all.
-func __core_loop(current_frame: int) -> void:
+func __process(current_frame: int) -> void:
 	assert(!_locked, "attribute is locked")
 	_locked = true
 	
 	## Store the current ticks in msec
 	var current_tick: int = _get_ticks()
+	var update_current_value: bool = false
+	var update_current: bool = false
+	
+	for index: int in _specs.iterate_indexes_reverse():
+		var spec: AttributeEffectSpec = _specs.get_at_index(index)
+		var effect: AttributeEffect = spec.get_effect()
+		
+		# Skip if it was already processed this tick
+		if spec._tick_last_processed == current_tick:
+			continue
+		
+		# Check if can process
+		if !_check_process_conditions(spec):
+			spec._is_processing = false
+			continue
+		
+		# Get the amount of time since last process
+		var seconds_since_last_process: float = _ticks_to_second(
+		spec.get_ticks_since_last_process(current_tick))
+		
+		# Mark as processing
+		spec._is_processing = true
+		spec._tick_last_processed = current_tick
+		
+		# Duration Calculations
+		if effect.has_duration():
+			spec.remaining_duration -= seconds_since_last_process
+			if spec.remaining_duration <= 0.0:
+				# Spec is expired at this point
+				spec._expired = true
+				spec.__process_index = index
+				# Add it to be removed at the end of this function
+				__process_to_remove.append(spec)
+				# Set current value to update if this is a temporary spec
+				if spec.get_effect().is_temporary():
+					update_current = true
+				
+				# Account for period
+				if effect.has_period():
+					spec.remaining_period -= seconds_since_last_process
+					if spec.remaining_period > 0.0:
+						if !apply_on_expire:
+							continue
+					else:
+						
+					
+				
+		
+		if effect.has_period():
+			# Period Calculations
+			spec.remaining_period -= seconds_since_last_process
+			if spec.remaining_period > 0.0:
+				# Can not yet apply, proceed to next
+				continue
+			# Can apply, add next period to remaining period
+			spec.remaining_period += effect.get_modified_period(self, spec)
+		
+		# TODO apply
+	
+	if spec_removed:
+		specs.update_reversed_range()
+	
 	
 	# Process PERMANENT effects
 	_process_specs(_permanent_specs, current_tick)
@@ -348,18 +408,6 @@ func _update_current_value() -> void:
 		_current_value = new_current_value
 
 
-func _get_effect_array(effect: AttributeEffect) -> AttributeEffectSpecArray:
-	assert(effect != null, "effect is null")
-	match effect.type:
-		AttributeEffect.Type.PERMANENT:
-			return _permanent_specs
-		AttributeEffect.Type.TEMPORARY:
-			return _temporary_specs
-		_:
-			assert(false, "no implementation for effect.type (%s)" % effect.type)
-			return null
-
-
 ## Returns true if the [param effect] is present and has one or more [AttributeEffectSpec]s
 ## applied to this [Attribute], false if not.
 func has_effect(effect: AttributeEffect) -> bool:
@@ -370,16 +418,15 @@ func has_effect(effect: AttributeEffect) -> bool:
 ## Returns true if [param spec] is currently applied to this [Attribute], false if not.
 func has_spec(spec: AttributeEffectSpec) -> bool:
 	assert(spec != null, "spec is null")
-	return _get_effect_array(spec.get_effect()).has(spec)
+	return _specs.has(spec)
 
 
 ## Returns a new [Array] of all [AttributeEffectSpec]s whose 
 ## [method AttributEffectSpec.get_effect] equals [param effect].
 func find_specs(effect: AttributeEffect) -> Array[AttributeEffectSpec]:
 	var specs: Array[AttributeEffectSpec] = []
-	var array: AttributeEffectSpecArray = _get_effect_array(effect)
-	for index: int in array.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = array.get_at_index(index)
+	for index: int in _specs.iterate_indexes_reverse():
+		var spec: AttributeEffectSpec = _specs.get_at_index(index)
 		if spec.get_effect() == effect:
 			specs.append(spec)
 			continue
@@ -518,9 +565,7 @@ func remove_effect(effect: AttributeEffect) -> bool:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	_locked = true
 	
-	var array: AttributeEffectSpecArray = _get_effect_array(effect)
-	
-	var removed: bool = _remove_multiple_from_one_array(array, 
+	var removed: bool = _remove_based_on_predicate( 
 		func(_effect) -> bool:
 			return _effect == effect
 	)
@@ -538,7 +583,7 @@ func remove_effects(effects: Array[AttributeEffect]) -> bool:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	assert(!effects.has(null), "effects has null element")
 	_locked = true
-	var removed: bool = _remove_multiple_from_both_arrays(
+	var removed: bool = _remove_based_on_predicate(
 		func (spec: AttributeEffectSpec) -> bool:
 			return effects.has(spec.get_effect())
 	)
@@ -548,11 +593,10 @@ func remove_effects(effects: Array[AttributeEffect]) -> bool:
 
 ## Removes the [param spec], returning true if removed, false if not.
 func remove_spec(spec: AttributeEffectSpec) -> bool:
-	var array: AttributeEffectSpecArray = _get_effect_array(spec.get_effect())
-	for index: int in array.iterate_indexes_reverse():
-		var other_spec: AttributeEffectSpec = array.get_at_index(index)
+	for index: int in _specs.iterate_indexes_reverse():
+		var other_spec: AttributeEffectSpec = _specs.get_at_index(index)
 		if spec == other_spec:
-			_remove_spec_at_index(array, other_spec, index, true)
+			_remove_spec_at_index(other_spec, index, true)
 			return true
 	return false
 
@@ -563,7 +607,7 @@ func remove_specs(specs: Array[AttributeEffectSpec]) -> bool:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	assert(!specs.has(null), "specs has null element")
 	_locked = true
-	var removed: bool = _remove_multiple_from_both_arrays(
+	var removed: bool = _remove_based_on_predicate(
 		func (spec: AttributeEffectSpec) -> bool:
 			return specs.has(spec)
 	)
@@ -576,44 +620,32 @@ func remove_specs(specs: Array[AttributeEffectSpec]) -> bool:
 func remove_all_effects() -> void:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	_locked = true
-	_permanent_specs.for_each(_pre_remove_spec)
-	_temporary_specs.for_each(_pre_remove_spec)
-	var removed_perm_specs: Array[AttributeEffectSpec] = _permanent_specs._array.duplicate(false)
-	var removed_temp_specs: Array[AttributeEffectSpec] = _temporary_specs._array.duplicate(false)
-	_permanent_specs.clear()
-	_temporary_specs.clear()
+	
+	var removed_specs: Array[AttributeEffectSpec] = []
+	for index: int in _specs.iterate_indexes_reverse():
+		var spec: AttributeEffectSpec = _specs.get_at_index(index)
+		_pre_remove_spec(spec)
+		removed_specs.append(spec)
+	_specs.clear()
 	_effect_counts.clear()
 	
-	for spec: AttributeEffectSpec in removed_perm_specs:
-		_post_remove_spec(spec)
-	
-	for spec: AttributeEffectSpec in removed_temp_specs:
+	for spec: AttributeEffectSpec in removed_specs:
 		_post_remove_spec(spec)
 	
 	_current_value = _base_value
 	_locked = false
 
 
-func _remove_multiple_from_both_arrays(spec_predicate: Callable) -> bool:
-	var perm_removed: bool = _remove_multiple_from_one_array(_permanent_specs, spec_predicate)
-	var temp_removed: bool = _remove_multiple_from_one_array(_temporary_specs, spec_predicate)
-	
-	if temp_removed:
-		_update_current_value()
-	
-	return perm_removed || temp_removed
-
-
-func _remove_multiple_from_one_array(array: AttributeEffectSpecArray, spec_predicate: Callable) -> bool:
+func _remove_based_on_predicate(spec_predicate: Callable) -> bool:
 	var removed: bool = false
-	for index: int in array.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = array.get_at_index(index)
+	for index: int in _specs.iterate_indexes_reverse():
+		var spec: AttributeEffectSpec = _specs.get_at_index(index)
 		if spec_predicate.call(spec):
-			_remove_spec_at_index(array, spec, index, false)
+			_remove_spec_at_index(spec, index, false)
 			removed = true
 	
 	if removed:
-		array.update_reversed_range()
+		_specs.update_reversed_range()
 	return removed
 
 
@@ -626,10 +658,10 @@ func _remove_from_effect_counts(spec: AttributeEffectSpec) -> void:
 			_effect_counts[spec.get_effect()] = new_count
 
 
-func _remove_spec_at_index(array: AttributeEffectSpecArray, spec: AttributeEffectSpec, 
-index: int, update_reverse_range: bool) -> void:
+func _remove_spec_at_index(spec: AttributeEffectSpec, index: int, 
+update_reverse_range: bool) -> void:
 	_pre_remove_spec(spec)
-	array.remove_at(index, update_reverse_range)
+	_specs.remove_at(index, update_reverse_range)
 	_post_remove_spec(spec)
 
 
@@ -715,7 +747,7 @@ func _process_specs(specs: AttributeEffectSpecArray, ticks: int) -> bool:
 				
 				# Set expired & remove
 				spec._expired = true
-				_remove_spec_at_index(specs, spec, index, false)
+				_remove_spec_at_index(spec, index, false)
 				spec_removed = true
 				continue
 		
