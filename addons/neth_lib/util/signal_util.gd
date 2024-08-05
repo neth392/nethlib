@@ -7,7 +7,9 @@ class_name SignalUtil extends Object
 ## not already connected to the callable. If either value is null nothing happens.[br]
 ## Returns true if the signal was connected, false if not.
 static func connect_safely(_signal: Signal, _callable: Callable) -> bool:
-	if _signal != null && _callable != null && !_signal.is_connected(_callable):
+	assert(_callable.is_valid(), "_callable (%s) not valid" % _callable)
+	assert(!_signal.is_null(), "_signal (%s) is null" % _signal)
+	if !_signal.is_connected(_callable):
 		_signal.connect(_callable)
 		return true
 	
@@ -18,7 +20,9 @@ static func connect_safely(_signal: Signal, _callable: Callable) -> bool:
 ## connected to it. If either value is null nothing happens.[br]
 ## Returns true if the signal was disconnected, false if not.
 static func disconnect_safely(_signal: Signal, _callable: Callable) -> bool:
-	if _signal != null && _callable != null && _signal.is_connected(_callable):
+	assert(_callable.is_valid(), "_callable (%s) not valid" % _callable)
+	assert(!_signal.is_null(), "_signal (%s) is null" % _signal)
+	if _signal.is_connected(_callable):
 		_signal.disconnect(_callable)
 		return true
 	
