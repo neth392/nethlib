@@ -204,7 +204,6 @@ func __process() -> void:
 	var current_tick: int = _get_ticks()
 	var temp_spec_removed: bool = false
 	var new_base_value: float = _base_value
-	var new_current_value: float = _base_value
 	
 	for index: int in _specs.iterate_indexes_reverse():
 		var spec: AttributeEffectSpec = _specs.get_at_index(index)
@@ -430,8 +429,9 @@ func _update_current_value() -> void:
 	var current_tick: int = _get_ticks()
 	for index: int in _specs._temp_specs.iterate_indexes_reverse():
 		var spec: AttributeEffectSpec = _specs._temp_specs.get_at_index(index)
-		_set_apply_properties(spec, current_tick, _base_value, new_current_value)
-		new_current_value = spec._last_set_value
+		if !spec._expired:
+			_update_apply_values(spec, _base_value, new_current_value)
+			new_current_value = spec._last_set_value
 	
 	if _current_value != new_current_value:
 		_current_value = new_current_value
