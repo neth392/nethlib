@@ -73,16 +73,16 @@ enum DurationType {
 
 ## If true, [signal Attribute.effect_added] will be emitted every time an
 ## [AttributeEffectSpec] of this effect is added to an [Attribute].
-@export var emit_added_signal: bool = false
+@export var _emit_added_signal: bool = false
 
 ## If true, [signal Attribute.effect_applied] will be emitted every time an
 ## [AttributeEffectSpec] of this effect is successfully applied on an [Attribute].
 ## [br]NOTE: ONLY AVAILABLE FOR [enum Type.PERMANENT].
-@export var emit_applied_signal: bool = false
+@export var _emit_applied_signal: bool = false
 
 ## If true, [signal Attribute.effect_removed] will be emitted every time an
 ## [AttributeEffectSpec] of this effect is removed from an [Attribute].
-@export var emit_removed_signal: bool = false
+@export var _emit_removed_signal: bool = false
 
 @export_group("Duration")
 
@@ -245,17 +245,17 @@ func _init(_id: StringName = "") -> void:
 
 func _validate_property(property: Dictionary) -> void:
 	
-	if property.name == "emit_applied_signal":
-		if !can_emit_apply_signal():
+	if property.name == "_emit_applied_signal":
+		if !can_emit_applied_signal():
 			_no_editor(property)
 		return
 	
-	if property.name == "emit_added_signal":
+	if property.name == "_emit_added_signal":
 		if !can_emit_added_signal():
 			_no_editor(property)
 		return
 	
-	if property.name == "emit_removed_signal":
+	if property.name == "_emit_removed_signal":
 		if !can_emit_removed_signal():
 			_no_editor(property)
 		return
@@ -582,14 +582,32 @@ func can_emit_added_signal() -> bool:
 	return duration_type != DurationType.INSTANT
 
 
+## Whether or not this effect should cause [signal Attriubte.effect_added] to be
+## emitted when a spec of this effect is added.
+func should_emit_added_signal() -> bool:
+	return can_emit_added_signal() && _emit_added_signal
+
+
 ## Whether or not this effect can emit [signal Attribute.effect_applied].
-func can_emit_apply_signal() -> bool:
+func can_emit_applied_signal() -> bool:
 	return type == Type.PERMANENT
+
+
+## Whether or not this effect should cause [signal Attriubte.effect_applied] to be
+## emitted when a spec of this effect is applied.
+func should_emit_applied_signal() -> bool:
+	return can_emit_applied_signal() && _emit_applied_signal
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_removed].
 func can_emit_removed_signal() -> bool:
 	return duration_type != DurationType.INSTANT
+
+
+## Whether or not this effect should cause [signal Attriubte.effect_removed] to be
+## emitted when a spec of this effect is removed.
+func should_emit_removed_signal() -> bool:
+	return can_emit_removed_signal() && _emit_removed_signal
 
 
 ## Whether or not this effect supports [member apply_on_expire]

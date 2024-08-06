@@ -79,13 +79,8 @@ var _last_value: float
 ## Whether or not this spec expired.
 var _expired: bool = false
 
-## Internal flag used in processing of specs in [Attribute], true if it should
-## be applied after processing, false if not.
-var __process_should_apply: bool = false
-
-## Internal flag used in [method Attribute.__process] to store the index of a spec
-## to be removed.
-var __process_index: int
+## Internal flag used to mark specs that should be applied.
+var __should_apply: bool = false
 
 func _init(effect: AttributeEffect) -> void:
 	assert(effect != null, "effect is null")
@@ -199,6 +194,12 @@ func get_apply_count() -> int:
 	return _apply_count
 
 
+## Returns true if [method get_effect] has an apply limit & this spec's [method get_apply_count]
+## has either met or exceeded the [member AttributeEffect.apply_limit_amount].
+func hit_apply_limit() -> bool:
+	return _effect.has_apply_limit() && _apply_count >= _effect.apply_limit_amount
+
+
 ## Returns true if the effect expired due to duration, false if not. Can be useful
 ## to see if this spec was manually removed from an [Attribute] or if it expired.
 func is_expired() -> bool:
@@ -214,13 +215,6 @@ func is_stackable() -> bool:
 ## Can't be less than 1.
 func get_stack_count() -> int:
 	return _stack_count
-
-
-## Returns true if the effect has an apply limit and this spec has been applied >=
-## that limit.
-func hit_apply_limit() -> bool:
-	return _effect.can_have_apply_limit() and _effect.apply_limit \
-	and _apply_count >= _effect.apply_limit_count
 
 
 func _initialize(attribute: Attribute) -> void:
