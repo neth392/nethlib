@@ -222,6 +222,9 @@ func __process() -> void:
 		var seconds_since_last_process: float = _ticks_to_second(
 		spec.get_ticks_since_last_process(current_tick))
 		
+		# Flag used to mark if the spec should be applied this frame
+		var apply: bool = false
+		
 		# Mark as processing
 		spec._is_processing = true
 		spec._tick_last_processed = current_tick
@@ -253,37 +256,25 @@ func __process() -> void:
 					# Set to apply since period is <=0 & it's expired
 					apply = true
 		
-		if !apply:
-			continue
-		
-		# Apply Calculations
-		match effect.type:
-			AttributeEffect.Type.PERMANENT:
-				# Check apply conditions
-				if !_check_apply_conditions(spec):
-					continue
-				spec._apply_count += 1
-				spec._tick_last_applied = current_tick
-				_update_apply_values(spec, new_base_value, new_current_value)
-				new_base_value = spec._last_set_value
-				spec._run_callbacks(AttributeEffectCallback._Function.APPLIED, self)
-				if spec.hit_apply_limit():
-					__process_to_remove[index] = spec
-				if effect.should_emit_applied_signal():
-					__process_emit_applied.append(spec)
-			AttributeEffect.Type.TEMPORARY:
-				if !update_current: # Skip if not updating current value
-					continue
-				_update_apply_values(spec, new_base_value, new_current_value)
-				new_current_value = spec._last_set_value
-			_:
-				assert(false, "no implementation written for effect.type (%s)" % effect.type)
+		# apply can only be true if the effect is permanent
+		if apply && _check_apply_conditions(spec):
+			spec._apply_count += 1
+			spec._tick_last_applied = current_tick
+			_update_apply_values(spec, new_base_value, _current_value)
+			new_base_value = spec._last_set_value
+			spec._run_callbacks(AttributeEffectCallback._Function.APPLIED, self)
+			if spec.hit_apply_limit():
+				__process_to_remove[index] = spec
+			if effect.should_emit_applied_signal():
+				__process_emit_applied.append(spec)
 	
+	# Update base value if it changed
 	if _base_value != new_base_value:
 		_base_value = new_base_value
-	if _current_value != new_current_value:
-		_current_value = new_current_value
-	
+	# Update current value if base value changed or if a temp spec was removed
+	if _base_value != new_base_value || temp_spec_removed:
+		_update_current_value()
+
 	# Emit applied signals
 	if !__process_emit_applied.is_empty():
 		for spec: AttributeEffectSpec in __process_emit_applied:
@@ -421,17 +412,25 @@ func _update_apply_values(spec: AttributeEffectSpec, base_value: float, current_
 	spec._last_set_value = spec.get_effect().apply_calculator(base_value, current_value, spec._last_value)
 
 
-## Updates the value returned by [method get_current_value] by re-applying all
-## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY].
-func _update_current_value() -> void:
-	var new_current_value: float = _base_value
-	
+## Executes all active temporary [AttributeEffectSpec]s on the current [method get_base_value]
+## and returns the calculated current value. May not reflect [method get_current_value] if this
+## is called in the middle of processing.
+func calculate_current_value() -> float:
+	var current_value: float = _base_value
 	var current_tick: int = _get_ticks()
 	for index: int in _specs._temp_specs.iterate_indexes_reverse():
 		var spec: AttributeEffectSpec = _specs._temp_specs.get_at_index(index)
 		if !spec._expired:
-			_update_apply_values(spec, _base_value, new_current_value)
-			new_current_value = spec._last_set_value
+			var spec_value: float = spec.get_effect().get_modified_value(self, spec)
+			current_value = spec.get_effect().apply_calculator(_base_value, current_value, spec._last_value)
+	
+	return current_value
+
+
+## Updates the value returned by [method get_current_value] by re-applying all
+## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY].
+func _update_current_value() -> void:
+	var new_current_value: float = calculate_current_value()
 	
 	if _current_value != new_current_value:
 		_current_value = new_current_value
@@ -513,6 +512,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	var perm_specs_to_apply: AttributeEffectSpecArray = \
 	AttributeEffectSpecArray.new(AttributeEffect.Type.PERMANENT)
 	var temp_spec_added: bool = false
+	var update_range: bool = false
 	
 	# Initialize specs
 	# Sort specs into arrays ordered by priority
@@ -546,6 +546,9 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 			
 			spec._last_add_result = AddEffectResult.STACKED
 			existing[0]._add_to_stack(self, spec.get_stack_count())
+			# Set temp_spec_added as true if it was stacked so current value is updated
+			if spec.get_effect().is_temporary():
+				temp_spec_added = true
 			continue
 		
 		# Initialize if not done so
@@ -559,10 +562,14 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		# Run pre_add callbacks
 		spec._run_callbacks(AttributeEffectCallback._Function.PRE_ADD, self)
 		
+		# Add to array
+		_specs.add(spec, false)
+		update_range = true
+		
 		# Not stackable, add it
 		match spec.get_effect().type:
 			AttributeEffect.Type.PERMANENT:
-				# Determine if it should be applied (if instant, or remaining period < 0)
+				# Apply spec if instant, or initial remaining period <= 0
 				if spec.get_effect().is_instant() \
 				or (spec.get_effect().has_period() && spec.remaining_period <= 0):
 					spec._flag_should_apply = true
@@ -584,6 +591,9 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	perm_specs_to_apply.update_reversed_range()
 	_permanent_specs.update_reversed_range()
 	_temporary_specs.update_reversed_range()
+	
+	if update_range:
+		_specs.update_reversed_range()
 	
 	# Apply permanent specs
 	var base_value_changed: bool = _apply_permanent_specs(perm_specs_to_apply, _get_ticks(), true)
