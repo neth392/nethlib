@@ -1,3 +1,6 @@
-[gd_scene format=3 uid="uid://chadjgew7ed8u"]
+[gd_scene load_steps=2 format=3 uid="uid://chadjgew7ed8u"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/util/deferrer.gd" id="1_hmrmp"]
 
 [node name="Deferrer" type="Node"]
+script = ExtResource("1_hmrmp")
