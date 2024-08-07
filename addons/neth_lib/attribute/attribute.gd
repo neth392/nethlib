@@ -495,8 +495,8 @@ func has_spec(spec: AttributeEffectSpec) -> bool:
 	return _specs.has(spec)
 
 
-## Returns a new [Array] of all [AttributeEffectSpec]s whose 
-## [method AttributEffectSpec.get_effect] equals [param effect].
+## Searches through all active [AttributeEffectSpec]s and returns a new [Array] of all specs
+## whose [method AttributEffectSpec.get_effect] equals [param effect].
 func find_specs(effect: AttributeEffect) -> Array[AttributeEffectSpec]:
 	var specs: Array[AttributeEffectSpec] = []
 	for index: int in _specs.iterate_indexes_reverse():
@@ -505,6 +505,19 @@ func find_specs(effect: AttributeEffect) -> Array[AttributeEffectSpec]:
 			specs.append(spec)
 			continue
 	return specs
+
+
+## Searches through all active [AttributeEffectSpec]s and returns the first spec
+## whose [method AttributEffectSpec.get_effect] equals [param effect]. Returns null
+## if there is no spec of [param effect]. Useful when you know that the [param effect]'s
+## stack mode is COMBINE, DENY, or DENY_ERROR as in those cases there can only 
+## be one instance of the effect.
+func find_first_spec(effect: AttributeEffect) -> AttributeEffectSpec:
+	for index: int in _specs.iterate_indexes_reverse():
+		var spec: AttributeEffectSpec = _specs.get_at_index(index)
+		if spec.get_effect() == effect:
+			return spec
+	return null
 
 
 ## Creates an [AttributeEffectSpec] from the [param effect] via [method AttriubteEffect.to_spec]
@@ -621,6 +634,10 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		
 		# Add to array
 		_specs.add(spec, false)
+		
+		# Add to _effect_counts
+		var new_count: int = _effect_counts.get(spec.get_effect(), 0) + 1
+		_effect_counts[spec.get_effect()] = new_count
 		
 		# Run callbacks & emit signal
 		spec._run_callbacks(AttributeEffectCallback._Function.ADDED, self)
