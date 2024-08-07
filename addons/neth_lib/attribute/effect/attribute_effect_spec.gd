@@ -269,15 +269,18 @@ func _can_process(attribute: Attribute) -> AttributeEffectCondition:
 
 ## Checks if there is an [AttributeEffectCondition] blocking the addition of this
 ## spec to the [param attribute]. Returns the condition that is blocking it, or
-## null if there is no blocking condition.
+## null if there is no blocking condition. Also returns null if the effect doesn't 
+## support add conditions.
 func _can_add(attribute: Attribute) -> AttributeEffectCondition:
+	if !_effect.has_add_conditions():
+		return null
 	return _check_conditions(attribute, _effect.add_conditions)
 
 
 ## Checks if there is an [AttributeEffectCondition] blocking the application of this
 ## spec to the [param attribute]. Returns the condition that is blocking it, or
-## null if there is no blocking condition. Also returns null if the effect
-## is temporary (doesn't support apply conditions).
+## null if there is no blocking condition. Also returns null if the effect doesn't 
+## support apply conditions.
 func _can_apply(attribute: Attribute) -> AttributeEffectCondition:
 	if !_effect.has_apply_conditions():
 		return null

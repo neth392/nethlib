@@ -28,25 +28,30 @@ func size() -> int:
 
 
 func update_reversed_range() -> void:
-	_reversed_range = range(_array.size() - 1, -1, -1)
+	if _array.size() !=_reversed_range.size():
+		_reversed_range = range(_array.size() - 1, -1, -1)
 
 
 func get_at_index(index: int) -> AttributeEffectSpec:
 	return _array[index]
 
 
-func add(spec: AttributeEffectSpec, _update_reverse_range: bool = false) -> void:
+## Adds the [param spec] to this array, returning the index it was added at.[br]
+## If [param _update_reverse_range] is true, [method update_reversed_range] will be called.
+func add(spec: AttributeEffectSpec, _update_reverse_range: bool = false) -> int:
 	_assert_type(spec)
-	var _added: bool = false
+	var added_at_index: int = -1
 	for index: int in _array.size():
 		if _sort_a_before_b(spec, _array[index]):
 			_array.insert(index, spec)
-			_added = true
+			added_at_index = index
 			break
-	if !_added:
+	if added_at_index == -1:
 		_array.append(spec)
+		added_at_index = _array.size() - 1
 	if _update_reverse_range:
 		_reversed_range.push_front(_array.size() - 1)
+	return added_at_index
 
 
 func remove_at(index: int, _update_reverse_range: bool = false) -> void:

@@ -4,7 +4,8 @@ extends Node
 func _ready() -> void:
 	var array: Array = [1, 2, 3, 4, 5, 6]
 	print(array)
-	array.resize(9)
+	print(array.slice(3))
+	array.resize(3)
 	print(array)
 	#var range: Array = range(1, 100000)
 	#

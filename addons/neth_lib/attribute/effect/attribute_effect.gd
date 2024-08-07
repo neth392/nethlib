@@ -174,6 +174,7 @@ enum DurationType {
 
 ## All [AttributeEffectCondition]s that must be met for this effect to be
 ## added to an [Attribute]. This array can safely be directly modified or set.
+##[br]NOTE: Not supported for INSTANT effects, as they are just applied & not added.
 @export var add_conditions: Array[AttributeEffectCondition]
 
 ## All [AttributeEffectCondition]s that must be met for this effect to be
@@ -186,7 +187,8 @@ enum DurationType {
 ## processed (duration, period, etc) on an [Attribute]. This array can 
 ## safely be directly modified or set.
 ## [br]NOTE: Only for [enum Type.PERMANENT] effects as TEMPORARY effects are
-## always processing.
+## always processing. INSTANT effects are excluded as well since they can not be added,
+## just applied.
 @export var process_conditions: Array[AttributeEffectCondition]
 
 @export_group("Modifiers")
@@ -308,6 +310,11 @@ func _validate_property(property: Dictionary) -> void:
 	
 	if property.name == "_log_history":
 		if !can_log_history():
+			_no_editor(property)
+		return
+	
+	if property.name == "add_conditions":
+		if !has_add_conditions():
 			_no_editor(property)
 		return
 	
@@ -568,24 +575,19 @@ func can_be_instant() -> bool:
 	return type == Type.PERMANENT
 
 
-## Whether or not this effect supports having apply [AttributeEffectCondition]s.
+## Whether or not this effect supports [member add_conditions]
+func has_add_conditions() -> bool:
+	return duration_type != DurationType.INSTANT
+
+
+## Whether or not this effect supports [member apply_conditions]
 func has_apply_conditions() -> bool:
 	return type == Type.PERMANENT
 
 
-## [method assert]s that [method has_apply_conditions] is true.
-func assert_has_apply_conditions() -> void:
-	assert(has_process_conditions, "effect does not have apply conditions")
-
-
-## Whether or not this effect supports having process [AttributeEffectCondition]s.
+## Whether or not this effect supports [member process_conditions]
 func has_process_conditions() -> bool:
 	return type == Type.PERMANENT && duration_type != DurationType.INSTANT
-
-
-## [method assert]s that [method has_process_conditions] is true.
-func assert_has_process_conditions() -> void:
-	assert(has_process_conditions, "effect does not have process conditions")
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_added].

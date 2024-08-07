@@ -24,7 +24,8 @@ func size() -> int:
 func update_reversed_range() -> void:
 	_perm_specs.update_reversed_range()
 	_temp_specs.update_reversed_range()
-	_reversed_range = range(size() - 1, -1, -1)
+	if _temp_specs.size() + _perm_specs.size() != _reversed_range.size():
+		_reversed_range = range(size() - 1, -1, -1)
 
 
 func get_at_index(index: int) -> AttributeEffectSpec:
@@ -32,10 +33,14 @@ func get_at_index(index: int) -> AttributeEffectSpec:
 	return _get_array_from_index(index).get_at_index(_get_true_index(index))
 
 
-func add(spec: AttributeEffectSpec, _update_reverse_range: bool = false) -> void:
-	_get_array_from_spec(spec).add(spec, _update_reverse_range)
+## Adds the [param spec] to the internal [AttributeEffectSpecArray] of it's [member Attribute.type].
+## Returns the spec's new index in this cluster.[br]
+## If [param _update_reverse_range] is true, [method update_reverse_range] is called.
+func add(spec: AttributeEffectSpec, _update_reverse_range: bool = false) -> int:
+	var index: int = _get_array_from_spec(spec).add(spec, _update_reverse_range)
 	if _update_reverse_range:
 		_reversed_range.push_front(size() - 1)
+	return _get_cluster_index(spec.get_effect().type, index)
 
 
 func remove_at(index: int, _update_reverse_range: bool = false) -> void:
@@ -62,6 +67,17 @@ func clear() -> void:
 	_temp_specs.clear()
 	_perm_specs.clear()
 	_reversed_range = []
+
+
+func _get_cluster_index(type: AttributeEffect.Type, true_index: int) -> int:
+	match type:
+		AttributeEffect.Type.TEMPORARY:
+			return true_index
+		AttributeEffect.Type.PERMANENT:
+			return _temp_specs.size() + true_index
+		_:
+			assert(false, "no implementation for type (%s)" % type)
+			return -1
 
 
 func _get_true_index(index: int) -> int:
