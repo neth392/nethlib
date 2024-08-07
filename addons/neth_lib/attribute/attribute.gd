@@ -635,7 +635,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		# Add to array
 		_specs.add(spec, false)
 		
-		# Add to _effect_counts
+		# Add to _effect_countsg
 		var new_count: int = _effect_counts.get(spec.get_effect(), 0) + 1
 		_effect_counts[spec.get_effect()] = new_count
 		

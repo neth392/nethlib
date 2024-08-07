@@ -306,7 +306,7 @@ func _run_callbacks(_function: AttributeEffectCallback._Function, attribute: Att
 
 
 func _run_stack_callbacks(attribute: Attribute, previous_stack_count: int) -> void:
-	var function_name: String = AttributeEffectCallback._functions_by_name\
+	var function_name: String = AttributeEffectCallback._function_names\
 	[AttributeEffectCallback._Function.STACK_CHANGED]
 	
 	for callback: AttributeEffectCallback in _effect._callbacks_by_function\
