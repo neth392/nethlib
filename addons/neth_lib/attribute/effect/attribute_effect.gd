@@ -124,9 +124,9 @@ enum DurationType {
 ## The maximum amount of times this effect can be applied to an [Attribute], inclusive. If this
 ## number is reached, the effect is then instantly removed from the [Attribute].
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export_range(0, 100, 1, "or_greater", "hide_slider") var apply_limit_amount: int:
+@export_range(1, 100, 1, "or_greater", "hide_slider") var apply_limit_amount: int:
 	set(_value):
-		if !Engine.is_editor_hint():
+		if !Engine.is_editor_hint() && has_apply_limit():
 			assert(_value > 0, "apply_limit_amount must be > 0")
 		apply_limit_amount = _value
 

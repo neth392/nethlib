@@ -29,7 +29,7 @@ func update_reversed_range() -> void:
 
 
 func get_at_index(index: int) -> AttributeEffectSpec:
-	assert(index in _reversed_range, "index out of bounds for array size" % size())
+	assert(index in _reversed_range, "index out of bounds for array size (%s)" % size())
 	return _get_array_from_index(index).get_at_index(_get_true_index(index))
 
 
@@ -44,7 +44,7 @@ func add(spec: AttributeEffectSpec, _update_reverse_range: bool = false) -> int:
 
 
 func remove_at(index: int, _update_reverse_range: bool = false) -> void:
-	assert(index in _reversed_range, "index out of bounds for array size" % size())
+	assert(index in _reversed_range, "index out of bounds for array size (%s)" % size())
 	_get_array_from_index(index).remove_at(_get_true_index(index), _update_reverse_range)
 	if _update_reverse_range:
 		_reversed_range.pop_front()
@@ -81,7 +81,7 @@ func _get_cluster_index(type: AttributeEffect.Type, true_index: int) -> int:
 
 
 func _get_true_index(index: int) -> int:
-	assert(index in _reversed_range, "index out of bounds for array size" % size())
+	assert(index in _reversed_range, "index out of bounds for array size (%s)" % size())
 	if index < _temp_specs.size():
 		return index
 	else:
@@ -89,7 +89,7 @@ func _get_true_index(index: int) -> int:
 
 
 func _get_array_from_index(index: int) -> AttributeEffectSpecArray:
-	assert(index in _reversed_range, "index out of bounds for array size" % size())
+	assert(index in _reversed_range, "index out of bounds for array size (%s)" % size())
 	if index < _temp_specs.size():
 		return _temp_specs
 	else:

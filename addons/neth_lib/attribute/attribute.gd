@@ -257,7 +257,6 @@ func __process() -> void:
 			if spec.remaining_duration <= 0.0: # Expired
 				# Spec is expired at this point
 				spec._expired = true
-				spec.__process_remove_index = index
 				# Add it to be removed at the end of this function
 				__process_to_remove[index] = spec
 				# Set current value to update if this is a temporary spec that expired
