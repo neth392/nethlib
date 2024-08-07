@@ -121,6 +121,8 @@ func is_processing() -> bool:
 
 ## Returns the amount of ticks since the last 
 func get_ticks_since_last_process(current_tick: int) -> int:
+	# TBD: Possibly set _tick_last_processed as the tick it was added on, avoiding
+	# this if statement.
 	if _tick_last_processed > -1:
 		return current_tick - _tick_last_processed
 	return current_tick - _tick_added_on

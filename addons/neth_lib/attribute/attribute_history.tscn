@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://b8nvub03th7l8"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/attribute_history.gd" id="1_lnk3s"]
+
+[node name="AttributeHistory" type="Node"]
+script = ExtResource("1_lnk3s")

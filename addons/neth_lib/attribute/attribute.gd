@@ -93,6 +93,7 @@ signal effect_removed(spec: AttributeEffectSpec)
 ## Emitted when the [param spec] had its stack count changed.
 signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_count: int)
 
+
 ## The ID of the attribute.
 @export var id: StringName:
 	set(_value):
@@ -163,6 +164,8 @@ var __process_to_remove: Dictionary = {}
 ## a global array than create a new one every frame.
 var __process_emit_applied: Array[AttributeEffectSpec] = []
 
+var _history: AttributeHistory
+
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
 		return
@@ -178,6 +181,12 @@ func _ready() -> void:
 		set_physics_process(false)
 	else:
 		_update_processing()
+	
+	# Find & set history
+	for child: Node in get_children():
+		if child is AttributeHistory:
+			_history = child
+			break
 
 
 func _exit_tree() -> void:
@@ -198,19 +207,28 @@ func _physics_process(delta: float) -> void:
 ## NOT meant to be overridden at all.
 func __process() -> void:
 	assert(!_locked, "attribute is locked")
+	# Lock
 	_locked = true
 	
-	## Store the current ticks in msec
+	# Store the current ticks in msec
 	var current_tick: int = _get_ticks()
+	
+	# Keep track if a temp spec was removed so we can update current value later on
 	var temp_spec_removed: bool = false
+	
+	# New base value for permanent effects
 	var new_base_value: float = _base_value
 	
+	# Iterate all specs
 	for index: int in _specs.iterate_indexes_reverse():
+		# Store our most used objects as vars for cleaner code
 		var spec: AttributeEffectSpec = _specs.get_at_index(index)
+		# Not as efficient to store this here but the code is 10x cleaner
 		var effect: AttributeEffect = spec.get_effect()
 		
 		# Skip if it was already processed this tick
 		if spec._tick_last_processed == current_tick:
+			print("SKIP: spec._tick_last_processed == current_tick, spec: %s" % spec)
 			continue
 		
 		# Check if can process
@@ -245,30 +263,48 @@ func __process() -> void:
 				if effect.is_apply_on_expire():
 					apply = true
 		
+		# Flag if period should be reset
+		var reset_period: bool = false
+		
 		# Period Calculations
 		if effect.has_period():
 			spec.remaining_period -= seconds_since_last_process
 			if spec.remaining_period <= 0.0:
-				if !spec._expired: # Not expired, set to apply & add next period
+				if !spec._expired: # Not expired, set to apply & mark period to reset
 					apply = true
-					spec.remaining_period += effect.get_modified_period(self, spec)
+					reset_period = true
 				elif effect.is_apply_on_expire_if_period_is_zero():
 					# Set to apply since period is <=0 & it's expired
 					apply = true
 		
-		# apply can only be true if the effect is permanent
+		# "apply" can only be true if the effect is permanent
 		if apply && _check_apply_conditions(spec):
 			spec._apply_count += 1
 			spec._tick_last_applied = current_tick
-			_update_apply_values(spec, new_base_value, _current_value)
+			
+			# new_base_value provided twice as TEMPORARY effects have not yet been
+			# applied to the base value
+			_update_apply_values(spec, new_base_value, new_base_value)
+			
+			# Log to history
+			if has_history() && effect.should_log_history():
+				_history._add_to_history(spec)
+			
 			new_base_value = spec._last_set_value
 			spec._run_callbacks(AttributeEffectCallback._Function.APPLIED, self)
+			# Remove if it hit apply limit
 			if spec.hit_apply_limit():
 				__process_to_remove[index] = spec
+			# Mark for emitting signal later on
 			if effect.should_emit_applied_signal():
 				__process_emit_applied.append(spec)
+		
+		# Reset period after applying
+		if reset_period:
+			# Add (instead of reset) period for more accuracy when dealing w/ low frame rate
+			spec.remaining_period += effect.get_modified_period(self, spec)
 	
-	# Update base value if it changed
+	# Update base value if changed
 	if _base_value != new_base_value:
 		_base_value = new_base_value
 	# Update current value if base value changed or if a temp spec was removed
@@ -289,6 +325,7 @@ func __process() -> void:
 		__process_to_remove.clear()
 		_specs.update_reversed_range()
 	
+	# Unlock
 	_locked = false
 
 
@@ -305,6 +342,16 @@ func _get_configuration_warnings() -> PackedStringArray:
 					warnings.append("Sibling Attribute (%s) has the same ID" % child.name)
 	if _default_effects.has(null):
 		warnings.append("_default_effects has a null element")
+	
+	var has_history: bool = false
+	for child: Node in get_children():
+		if child is AttributeHistory:
+			if has_history:
+				warnings.append("Multiple AttributeHistory children detected")
+				break
+			else:
+				has_history = true
+	
 	return warnings
 
 
@@ -312,6 +359,17 @@ func _get_configuration_warnings() -> PackedStringArray:
 ## is no container (which shouldn't happen with proper [Node] management).
 func get_container() -> AttributeContainer:
 	return _container.get_ref() as AttributeContainer
+
+
+## Returns true if this attribute has an [AttributeHistory] child monitoring it,
+## or false if not.
+func has_history() -> bool:
+	return _history != null
+
+
+## Returns the [AttributeHistory] of this attribute, or null if one does not exist.
+func get_history() -> AttributeHistory:
+	return _history
 
 
 ## Returns the base value of this attribute.
@@ -324,6 +382,12 @@ func set_base_value(new_base_value: float) -> void:
 	if _base_value != new_base_value:
 		_base_value = new_base_value
 		_update_current_value()
+
+
+## Returns the current value, which is the [member base_value] affected by
+## all [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY]
+func get_current_value() -> float:
+	return _current_value
 
 
 ## Called by the setter of [member base_value] with [param set_base_value] (what was manually
@@ -354,54 +418,6 @@ func _base_value_changed(prev_base_value: float) -> void:
 ## after [signal emit_value_changed] has been admitted.
 func _current_value_changed(prev_current_value: float) -> void:
 	pass
-
-
-## Returns the current value, which is the [member base_value] affected by
-## all [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY]
-func get_current_value() -> float:
-	return _current_value
-
-
-## Applies all permanent specs whose _flag_should_apply is true. Returns true if
-## base value was changed, false if not.
-func _apply_permanent_specs(spec_array: AttributeEffectSpecArray, current_tick: int,
-update_periods_of_applied: bool = false) -> bool:
-	assert(spec_array.get_type() == AttributeEffect.Type.PERMANENT, 
-	"spec_array.get_type() (%s) != PERMANENT" % spec_array.get_type())
-	var new_base_value: float = _base_value
-	for index: int in spec_array.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = spec_array.get_at_index(index)
-		# Apply spec
-		if _apply_permanent_spec(spec, current_tick, new_base_value, update_periods_of_applied):
-			new_base_value = spec._last_set_value
-	
-	if _base_value != new_base_value:
-		_base_value = new_base_value
-		return true
-	return false
-
-
-## Applies [param spec] based on the [param base_value], setting what should be the
-## new base value to [member AttributeEffectSpec._last_set_value]. Returns true if applied,
-## false if not
-## [br]NOTE: Does NOT set [member base_value] or [member current_value].
-func _apply_spec(spec: AttributeEffectSpec, current_tick: int, base_value: float,
-current_value: float, update_period_if_applied: bool) -> bool:
-	assert(spec.get_effect().is_permanent(), "spec (%s) is not PERMANENT" % spec)
-	# Check if it should apply (has it's flag set to true & passes all conditions)
-	if !_check_apply_conditions(spec):
-		return false
-	
-	_set_apply_properties(spec, current_tick, base_value, current_value)
-	
-	# Emit signal if necessary
-	if spec.get_effect().can_emit_apply_signal() && spec.get_effect().emit_applied_signal:
-		effect_applied.emit(spec)
-	
-	if update_period_if_applied && spec.get_effect().has_period():
-		spec.remaining_period += spec.get_effect().get_modified_period(self, spec)
-	
-	return true
 
 
 ## Sets [member AttributeEffectSpec._last_value] and [member AttributeEffectSpec._last_set_value]
@@ -509,10 +525,10 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	
 	_locked = true
-	var perm_specs_to_apply: AttributeEffectSpecArray = \
+	
+	var added_perm_specs: AttributeEffectSpecArray = \
 	AttributeEffectSpecArray.new(AttributeEffect.Type.PERMANENT)
-	var temp_spec_added: bool = false
-	var update_range: bool = false
+	var temporary_added: bool = false
 	
 	# Initialize specs
 	# Sort specs into arrays ordered by priority
@@ -594,6 +610,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	
 	if update_range:
 		_specs.update_reversed_range()
+	
 	
 	# Apply permanent specs
 	var base_value_changed: bool = _apply_permanent_specs(perm_specs_to_apply, _get_ticks(), true)
@@ -746,73 +763,6 @@ func _check_conditions(spec: AttributeEffectSpec, callable: Callable, _signal: S
 			_signal.emit(spec)
 		return false
 	return true
-
-
-### Returns true if a spec was removed, false if not.
-#func _process_specs(specs: AttributeEffectSpecArray, ticks: int) -> bool:
-	#var spec_removed: bool = false
-	#for index: int in specs.iterate_indexes_reverse():
-		#var spec: AttributeEffectSpec = specs.get_at_index(index)
-		#var effect: AttributeEffect = spec.get_effect()
-		#spec._flag_should_apply = false
-		#
-		## Skip if it was already processed this tick
-		#if spec._tick_last_processed == ticks:
-			#continue
-		#
-		## Check if can process
-		#if !_check_process_conditions(spec):
-			#spec._is_processing = false
-			#continue
-		#
-		## The amount of ticks since last processed (or added)
-		#var ticks_since_last_process: int = spec.get_ticks_since_last_process(ticks)
-		#var seconds_since_last_process: float = _ticks_to_second(ticks_since_last_process)
-		#
-		## Mark as processing
-		#spec._is_processing = true
-		#spec._tick_last_processed = ticks
-		#
-		## Duration Calculations
-		#if effect.has_duration():
-			#spec.remaining_duration -= seconds_since_last_process
-			## Spec expired, remove it.
-			#if spec.remaining_duration <= 0.0:
-				#var apply_on_expire: bool = spec.get_effect().can_apply_on_expire() \
-				#and spec.get_effect().apply_on_expire
-				#
-				## Adjust remaining period as well if it has a period
-				#if effect.has_period():
-					#spec.remaining_period -= seconds_since_last_process
-					#if !apply_on_expire and spec.remaining_period < 0 \
-					#and spec.get_effect().apply_on_expire_if_period_is_zero:
-						#apply_on_expire = true
-				#
-				## Apply it
-				#if apply_on_expire:
-					#pass # TODO figure out how to apply it here
-				#
-				## Set expired & remove
-				#spec._expired = true
-				#_remove_spec_at_index(spec, index, false)
-				#spec_removed = true
-				#continue
-		#
-		#if effect.has_period():
-			## Period Calculations
-			#spec.remaining_period -= seconds_since_last_process
-			#if spec.remaining_period > 0.0:
-				## Can not yet apply, proceed to next
-				#continue
-			## Can apply, add next period to remaining period
-			#spec.remaining_period += effect.get_modified_period(self, spec)
-		#
-		#spec._flag_should_apply = true
-	#
-	#if spec_removed:
-		#specs.update_reversed_range()
-	#
-	#return spec_removed
 
 
 func _update_processing() -> void:

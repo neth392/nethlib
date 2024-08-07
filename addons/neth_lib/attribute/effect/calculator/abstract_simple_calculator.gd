@@ -5,9 +5,13 @@ class_name AbstractSimpleCalculator extends AttributeEffectCalculator
 enum AttributeValue {
 	## The [method Attribute.get_base_value] is used in the calculation alongside the provided
 	## [AttributeEffect] value.
+	## [br]NOTE: For the [b]MAJORITY[/b] of cases, this should always be used for PERMANENT effects.
 	BASE_VALUE = 0,
 	## The [method Attribute.get_current_value] is used in the calculation alongside the provided
-	## [AttributeEffect] value.
+	## [AttributeEffect] value. For PERMANENT effects, this value is always the same as BASE_VALUE,
+	## as the base value is calculated before temporary effects are applied and thus the current
+	## value won't differ at all.
+	## [br]NOTE: For the [b]MAJORITY[/b] of cases, this should always be used for TEMPORARY effects.
 	CURRENT_VALUE = 1,
 }
 

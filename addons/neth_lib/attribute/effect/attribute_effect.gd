@@ -164,6 +164,12 @@ enum DurationType {
 		stack_mode = _value
 		notify_property_list_changed()
 
+@export_group("Attribute History")
+
+## If true, anytime this effect is applied to an [Attribute] it is registered
+## in that attribute's [AttributeHistory] if one exists.
+@export var _log_history: bool = false
+
 @export_group("Conditions")
 
 ## All [AttributeEffectCondition]s that must be met for this effect to be
@@ -297,6 +303,11 @@ func _validate_property(property: Dictionary) -> void:
 	
 	if property.name == "stack_mode":
 		if is_instant():
+			_no_editor(property)
+		return
+	
+	if property.name == "_log_history":
+		if !can_log_history():
 			_no_editor(property)
 		return
 	
@@ -623,7 +634,7 @@ func is_apply_on_expire() -> bool:
 
 ## Whether or not this effect supports [member _apply_on_expire_if_period_is_zero]
 func can_apply_on_expire_if_period_is_zero() -> bool:
-	return type == Type.PERMANENT && has_period()
+	return has_period()
 
 
 ## Whether or not this effect should automatically apply on the same frame that it expires
@@ -670,3 +681,13 @@ func assert_has_period() -> void:
 ## is equal to this instance.
 func assert_spec_is_self(spec: AttributeEffectSpec) -> void:
 	assert(spec._effect == self, "self != spec._effect (%s)" % spec._effect)
+
+
+## Returns true if this effect supports [member _log_history].
+func can_log_history() -> bool:
+	return type == Type.PERMANENT
+
+
+## Returns true if this effect's applications should be logged in an [AttributeHistory].
+func should_log_history() -> bool:
+	return can_log_history() && _log_history
