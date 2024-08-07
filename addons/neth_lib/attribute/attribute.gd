@@ -191,6 +191,8 @@ func _ready() -> void:
 		if child is AttributeHistory:
 			_history = child
 			break
+	
+	## TODO initial effects
 
 
 func _exit_tree() -> void:
@@ -288,13 +290,14 @@ func __process() -> void:
 			if applied:
 				new_base_value = spec._last_set_value
 	
+	var base_value_updated: bool = _base_value != new_base_value
 	# Update base value if changed
-	if _base_value != new_base_value:
+	if base_value_updated:
 		_base_value = new_base_value
 	# Update current value if base value changed or if a temp spec was removed
 	# Unfortunately this has to be done seperately as we can't always predict temporary
 	# specs expiring (due to effect modifiers, external logic, etc)
-	if _base_value != new_base_value || temp_spec_removed:
+	if base_value_updated || temp_spec_removed:
 		_update_current_value()
 
 	# Emit applied signals
@@ -414,21 +417,6 @@ func _update_apply_values(spec: AttributeEffectSpec, base_value: float, current_
 	spec._last_set_value = spec.get_effect().apply_calculator(base_value, current_value, spec._last_value)
 
 
-## Executes all active temporary [AttributeEffectSpec]s on the current [method get_base_value]
-## and returns the calculated current value. May not reflect [method get_current_value] if this
-## is called in the middle of processing.
-func calculate_current_value() -> float:
-	var current_value: float = _base_value
-	var current_tick: int = _get_ticks()
-	for index: int in _specs._temp_specs.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = _specs._temp_specs.get_at_index(index)
-		if !spec._expired:
-			var spec_value: float = spec.get_effect().get_modified_value(self, spec)
-			current_value = spec.get_effect().apply_calculator(_base_value, current_value, spec._last_value)
-	
-	return current_value
-
-
 ## Updates the value returned by [method get_current_value] by re-applying all
 ## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY].
 func _update_current_value() -> void:
@@ -436,6 +424,20 @@ func _update_current_value() -> void:
 	
 	if _current_value != new_current_value:
 		_current_value = new_current_value
+
+
+## Executes all active temporary [AttributeEffectSpec]s on the current [method get_base_value]
+## and returns the calculated current value. May not reflect [method get_current_value] if this
+## is called in the middle of processing.
+func calculate_current_value() -> float:
+	var current_value: float = _base_value
+	for index: int in _specs._temp_specs.iterate_indexes_reverse():
+		var spec: AttributeEffectSpec = _specs._temp_specs.get_at_index(index)
+		if !spec._expired:
+			var spec_value: float = spec.get_effect().get_modified_value(self, spec)
+			current_value = spec.get_effect().apply_calculator(_base_value, current_value, spec._last_value)
+	
+	return current_value
 
 
 ## Internal function that has a lot of parameters because I don't want to copy and
