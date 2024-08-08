@@ -3,106 +3,55 @@
 ## specs, and specs with the least priority are before those with greater priority.
 class_name AttributeEffectSpecCluster extends Resource
 
+static func _sort_a_before_b(a: AttributeEffectSpec, b: AttributeEffectSpec) -> bool:
+	if a.get_effect().type != b.get_effect().type:
+		return a.get_effect().type == AttributeEffect.Type.PERMANENT
+	return a.get_effect().apply_priority >= b.get_effect().apply_priority
+
 var _reversed_range: Array
-var _temp_specs: AttributeEffectSpecArray
-var _perm_specs: AttributeEffectSpecArray
+var _array: Array[AttributeEffectSpec] = []
 
 
 func _init(default_specs: Array[AttributeEffectSpec] = []) -> void:
-	_temp_specs = AttributeEffectSpecArray.new(AttributeEffect.Type.TEMPORARY)
-	_perm_specs = AttributeEffectSpecArray.new(AttributeEffect.Type.PERMANENT)
-	if !default_specs.is_empty():
-		for spec: AttributeEffectSpec in default_specs:
-			add(spec, false)
-		update_reversed_range()
+	assert(!default_specs.has(null), "default_specs has null element")
+	for spec: AttributeEffectSpec in default_specs:
+		add(spec)
 
 
-func size() -> int:
-	return _temp_specs.size() + _perm_specs.size()
+#func size() -> int:
+	#return _array.size()
 
 
-func update_reversed_range() -> void:
-	_perm_specs.update_reversed_range()
-	_temp_specs.update_reversed_range()
-	if _temp_specs.size() + _perm_specs.size() != _reversed_range.size():
-		_reversed_range = range(size() - 1, -1, -1)
-
-
-func get_at_index(index: int) -> AttributeEffectSpec:
-	assert(index in _reversed_range, "index out of bounds for array size (%s)" % size())
-	return _get_array_from_index(index).get_at_index(_get_true_index(index))
+## Returns the underlying array for iteration purposes ONLY.
+func iterate() -> Array[AttributeEffectSpec]:
+	return _array
 
 
 ## Adds the [param spec] to the internal [AttributeEffectSpecArray] of it's [member Attribute.type].
 ## Returns the spec's new index in this cluster.[br]
 ## If [param _update_reverse_range] is true, [method update_reverse_range] is called.
-func add(spec: AttributeEffectSpec, _update_reverse_range: bool = false) -> int:
-	var index: int = _get_array_from_spec(spec).add(spec, _update_reverse_range)
-	if _update_reverse_range:
-		_reversed_range.push_front(size() - 1)
-	return _get_cluster_index(spec.get_effect().type, index)
+func add(spec_to_add: AttributeEffectSpec) -> void:
+	assert(!_array.has(spec_to_add), "spec_to_add (%s) already present" % spec_to_add)
+	var index: int = 0
+	for spec: AttributeEffectSpec in _array:
+		if _sort_a_before_b(spec_to_add, spec):
+			_array.insert(index, spec_to_add)
+			return
+		index += 1
+	_array.append(spec_to_add)
 
 
-func remove_at(index: int, _update_reverse_range: bool = false) -> void:
-	assert(index in _reversed_range, "index out of bounds for array size (%s)" % size())
-	_get_array_from_index(index).remove_at(_get_true_index(index), _update_reverse_range)
-	if _update_reverse_range:
-		_reversed_range.pop_front()
+func erase(spec: AttributeEffectSpec) -> void:
+	_array.erase(spec)
 
 
-## Returns the reverse range of the array for iteration purposes ONLY.
-func iterate_indexes_reverse() -> Array:
-	return _reversed_range
-
-
-func is_empty() -> bool:
-	return _temp_specs.is_empty() && _perm_specs.is_empty()
+#func is_empty() -> bool:
+	#return _array.is_empty()
 
 
 func has(spec: AttributeEffectSpec) -> bool:
-	return _get_array_from_spec(spec).has(spec)
+	return _array.has(spec)
 
 
 func clear() -> void:
-	_temp_specs.clear()
-	_perm_specs.clear()
-	_reversed_range = []
-
-
-func _get_cluster_index(type: AttributeEffect.Type, true_index: int) -> int:
-	match type:
-		AttributeEffect.Type.TEMPORARY:
-			return true_index
-		AttributeEffect.Type.PERMANENT:
-			return _temp_specs.size() + true_index
-		_:
-			assert(false, "no implementation for type (%s)" % type)
-			return -1
-
-
-func _get_true_index(index: int) -> int:
-	assert(index in _reversed_range, "index out of bounds for array size (%s)" % size())
-	if index < _temp_specs.size():
-		return index
-	else:
-		return index - _temp_specs.size()
-
-
-func _get_array_from_index(index: int) -> AttributeEffectSpecArray:
-	assert(index in _reversed_range, "index out of bounds for array size (%s)" % size())
-	if index < _temp_specs.size():
-		return _temp_specs
-	else:
-		return _perm_specs
-
-
-func _get_array_from_spec(spec: AttributeEffectSpec) -> AttributeEffectSpecArray:
-	match spec.get_effect().type:
-		AttributeEffect.Type.PERMANENT:
-			return _perm_specs
-		AttributeEffect.Type.TEMPORARY:
-			return _temp_specs
-		_:
-			assert(false, "no array for spec.get_effect().type (%s)" \
-			% spec.get_effect().type)
-			return null
+	_array.clear()

@@ -42,6 +42,10 @@ enum DurationType {
 ## The ID of this attribute effect.
 @export var id: StringName
 
+## Metadata tags to help identify an effect. Unrelated to an [AttributeContainer]'s tags.
+## One example is to label all effects that cause poison damage as "poison"
+@export var tags: PackedStringArray
+
 ## The type of effect, see [enum AttributeEffect.Type]
 @export var type: Type = Type.PERMANENT:
 	set(_value):
@@ -59,11 +63,12 @@ enum DurationType {
 ## Determines how the effect is applied to an [Attribute] (i.e. added, multiplied, etc).
 @export var value_calculator: AttributeEffectCalculator
 
-## The priority to be used to determine the order when applying [AttributeEffect]s
-## on an [Attribute]. Greater priorities will be applied first. One example; if you want an
-## effect to override a value on an attribute & not have that value modified by any other effects,
-## then the priority should be lesser than other effects that can be applied so the override
-## effect is applied last.
+## The priority to be used to determine the order when processing & applying [AttributeEffect]s
+## on an [Attribute]. Greater priorities will be processed & applied first. If two effects have
+## equal priorities, the effect most recently added to the attribute is processed first. 
+## If you want a temporary effect to override a value on an attribute & not have that value 
+## modified by any other effects, then the priority should be lesser than other effects that 
+## can be applied so the override effect is applied last.
 ## [br]NOTE: Effects of [enum Type.PERMANENT] are processed BEFORE ALL effects of 
 ## [enum Type.TEMPORARY], despite priority.
 ## [br]NOTE: Priority is not used in processing of period & duration.
