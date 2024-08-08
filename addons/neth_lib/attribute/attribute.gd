@@ -12,20 +12,21 @@
 @tool
 class_name Attribute extends Node
 
+
 ## Helper function currently for [method Time.get_ticks_usec], created so that
 ## it can be swapped to other time units if deemed necessary.
 static func _get_ticks() -> int:
-	return Time.get_ticks_msec()
+	return Time.get_ticks_usec()
 
 
 ## Converts [param ticks] to secounds based.
 static func _ticks_to_second(ticks: int) -> float:
-	return ticks / 1_000.0
+	return ticks / 1_000_000.0
 
 
 ## Converts [param seconds] to ticks.
 static func _seconds_to_tick(seconds: int) -> float:
-	return seconds * 1_000.0
+	return seconds * 1_000_000.0
 
 
 ## Which _process function is used to execute effects.
@@ -217,9 +218,6 @@ func __process() -> void:
 	# Lock
 	_locked = true
 	
-	# Store the current ticks in msec
-	var current_tick: int = _get_ticks()
-	
 	# Keep track if a temp spec was removed so we can update current value later on
 	var temp_spec_removed: bool = false
 	
@@ -231,8 +229,9 @@ func __process() -> void:
 	for spec: AttributeEffectSpec in _specs.iterate():
 		index += 1
 		
-		# Not as efficient to store this here but the code is 10x cleaner
-		var effect: AttributeEffect = spec.get_effect()
+		# Store the current ticks in msec
+		var current_tick: int = _get_ticks()
+		
 		# Skip if it was already processed this tick
 		if spec._tick_last_processed == current_tick:
 			print("SKIP: spec._tick_last_processed == current_tick, spec: %s" % spec)
@@ -255,31 +254,31 @@ func __process() -> void:
 		spec._tick_last_processed = current_tick
 		
 		# Duration Calculations
-		if effect.has_duration():
+		if spec.get_effect().has_duration():
 			spec.remaining_duration -= seconds_since_last_process
 			if spec.remaining_duration <= 0.0: # Expired
 				# Spec is expired at this point
 				spec._expired = true
 				# Add it to be removed at the end of this function
-				__process_to_remove[spec] = true
+				__process_to_remove[index] = spec
 				# Set current value to update if this is a temporary spec that expired
-				if effect.is_temporary():
+				if spec.get_effect().is_temporary():
 					temp_spec_removed = true
 				# Set to apply if effect is apply on expire
-				if effect.is_apply_on_expire():
+				if spec.get_effect().is_apply_on_expire():
 					apply = true
 		
 		# Flag if period should be reset
 		var reset_period: bool = false
 		
 		# Period Calculations
-		if effect.has_period():
+		if spec.get_effect().has_period():
 			spec.remaining_period -= seconds_since_last_process
 			if spec.remaining_period <= 0.0:
 				if !spec._expired: # Not expired, set to apply & mark period to reset
 					apply = true
 					reset_period = true
-				elif effect.is_apply_on_expire_if_period_is_zero():
+				elif spec.get_effect().is_apply_on_expire_if_period_is_zero():
 					# Set to apply since period is <=0 & it's expired
 					apply = true
 		
@@ -309,8 +308,11 @@ func __process() -> void:
 	
 	# Remove specs that have expired or reached application limit
 	if !__process_to_remove.is_empty():
-		for spec: AttributeEffectSpec in __process_to_remove:
-			_remove_spec_at_index(spec, spec_index, false)
+		# Keep track of removed count to adjust next index
+		var removed_count: int = 0
+		for spec_index: int in __process_to_remove:
+			_remove_spec_at_index(__process_to_remove[index], spec_index - removed_count)
+			removed_count += 1
 		__process_to_remove.clear()
 		_specs.update_reversed_range()
 	
@@ -420,6 +422,8 @@ func _update_apply_values(spec: AttributeEffectSpec, base_value: float, current_
 ## Updates the value returned by [method get_current_value] by re-applying all
 ## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY].
 func _update_current_value() -> void:
+	if !_specs.has_temp():
+		return
 	var new_current_value: float = calculate_current_value()
 	
 	if _current_value != new_current_value:
@@ -431,9 +435,8 @@ func _update_current_value() -> void:
 ## is called in the middle of processing.
 func calculate_current_value() -> float:
 	var current_value: float = _base_value
-	for index: int in _specs._temp_specs.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = _specs._temp_specs.get_at_index(index)
-		if !spec._expired:
+	for spec: AttributeEffectSpec in _specs.iterate():
+		if !spec.get_effect().is_temporary() || spec._expired:
 			var spec_value: float = spec.get_effect().get_modified_value(self, spec)
 			current_value = spec.get_effect().apply_calculator(_base_value, current_value, spec._last_value)
 	
@@ -787,6 +790,13 @@ func _remove_from_effect_counts(spec: AttributeEffectSpec) -> void:
 		else:
 			_effect_counts[spec.get_effect()] = new_count
 
+
+func _remove_spec_at_index(spec: AttributeEffectSpec, index: int) -> void:
+	_pre_remove_spec(spec)
+	_specs.remove_at(index)
+	_remove_from_effect_counts(spec)
+	_post_remove_spec(spec)
+	
 
 func _remove_spec(spec: AttributeEffectSpec) -> void:
 	_pre_remove_spec(spec)

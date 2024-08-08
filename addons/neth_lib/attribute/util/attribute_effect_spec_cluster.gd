@@ -10,6 +10,10 @@ static func _sort_a_before_b(a: AttributeEffectSpec, b: AttributeEffectSpec) -> 
 
 var _reversed_range: Array
 var _array: Array[AttributeEffectSpec] = []
+var _temp_count: int = 0:
+	set(value):
+		assert(value >= 0, "_temp_count can't be < 0")
+		_temp_count = value
 
 
 func _init(default_specs: Array[AttributeEffectSpec] = []) -> void:
@@ -39,11 +43,20 @@ func add(spec_to_add: AttributeEffectSpec) -> void:
 			return
 		index += 1
 	_array.append(spec_to_add)
+	if spec_to_add.get_effect().is_temporary():
+		_temp_count += 1
 
 
 func erase(spec: AttributeEffectSpec) -> void:
 	_array.erase(spec)
+	if spec.get_effect().is_temporary():
+		_temp_count -= 1
 
+
+func remove_at(spec: AttributeEffectSpec, index: int) -> void:
+	_array.remove_at(index)
+	if spec.get_effect().is_temporary():
+		_temp_count -= 1
 
 #func is_empty() -> bool:
 	#return _array.is_empty()
@@ -51,6 +64,10 @@ func erase(spec: AttributeEffectSpec) -> void:
 
 func has(spec: AttributeEffectSpec) -> bool:
 	return _array.has(spec)
+
+
+func has_temp() -> bool:
+	return _temp_count > 0
 
 
 func clear() -> void:
