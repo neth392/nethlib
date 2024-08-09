@@ -140,7 +140,7 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 var _container: WeakRef
 
 ## Cluster of all added [AttributeEffectSpec]s.
-var _specs: AttributeEffectSpecCluster = AttributeEffectSpecCluster.new()
+var _specs: AttributeEffectSpecArray = AttributeEffectSpecArray.new()
 
 ## Dictionary of in the format of [code]{[member AttributeEffect.id] : int}[/code] count of all 
 ## applied [AttributeEffectSpec]s with that effect.
@@ -311,10 +311,9 @@ func __process() -> void:
 		# Keep track of removed count to adjust next index
 		var removed_count: int = 0
 		for spec_index: int in __process_to_remove:
-			_remove_spec_at_index(__process_to_remove[index], spec_index - removed_count)
+			_remove_spec_at_index(__process_to_remove[spec_index], spec_index - removed_count)
 			removed_count += 1
 		__process_to_remove.clear()
-		_specs.update_reversed_range()
 	
 	# Unlock
 	_locked = false
@@ -423,6 +422,7 @@ func _update_apply_values(spec: AttributeEffectSpec, base_value: float, current_
 ## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY].
 func _update_current_value() -> void:
 	if !_specs.has_temp():
+		_current_value = _base_value
 		return
 	var new_current_value: float = calculate_current_value()
 	
@@ -465,7 +465,7 @@ base_value: float, to_remove: Dictionary, to_emit_applied: Array[AttributeEffect
 	
 	spec._run_callbacks(AttributeEffectCallback._Function.APPLIED, self)
 	# Remove if it hit apply limit
-	if spec.hit_apply_limit():
+	if spec.hit_apply_limit() && index >= 0:
 		to_remove[index] = spec
 	# Mark for emitting signal later on
 	if spec.get_effect().should_emit_applied_signal():
@@ -502,8 +502,7 @@ func has_spec(spec: AttributeEffectSpec) -> bool:
 ## whose [method AttributEffectSpec.get_effect] equals [param effect].
 func find_specs(effect: AttributeEffect) -> Array[AttributeEffectSpec]:
 	var specs: Array[AttributeEffectSpec] = []
-	for index: int in _specs.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = _specs.get_at_index(index)
+	for spec: AttributeEffectSpec in _specs.iterate():
 		if spec.get_effect() == effect:
 			specs.append(spec)
 			continue
@@ -516,8 +515,7 @@ func find_specs(effect: AttributeEffect) -> Array[AttributeEffectSpec]:
 ## stack mode is COMBINE, DENY, or DENY_ERROR as in those cases there can only 
 ## be one instance of the effect.
 func find_first_spec(effect: AttributeEffect) -> AttributeEffectSpec:
-	for index: int in _specs.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = _specs.get_at_index(index)
+	for spec: AttributeEffectSpec in _specs.iterate():
 		if spec.get_effect() == effect:
 			return spec
 	return null
@@ -565,8 +563,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	
 	_locked = true
 	
-	var perm_specs_to_apply: AttributeEffectSpecArray = \
-	AttributeEffectSpecArray.new(AttributeEffect.Type.PERMANENT)
+	var perm_specs_to_apply: Dictionary = {}
 	
 	var update_current: bool = false
 	var current_tick: int = _get_ticks()
@@ -586,7 +583,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		# Effect is instant, ignore other logic.
 		if spec.get_effect().is_instant():
 			spec._last_add_result = AddEffectResult.INSTANT_CANT_ADD
-			perm_specs_to_apply.add(spec, false)
+			perm_specs_to_apply[spec] = -1
 			continue
 		
 		# Do not stack if DENY or DENY_ERROR & effect already exists
@@ -636,7 +633,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		spec._tick_added_on = current_tick
 		
 		# Add to array
-		_specs.add(spec, false)
+		var index: int = _specs.add(spec)
 		
 		# Add to _effect_countsg
 		var new_count: int = _effect_counts.get(spec.get_effect(), 0) + 1
@@ -649,10 +646,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		
 		# Mark it to apply if initial period <= 0.0
 		if spec.get_effect().has_period() && spec.remaining_period <= 0.0:
-			perm_specs_to_apply.add(spec, false)
-	
-	# Update specs range for iterating
-	_specs.update_reversed_range()
+			perm_specs_to_apply[spec] = index
 	
 	var to_remove: Dictionary = {}
 	var to_emit_applied: Array[AttributeEffectSpec] = []
@@ -660,12 +654,10 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	# Apply all permanent specs that should apply
 	if !perm_specs_to_apply.is_empty():
 		var new_base_value: float = _base_value
-		# Update range before iterataing
-		perm_specs_to_apply.update_reversed_range()
 		
 		# Iterate specs & apply them
-		for index: int in perm_specs_to_apply.iterate_indexes_reverse():
-			var spec: AttributeEffectSpec = perm_specs_to_apply.get_at_index(index)
+		for spec: AttributeEffectSpec in perm_specs_to_apply:
+			var index: int = perm_specs_to_apply[spec]
 			var applied: bool = _apply_permanent_spec(spec, index, current_tick, new_base_value, 
 			to_remove, to_emit_applied, spec.get_effect().has_period())
 			if applied: # Update base value if applied
@@ -688,10 +680,10 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	
 	# Remove specs that have hit their apply limit
 	if !to_remove.is_empty():
+		var removed_count: int = 0
 		for index: int in to_remove:
-			var spec: AttributeEffectSpec = to_remove[index] as AttributeEffectSpec
-			_remove_spec_at_index(spec, index, false)
-		_specs.update_reversed_range()
+			_remove_spec_at_index(to_remove[index], index - removed_count)
+			removed_count += 1
 	
 	_locked = false
 
@@ -702,10 +694,12 @@ func remove_effect(effect: AttributeEffect) -> bool:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	_locked = true
 	
-	var removed: bool = _remove_based_on_predicate( 
-		func(_effect) -> bool:
-			return _effect == effect
-	)
+	var removed: bool = false
+	for index: int in _specs.iterate_reverse():
+		var spec: AttributeEffectSpec = _specs._array[index]
+		if spec.get_effect() == effect:
+			_remove_spec_at_index(spec, index)
+			removed = true
 	
 	if effect.type == AttributeEffect.Type.TEMPORARY && removed:
 		_update_current_value()
@@ -720,10 +714,20 @@ func remove_effects(effects: Array[AttributeEffect]) -> bool:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	assert(!effects.has(null), "effects has null element")
 	_locked = true
-	var removed: bool = _remove_based_on_predicate(
-		func (spec: AttributeEffectSpec) -> bool:
-			return effects.has(spec.get_effect())
-	)
+	
+	var removed: bool = false
+	var temporary_removed: bool = false
+	for index: int in _specs.iterate_reverse():
+		var spec: AttributeEffectSpec = _specs._array[index]
+		if effects.has(spec.get_effect()):
+			_remove_spec_at_index(spec, index)
+			removed = true
+			if spec.get_effect().is_temporary():
+				temporary_removed = true
+	
+	if temporary_removed:
+		_update_current_value()
+	
 	_locked = false
 	return removed
 
@@ -733,7 +737,11 @@ func remove_spec(spec: AttributeEffectSpec) -> bool:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	if !has_spec(spec):
 		return false
+	_locked = true
 	_remove_spec(spec)
+	if spec.get_effect().is_temporary():
+		_update_current_value()
+	_locked = false
 	return true
 
 
@@ -743,9 +751,18 @@ func remove_specs(specs: Array[AttributeEffectSpec]) -> bool:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	_locked = true
 	var removed: bool = false
-	for spec: AttributeEffectSpec in specs:
-		if remove_spec(spec):
+	var temporary_removed: bool = false
+	for index: int in _specs.iterate_reverse():
+		var spec: AttributeEffectSpec = _specs._array[index]
+		if specs.has(specs):
+			_remove_spec_at_index(spec, index)
 			removed = true
+			if spec.get_effect().is_temporary():
+				temporary_removed = true
+	
+	if temporary_removed:
+		_update_current_value()
+	_locked = false
 	return removed
 
 
@@ -755,10 +772,9 @@ func remove_all_specs() -> void:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	_locked = true
 	
-	var removed_specs: Array[AttributeEffectSpec] = []
+	var removed_specs: Array[AttributeEffectSpec] = _specs._array.duplicate(false)
 	for spec: AttributeEffectSpec in _specs.iterate():
 		_pre_remove_spec(spec)
-		removed_specs.append(spec)
 	_specs.clear()
 	_effect_counts.clear()
 	
@@ -767,19 +783,6 @@ func remove_all_specs() -> void:
 	
 	_current_value = _base_value
 	_locked = false
-
-
-func _remove_based_on_predicate(spec_predicate: Callable) -> bool:
-	var removed: bool = false
-	for index: int in _specs.iterate_indexes_reverse():
-		var spec: AttributeEffectSpec = _specs.get_at_index(index)
-		if spec_predicate.call(spec):
-			_remove_spec_at_index(spec, index, false)
-			removed = true
-	
-	if removed:
-		_specs.update_reversed_range()
-	return removed
 
 
 func _remove_from_effect_counts(spec: AttributeEffectSpec) -> void:
@@ -793,7 +796,7 @@ func _remove_from_effect_counts(spec: AttributeEffectSpec) -> void:
 
 func _remove_spec_at_index(spec: AttributeEffectSpec, index: int) -> void:
 	_pre_remove_spec(spec)
-	_specs.remove_at(index)
+	_specs.remove_at(spec, index)
 	_remove_from_effect_counts(spec)
 	_post_remove_spec(spec)
 	

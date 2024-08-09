@@ -17,6 +17,7 @@ attribute_value_to_use = 0
 [resource]
 script = ExtResource("1_w5g5v")
 id = &"2damagesecover5sec"
+tags = PackedStringArray()
 type = 0
 value = 2.0
 value_calculator = SubResource("Resource_ku1ib")
@@ -32,7 +33,7 @@ apply_limit_amount = 0
 period_in_seconds = 1.0
 initial_period = false
 _apply_on_expire_if_period_is_zero = false
-stack_mode = 3
+stack_mode = 2
 _log_history = false
 add_conditions = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
 apply_conditions = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])

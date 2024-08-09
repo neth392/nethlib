@@ -36,11 +36,19 @@ func _ready() -> void:
 	_print(" ")
 	_print("APPLY 2 DAMAGE/SEC OVER 5 SEC")
 	var effect2: AttributeEffect = load("res://test/attribute/2_damage_sec_over_5_sec.tres") as AttributeEffect
-	for i in 100:
-		var spec: AttributeEffectSpec = effect2.to_spec()
-		attr.add_spec(spec)
-		print(spec._last_add_result)
-	print(attr.find_first_spec(effect2).get_stack_count())
+	
+	
+	var total_attributes: int = 100
+	var total_effects: int = 10
+	
+	for i in total_attributes:
+		var new_attr: Attribute = attr.duplicate(DUPLICATE_USE_INSTANTIATION) as Attribute
+		new_attr.name = "HealthAttribute%s" % i
+		new_attr.id = "health%s" % i
+		container.add_child(new_attr)
+		for d in total_effects:
+			var spec: AttributeEffectSpec = effect2.to_spec()
+			new_attr.add_spec(spec)
 
 
 func _print(str: String) -> void:
