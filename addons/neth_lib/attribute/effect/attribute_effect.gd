@@ -188,14 +188,6 @@ enum DurationType {
 ## applied if the effect was added.
 @export var apply_conditions: Array[AttributeEffectCondition]
 
-## All [AttributeEffectCondition]s that must be met for this effect to be
-## processed (duration, period, etc) on an [Attribute]. This array can 
-## safely be directly modified or set.
-## [br]NOTE: Only for [enum Type.PERMANENT] effects as TEMPORARY effects are
-## always processing. INSTANT effects are excluded as well since they can not be added,
-## just applied.
-@export var process_conditions: Array[AttributeEffectCondition]
-
 @export_group("Modifiers")
 
 ## Modififiers to modify [member value].
@@ -325,11 +317,6 @@ func _validate_property(property: Dictionary) -> void:
 	
 	if property.name == "apply_conditions":
 		if !has_apply_conditions():
-			_no_editor(property)
-		return
-	
-	if property.name == "process_conditions":
-		if !has_process_conditions():
 			_no_editor(property)
 		return
 	
@@ -588,11 +575,6 @@ func has_add_conditions() -> bool:
 ## Whether or not this effect supports [member apply_conditions]
 func has_apply_conditions() -> bool:
 	return type == Type.PERMANENT
-
-
-## Whether or not this effect supports [member process_conditions]
-func has_process_conditions() -> bool:
-	return type == Type.PERMANENT && duration_type != DurationType.INSTANT
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_added].

@@ -41,10 +41,6 @@ var _stack_count: int = 1
 ## If this spec is actively added to an [Attribute].
 var _is_added: bool = false
 
-## If this spec is actively added to an [Attribute] & processing is not
-## blocked by an [AttributeEffectCondition].
-var _is_processing: bool = false
-
 ## Amount of times the [AttributeEffect] was applied to the [Attribute]. Only
 ## valid for PERMANENT effects.
 var _apply_count: int = 0
@@ -111,12 +107,6 @@ func deinitialize() -> void:
 ## Returns true if this spec is currently added to an [Attribute].
 func is_added() -> bool:
 	return _is_added
-
-
-## Returns true if this spec is currently added to an [Attribute] AND
-## processing has not been blocked by an [AttributeEffectCondition].
-func is_processing() -> bool:
-	return _is_processing
 
 
 ## Returns the amount of ticks since the last 
@@ -255,16 +245,6 @@ func _remove_from_stack(attribute: Attribute, amount: int = 1) -> void:
 	_stack_count -= amount
 	_run_stack_callbacks(attribute, previous_stack_count)
 	attribute.effect_stack_count_changed.emit(self, previous_stack_count)
-
-
-## Checks if there is an [AttributeEffectCondition] blocking the processing of this
-## spec on [param attribute]. Returns the condition that is blocking it, or
-## null if there is no blocking condition. Also returns null if the effect
-## is temporary or instant (doesn't support process conditions).
-func _can_process(attribute: Attribute) -> AttributeEffectCondition:
-	if !_effect.has_process_conditions():
-		return null
-	return _check_conditions(attribute, _effect.process_conditions)
 
 
 ## Checks if there is an [AttributeEffectCondition] blocking the addition of this

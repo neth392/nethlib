@@ -38,8 +38,8 @@ func _ready() -> void:
 	var effect2: AttributeEffect = load("res://test/attribute/2_damage_sec_over_5_sec.tres") as AttributeEffect
 	
 	
-	var total_attributes: int = 100
-	var total_effects: int = 10
+	var total_attributes: int = 1000
+	var total_effects: int = 0
 	
 	for i in total_attributes:
 		var new_attr: Attribute = attr.duplicate(DUPLICATE_USE_INSTANTIATION) as Attribute

@@ -237,11 +237,6 @@ func __process() -> void:
 			print("SKIP: spec._tick_last_processed == current_tick, spec: %s" % spec)
 			continue
 		
-		# Check if can process
-		if !_test_process_conditions(spec):
-			spec._is_processing = false
-			continue
-		
 		# Get the amount of time since last process
 		var seconds_since_last_process: float = _ticks_to_second(
 		spec.get_ticks_since_last_process(current_tick))
@@ -250,7 +245,6 @@ func __process() -> void:
 		var apply: bool = false
 		
 		# Mark as processing
-		spec._is_processing = true
 		spec._tick_last_processed = current_tick
 		
 		# Duration Calculations
@@ -811,7 +805,6 @@ func _remove_spec(spec: AttributeEffectSpec) -> void:
 func _pre_remove_spec(spec: AttributeEffectSpec) -> void:
 	spec._run_callbacks(AttributeEffectCallback._Function.PRE_REMOVE, self)
 	spec._is_added = false
-	spec._is_processing = false
 
 
 func _post_remove_spec(spec: AttributeEffectSpec) -> void:
@@ -829,10 +822,6 @@ func _test_add_conditions(spec: AttributeEffectSpec) -> bool:
 
 func _test_apply_conditions(spec: AttributeEffectSpec) -> bool:
 	return _test_conditions_and_emit_failed(spec, spec._can_apply, effect_apply_blocked)
-
-
-func _test_process_conditions(spec: AttributeEffectSpec) -> bool:
-	return _test_conditions_and_emit_failed(spec, spec._can_process, Signal())
 
 
 func _test_conditions_and_emit_failed(spec: AttributeEffectSpec, callable: Callable, 
