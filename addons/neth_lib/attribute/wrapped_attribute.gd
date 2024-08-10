@@ -142,8 +142,8 @@ func _ready() -> void:
 	super._ready()
 	if Engine.is_editor_hint():
 		return
-	SignalUtil.connect_safely(minimum.value_changed, _on_minimum_value_changed)
-	SignalUtil.connect_safely(maximum.value_changed, _on_maximum_value_changed)
+	SignalUtil.connect_safely(minimum.current_value_changed, _on_minimum_value_changed)
+	SignalUtil.connect_safely(maximum.current_value_changed, _on_maximum_value_changed)
 
 
 ## Returns true if [member maximum] is not null.
@@ -175,9 +175,9 @@ func _get_configuration_warnings() -> PackedStringArray:
 	if minimum != null && maximum != null && maximum.value <= minimum.value:
 		warnings.append("maximum.value (%s) not > minimum.value (%s)" \
 		% [maximum.value, minimum.value])
-	if minimum != null && value < minimum.value:
+	if minimum != null && _base_value < minimum.value:
 		warnings.append("value (%s) is less than minimum.value (%s)" % [value, minimum.value])
-	elif maximum != null && value > maximum.value:
+	elif maximum != null && _base_value > maximum.value:
 		warnings.append("value (%s) is greater than maximum.value (%s)" % [value, maximum.value])
 	return warnings
 

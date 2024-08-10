@@ -1,62 +1,35 @@
 extends Node
 
 
+var seconds: float
+var time_paused: float
+
 func _ready() -> void:
-	var iterations: int = 100000
+	print("SECONDS: " + str(_get_seconds()))
+	await get_tree().create_timer(1.0).timeout
+	get_tree().paused = true
+	await get_tree().create_timer(1.0).timeout
+	get_tree().paused = false
+	await get_tree().create_timer(1.0).timeout
+	get_tree().paused = true
+	await get_tree().create_timer(1.0).timeout
+	get_tree().paused = false
 	
-	var objs: Array[TestObject] = []
-	for i: int in iterations:
-		if i % 2 == 0:
-			objs.append(TestObjectTypeA.new())
-		else:
-			objs.append(TestObjectTypeB.new())
-	
-	ExecutionTimeTest.start()
-	for i: int in iterations:
-		var obj: TestObject = objs[i]
-		if obj is TestObjectTypeA:
-			var d: int = 1
-		elif obj is TestObjectTypeB:
-			var d: int = 1
-	ExecutionTimeTest.print_time_taken("type cast check")
-	
-	var objs2: Array[TestObjectTyped] = []
-	for i: int in iterations:
-		if i % 2 == 0:
-			objs2.append(TestObjectTyped.new(TestObjectTyped.Type.ONE))
-		else:
-			objs2.append(TestObjectTyped.new(TestObjectTyped.Type.TWO))
-	
-	ExecutionTimeTest.start()
-	for i: int in iterations:
-		var obj: TestObjectTyped = objs2[i]
-		match obj.type:
-			TestObjectTyped.Type.ONE:
-				var d: int = 1
-			TestObjectTyped.Type.TWO:
-				var d: int = 1
-	ExecutionTimeTest.print_time_taken("type enum")
+	#ExecutionTimeTest.start()
+	#ExecutionTimeTest.print_time_taken("1")
+	#
+	#ExecutionTimeTest.start()
+	#ExecutionTimeTest.print_time_taken("2")
 
 
-class TestObject:
-	var a: String = "hi!"
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PAUSED:
+		print("PAUSED")
+		time_paused = _get_seconds()
+	if what == NOTIFICATION_UNPAUSED:
+		print("UN-PAUSED")
 
 
-class TestObjectTypeA extends TestObject:
-	var b: String = "hi2!"
-
-
-class TestObjectTypeB extends TestObject:
-	var c: String = "hi3!"
-
-
-class TestObjectTyped:
-	enum Type {
-		ONE,
-		TWO,
-	}
-	
-	var type: Type
-	
-	func _init(_type: Type) -> void:
-		type = _type
+func _get_seconds() -> float:
+	return Time.get_ticks_usec() / 1_000_000

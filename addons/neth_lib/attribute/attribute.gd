@@ -172,6 +172,9 @@ var __process_emit_applied: Array[AttributeEffectSpec] = []
 
 var _history: AttributeHistory
 
+## The amount of time, in ticks, this node has spent in pause mode.
+var _pause_ticks: int = 0
+
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
 		return
@@ -201,6 +204,13 @@ func _exit_tree() -> void:
 	if Engine.is_editor_hint():
 		return
 	_container = null
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PAUSED:
+		pass
+	elif what == NOTIFICATION_UNPAUSED:
+		pass
 
 
 func _process(delta: float) -> void:
