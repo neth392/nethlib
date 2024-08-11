@@ -3,5 +3,4 @@
 [ext_resource type="Script" path="res://playground/general_testing.gd" id="1_eoet1"]
 
 [node name="GeneralTesting" type="Node"]
-process_mode = 2
 script = ExtResource("1_eoet1")
