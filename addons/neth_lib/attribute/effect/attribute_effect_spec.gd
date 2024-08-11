@@ -1,4 +1,4 @@
-## Data class that represents a seperate instance of an [AttributeEffect] 
+## Data class that represents an individual instance of an [AttributeEffect] 
 ## which was (or can be) applied to an [Attribute].
 class_name AttributeEffectSpec extends Resource
 
