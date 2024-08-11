@@ -122,8 +122,8 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 
 @export_group("Effects")
 
-## Whether or not [AttributeEffectSpec]s should be allowed. If not, the [member effect_process_function]
-## will be automatically set to [enum ProcessFunction.NONE].
+## Whether or not [AttributeEffectSpec]s should be allowed. If effects are not allowed,
+## processing is automatically disabled.
 @export var allow_effects: bool = true:
 	set(value):
 		allow_effects = value
@@ -131,6 +131,7 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 			effects_process_function = ProcessFunction.NONE
 			if !Engine.is_editor_hint():
 				remove_all_specs()
+		_update_processing()
 		notify_property_list_changed()
 
 ## Which [ProcessFunction] is used when processing [AttributeEffect]s.
@@ -258,11 +259,6 @@ func __process() -> void:
 		# Store the current tick
 		var current_tick: int = _get_ticks()
 		
-		# Skip if it was already processed this tick
-		if spec._tick_last_processed == current_tick:
-			print("SKIP: spec._tick_last_processed == current_tick, spec: %s" % spec)
-			continue
-		
 		# Get the amount of time since last process
 		var seconds_since_last_process: float = _ticks_to_second(
 		current_tick - spec.get_tick_last_processed())
@@ -342,7 +338,7 @@ func __process() -> void:
 func _validate_property(property: Dictionary) -> void:
 	if property.name == "effects_process_function":
 		if !allow_effects:
-			property.usage = PROPERTY_USAGE_READ_ONLY
+			property.usage = PROPERTY_USAGE_NO_EDITOR
 		return
 	if property.name == "_default_effects":
 		if !allow_effects:
@@ -878,8 +874,8 @@ _signal: Signal) -> bool:
 
 
 func _update_processing() -> void:
-	set_process(effects_process_function == ProcessFunction.PROCESS)
-	set_physics_process(effects_process_function == ProcessFunction.PHYSICS_PROCESS)
+	set_process(allow_effects && effects_process_function == ProcessFunction.PROCESS)
+	set_physics_process(allow_effects && effects_process_function == ProcessFunction.PHYSICS_PROCESS)
 
 
 func _to_string() -> String:
