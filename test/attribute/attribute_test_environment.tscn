@@ -26,4 +26,4 @@ layout_mode = 2
 [node name="HealthAttribute" parent="AttributeContainer" instance=ExtResource("3_thicr")]
 id = &"health"
 _base_value = 100.0
-allow_effects = null
+allow_effects = true

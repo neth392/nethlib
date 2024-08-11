@@ -4,4 +4,3 @@
 
 [node name="Attribute" type="Node"]
 script = ExtResource("1_auulm")
-allow_effects = null

@@ -155,6 +155,15 @@ var _container: WeakRef
 ## Cluster of all added [AttributeEffectSpec]s.
 var _specs: AttributeEffectSpecArray = AttributeEffectSpecArray.new()
 
+## Internal storage of [member _specs]'s size for disabling processing when no effects
+## are active, for performance gains.
+var _has_specs: bool = false:
+	set(value):
+		var prev: bool = _has_specs
+		_has_specs = value
+		if prev != _has_specs:
+			_update_processing()
+
 ## Dictionary of in the format of [code]{[member AttributeEffect.id] : int}[/code] count of all 
 ## applied [AttributeEffectSpec]s with that effect.
 var _effect_counts: Dictionary = {}
@@ -809,6 +818,7 @@ func remove_all_specs() -> void:
 	for spec: AttributeEffectSpec in _specs.iterate():
 		_pre_remove_spec(spec)
 	_specs.clear()
+	_has_specs = false
 	_effect_counts.clear()
 	
 	for spec: AttributeEffectSpec in removed_specs:
@@ -830,6 +840,7 @@ func _remove_from_effect_counts(spec: AttributeEffectSpec) -> void:
 func _remove_spec_at_index(spec: AttributeEffectSpec, index: int) -> void:
 	_pre_remove_spec(spec)
 	_specs.remove_at(spec, index)
+	_has_specs = !_specs.is_empty()
 	_remove_from_effect_counts(spec)
 	_post_remove_spec(spec)
 	
@@ -837,6 +848,7 @@ func _remove_spec_at_index(spec: AttributeEffectSpec, index: int) -> void:
 func _remove_spec(spec: AttributeEffectSpec) -> void:
 	_pre_remove_spec(spec)
 	_specs.erase(spec)
+	_has_specs = !_specs.is_empty()
 	_remove_from_effect_counts(spec)
 	_post_remove_spec(spec)
 
@@ -874,8 +886,9 @@ _signal: Signal) -> bool:
 
 
 func _update_processing() -> void:
-	set_process(allow_effects && effects_process_function == ProcessFunction.PROCESS)
-	set_physics_process(allow_effects && effects_process_function == ProcessFunction.PHYSICS_PROCESS)
+	var can_process: bool = _has_specs && allow_effects
+	set_process(can_process && effects_process_function == ProcessFunction.PROCESS)
+	set_physics_process(can_process && effects_process_function == ProcessFunction.PHYSICS_PROCESS)
 
 
 func _to_string() -> String:
