@@ -122,6 +122,17 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 
 @export_group("Effects")
 
+## Whether or not [AttributeEffectSpec]s should be allowed. If not, the [member effect_process_function]
+## will be automatically set to [enum ProcessFunction.NONE].
+@export var allow_effects: bool = true:
+	set(value):
+		allow_effects = value
+		if !allow_effects:
+			effects_process_function = ProcessFunction.NONE
+			if !Engine.is_editor_hint():
+				remove_all_specs()
+		notify_property_list_changed()
+
 ## Which [ProcessFunction] is used when processing [AttributeEffect]s.
 @export var effects_process_function: ProcessFunction = ProcessFunction.PROCESS:
 	set(_value):
@@ -134,6 +145,7 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 	set(value):
 		_default_effects = value
 		update_configuration_warnings()
+
 
 ## The [AttributeContainer] this attribute belongs to stored as a [WeakRef] for
 ## circular reference safety.
@@ -197,7 +209,9 @@ func _ready() -> void:
 			_history = child
 			break
 	
-	## TODO initial effects
+	# Handle default effects
+	if allow_effects && !_default_effects.is_empty():
+		add_effects(_default_effects)
 
 
 func _exit_tree() -> void:
@@ -241,7 +255,7 @@ func __process() -> void:
 	for spec: AttributeEffectSpec in _specs.iterate():
 		index += 1
 		
-		# Store the current ticks in msec
+		# Store the current tick
 		var current_tick: int = _get_ticks()
 		
 		# Skip if it was already processed this tick
@@ -251,7 +265,7 @@ func __process() -> void:
 		
 		# Get the amount of time since last process
 		var seconds_since_last_process: float = _ticks_to_second(
-		spec.get_ticks_since_last_process(current_tick))
+		current_tick - spec.get_tick_last_processed())
 		
 		# Flag used to mark if the spec should be applied this frame
 		var apply: bool = false
@@ -323,6 +337,17 @@ func __process() -> void:
 	
 	# Unlock
 	_locked = false
+
+
+func _validate_property(property: Dictionary) -> void:
+	if property.name == "effects_process_function":
+		if !allow_effects:
+			property.usage = PROPERTY_USAGE_READ_ONLY
+		return
+	if property.name == "_default_effects":
+		if !allow_effects:
+			property.usage = PROPERTY_USAGE_NO_EDITOR
+		return
 
 
 func _get_configuration_warnings() -> PackedStringArray:
@@ -530,6 +555,7 @@ func find_first_spec(effect: AttributeEffect) -> AttributeEffectSpec:
 ## Creates an [AttributeEffectSpec] from the [param effect] via [method AttriubteEffect.to_spec]
 ## and then calls [method add_specs]
 func add_effect(effect: AttributeEffect) -> void:
+	assert(allow_effects, "allow_effects is false")
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	add_effects([effect])
 
@@ -537,6 +563,7 @@ func add_effect(effect: AttributeEffect) -> void:
 ## Creates an [AttributeEffectSpec] from each of the [param effects] via 
 ## [method AttriubteEffect.to_spec] and then calls [method add_specs]
 func add_effects(effects: Array[AttributeEffect]) -> void:
+	assert(allow_effects, "allow_effects is false")
 	assert(!effects.has(null), "effects has null element")
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	var specs: Array[AttributeEffectSpec] = []
@@ -547,6 +574,7 @@ func add_effects(effects: Array[AttributeEffect]) -> void:
 
 ## Adds [param spec] to a new [Array], then calls [method add_specs]
 func add_spec(spec: AttributeEffectSpec) -> void:
+	assert(allow_effects, "allow_effects is false")
 	assert(spec != null, "spec is null")
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	add_specs([spec])
@@ -563,6 +591,7 @@ func add_spec(spec: AttributeEffectSpec) -> void:
 ## [br]  - If INSTANT, it is not added, only applied.
 ## [br]  - Specs are initialized unless already initialized or are stacked instead of added.
 func add_specs(specs: Array[AttributeEffectSpec]) -> void:
+	assert(allow_effects, "allow_effects is false")
 	assert(!specs.is_empty(), "specs is empty")
 	assert(!specs.has(null), "specs has null element")
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
@@ -637,6 +666,8 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		spec._is_added = true
 		spec._last_add_result = AddEffectResult.ADDED
 		spec._tick_added_on = current_tick
+		# Set this so it isn't processed 
+		spec._tick_last_processed = current_tick
 		
 		# Add to array
 		var index: int = _specs.add(spec)

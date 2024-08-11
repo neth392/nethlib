@@ -109,15 +109,6 @@ func is_added() -> bool:
 	return _is_added
 
 
-## Returns the amount of ticks since the last 
-func get_ticks_since_last_process(current_tick: int) -> int:
-	# TBD: Possibly set _tick_last_processed as the tick it was added on, avoiding
-	# this if statement.
-	if _tick_last_processed > -1:
-		return current_tick - _tick_last_processed
-	return current_tick - _tick_added_on
-
-
 ## Returns the last [method Time.get_ticks_msec] this spec was processed on. -1 if it has not
 ## yet been processed.
 func get_tick_last_processed() -> int:
