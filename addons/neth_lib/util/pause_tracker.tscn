@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://yd7swdg0u6k5"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/util/pause_tracker.gd" id="1_sxkoc"]
+
+[node name="PauseTracker" type="Node"]
+script = ExtResource("1_sxkoc")

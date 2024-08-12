@@ -29,54 +29,20 @@ var remaining_duration: float:
 ## delay.
 var remaining_period: float = 0.0
 
-## If this spec has been initialized by an [Attribute].
-var _initialized: bool = false
-
-## The effect this [AttributeEffectSpec] was created for.
 var _effect: AttributeEffect
-
-## The current stack count
-var _stack_count: int = 1
-
-## If this spec is actively added to an [Attribute].
-var _is_added: bool = false
-
-## Amount of times the [AttributeEffect] was applied to the [Attribute]. Only
-## valid for PERMANENT effects.
-var _apply_count: int = 0
-
-## The condition that lasts blocks addition or application of this spec.
-var _last_blocked_by: AttributeEffectCondition
-
-## The [enum Attribute.AddEffectResult] from the last attempt to add this spec to an [Attribute].
-var _last_add_result: Attribute.AddEffectResult = Attribute.AddEffectResult.NEVER_ADDED
-
-## The tick (in milliseconds) this spec was added to an [Attribute] at. -1 if it was 
-## not yet added.
-var _tick_added_on: int = -1
-
-## The last [method Time.get_ticks_msec] this spec was processed on. If the value is -1, this
-## spec has not yet been processed.
-var _tick_last_processed: int = -1
-
-## The last [method Time.get_ticks_msec] this spec was applied on. If the value is -1, this spec
-## has not yet been applied.
-var _tick_last_applied: int = -1
-
-## The last value that was set to [member Attribute.value] based on the
-## [enum AttributeEffect.ValueCalcType].
-var _last_set_value: float
-
-## The value that was last derived from [method AttributeEffect.get_modified_value].
-## This does NOT take into account the [enum AttributeEffect.ValueCalcType] of the
-## effect.
-var _last_value: float
-
-## Whether or not this spec expired.
+var _initialized: bool = false
 var _expired: bool = false
-
-## Internal flag used to mark specs that should be applied.
-var __should_apply: bool = false
+var _is_added: bool = false
+var _stack_count: int = 1
+var _apply_count: int = 0
+var _last_blocked_by: AttributeEffectCondition
+var _last_add_result: Attribute.AddEffectResult = Attribute.AddEffectResult.NEVER_ADDED
+var _tick_added_on: int = -1
+var _tick_last_processed: int = -1
+var _tick_last_applied: int = -1
+var _active_duration: float = 0.0
+var _last_set_value: float
+var _last_value: float
 
 func _init(effect: AttributeEffect) -> void:
 	assert(effect != null, "effect is null")
@@ -109,15 +75,15 @@ func is_added() -> bool:
 	return _is_added
 
 
-## Returns the last [method Time.get_ticks_msec] this spec was processed on. -1 if it has not
-## yet been processed.
+func get_tick_added_on() -> int:
+	return _tick_added_on
+
+
+## Returns the last tick (see [method Attribute._get_ticks]) this spec was processed on. This
+## tick may be unreliable to determine when it was last processed if scene tree pausing has
+## been activated, as this is adjusted accordingly.
 func get_tick_last_processed() -> int:
 	return _tick_last_processed
-
-
-## Returns true if the effect has been processed.
-func has_processed() -> bool:
-	return _tick_last_processed > -1
 
 
 ## Returns the last [method Time.get_ticks_msec] this spec was applied on. -1 if it has not
@@ -132,21 +98,40 @@ func has_applied() -> bool:
 	return _tick_last_applied > -1
 
 
-## Returns the last value that was directly set to the [Attribute], either
-## current (for temporary effects) or base value (for permanent effects)
+## Returns the total amount ofduration, in seconds, this spec has been active for.
+## [b]NOTE: Includes any time the [Attribute] spent in a paused state.[/b] Use
+## [method get_active_duration] to omit the time spent paused.
+func get_total_duration() -> float:
+	return Attribute._ticks_to_second(Attribute._get_ticks() - _tick_added_on)
+
+
+## Returns total amount of duration, in seconds, this spec has been active for. Does not
+## include time that was passed when an [Attribute] was paused.
+func get_active_duration() -> float:
+	return _active_duration
+
+
+## Returns the sum of [member remaining_duration] and [method get_active_duration],
+## which represents the total amount of time, in seconds, this effect is expected to live for.
+func get_total_expected_duration() -> float:
+	return remaining_duration + _active_duration
+
+
+## Returns the last value that was directly set to the [Attribute], cumulative of the [Attribute]'s
+## value, [member _last_value], and how it was calculated based on the [AttributeEffectCalculator]
+## of this effect.
 func get_last_set_value() -> float:
 	return _last_set_value
 
 
 ## Returns the value that was last derived from [method AttributeEffect.get_modified_value].
-## This does NOT take into account the [AttributeEffectCalculator].
+## This is different from the [member _last_set_value].
 func get_last_value() -> float:
 	return _last_value
 
 
 ## If currently blocked, returns the [AttributeEffectCondition] that blocked this spec
-## when being added to an effect, in processing, or in applying. Returns null if not
-## currently blocked.
+## when being added to an effect or in applying. Returns null if not currently blocked.
 func get_last_blocked_by() -> AttributeEffectCondition:
 	return _last_blocked_by
 
@@ -155,20 +140,6 @@ func get_last_blocked_by() -> AttributeEffectCondition:
 ## spec to an [Attribute].
 func get_last_add_result() -> Attribute.AddEffectResult:
 	return _last_add_result
-
-
-## Returns the amount of time, in seconds, this effect has been added to an [Attribute] for.
-## Returns 0.0 if never added to an [Attribute].
-func get_passed_duration() -> float:
-	if !is_added() || _tick_added_on < 0:
-		return 0.0
-	return Attribute._ticks_to_second(Attribute._get_ticks() - _tick_added_on)
-
-
-## Returns the total [b]expected[/b] duration (passed + remaining) in seconds. If this
-## effect is infinite, this returns the same as [method get_passed_duration].
-func get_total_duration() -> float:
-	return get_passed_duration() + remaining_duration
 
 
 ## Amount of times this [AttributeEffectSpec] was applied to an [Attribute]. Does not

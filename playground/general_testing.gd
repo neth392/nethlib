@@ -14,12 +14,16 @@ var total_duration_active: float = 0.0
 
 var time_paused: float
 
-
-# SCENARIOS TO TRY:
-# - spec added during normal processing
-# - 
-
 func _ready() -> void:
+	print(TimeUtil.convert_time(1255.3, TimeUtil.TimeUnit.MILLISECONDS, TimeUtil.TimeUnit.MICROSECONDS))
+	return
+	process_mode = Node.PROCESS_MODE_WHEN_PAUSED
+	get_tree().paused = true
+	return
+	print("paused? " + str(can_process()))
+	get_tree().paused = true
+	print("paused? " + str(can_process()))
+	return
 	get_tree().paused = true
 	await _wait(1.0)
 	added = _get_seconds()
@@ -31,6 +35,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	return
 	if stop || added < 0:
 		return
 	var current_seconds: float = _get_seconds()
@@ -51,7 +56,7 @@ func _wait(seconds: float) -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PAUSED:
-		print("PAUSED")
+		print("PAUSED, can process? " + str(can_process()))
 		time_paused = _get_seconds()
 	if what == NOTIFICATION_UNPAUSED:
 		var seconds: float = _get_seconds()
@@ -60,7 +65,7 @@ func _notification(what: int) -> void:
 			last_process = seconds
 		else: # If added before pause, add pause duration to process time
 			var pause_duration: float = seconds - time_paused
-			print("UN-PAUSED, pause_duration: %s" % pause_duration)
+			print("UN-PAUSED, can process? %s, pause_duration: %s" % [can_process(), pause_duration])
 			last_process += pause_duration
 
 

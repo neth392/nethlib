@@ -194,8 +194,8 @@ var __process_emit_applied: Array[AttributeEffectSpec] = []
 
 var _history: AttributeHistory
 
-## The amount of time, in ticks, this node has spent in pause mode.
-var _pause_ticks: int = 0
+## The tick the scene tree was paused at.
+var _paused_at_tick: int = -1
 
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
@@ -230,6 +230,7 @@ func _exit_tree() -> void:
 	_container = null
 
 
+## Implemented to handle pausing
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PAUSED:
 		pass
@@ -248,8 +249,6 @@ func _physics_process(delta: float) -> void:
 ## The heart & soul of Attribute, responsible for processing & applying [AttriubteEffectSpec]s.
 ## NOT meant to be overridden at all.
 func __process() -> void:
-	if _specs.is_empty():
-		return
 	assert(!_locked, "attribute is locked")
 	# Lock
 	_locked = true
@@ -271,6 +270,9 @@ func __process() -> void:
 		# Get the amount of time since last process
 		var seconds_since_last_process: float = _ticks_to_second(
 		current_tick - spec.get_tick_last_processed())
+		
+		# Add to active duration
+		spec._active_duration += seconds_since_last_process
 		
 		# Flag used to mark if the spec should be applied this frame
 		var apply: bool = false
@@ -302,6 +304,7 @@ func __process() -> void:
 			if spec.remaining_period <= 0.0:
 				if !spec._expired: # Not expired, set to apply & mark period to reset
 					apply = true
+					# Period should be reset as this spec is not expired
 					reset_period = true
 				elif spec.get_effect().is_apply_on_expire_if_period_is_zero():
 					# Set to apply since period is <=0 & it's expired
@@ -311,7 +314,7 @@ func __process() -> void:
 		# and/or emit dictionary/array
 		if apply:
 			var applied: bool = _apply_permanent_spec(spec, index, current_tick, new_base_value, 
-			__process_to_remove, __process_emit_applied, true)
+			__process_to_remove, __process_emit_applied, reset_period)
 			if applied:
 				new_base_value = spec._last_set_value
 	
@@ -671,7 +674,6 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		spec._is_added = true
 		spec._last_add_result = AddEffectResult.ADDED
 		spec._tick_added_on = current_tick
-		# Set this so it isn't processed 
 		spec._tick_last_processed = current_tick
 		
 		# Add to array

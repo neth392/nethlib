@@ -1,6 +1,5 @@
 class_name ObjectUtil extends Object
 
-
 static func to_string_helper(_class_name: String, object: Object, 
 exclusions: PackedStringArray = PackedStringArray()) -> String:
 	var properties: Dictionary = {}
