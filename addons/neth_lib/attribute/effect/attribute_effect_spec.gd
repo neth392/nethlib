@@ -98,7 +98,7 @@ func has_applied() -> bool:
 	return _tick_last_applied > -1
 
 
-## Returns the total amount ofduration, in seconds, this spec has been active for.
+## Returns the total amount of duration, in seconds, this spec has been active for.
 ## [b]NOTE: Includes any time the [Attribute] spent in a paused state.[/b] Use
 ## [method get_active_duration] to omit the time spent paused.
 func get_total_duration() -> float:
@@ -113,7 +113,7 @@ func get_active_duration() -> float:
 
 ## Returns the sum of [member remaining_duration] and [method get_active_duration],
 ## which represents the total amount of time, in seconds, this effect is expected to live for.
-func get_total_expected_duration() -> float:
+func get_active_expected_duration() -> float:
 	return remaining_duration + _active_duration
 
 

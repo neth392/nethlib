@@ -33,6 +33,10 @@ func _ready() -> void:
 	var effect2: AttributeEffect = load("res://test/attribute/2_damage_sec_over_5_sec.tres") as AttributeEffect
 	
 	attr.add_effect(effect2)
+	
+	get_tree().paused = true
+	await get_tree().create_timer(2.0).timeout
+	get_tree().paused = false
 	#var total_attributes: int = 1
 	#var total_effects: int = 1
 	#
@@ -92,8 +96,8 @@ func _on_e_apply_blocked(spec: AttributeEffectSpec) -> void:
 
 
 func _on_e_removed(spec: AttributeEffectSpec) -> void:
-	_print("effect_removed: spec=%s, active_duration=%s, apply_count=%s" \
-	% [spec, spec.get_active_duration(), spec.get_apply_count()])
+	_print("effect_removed: spec=%s, active_duration=%s, total_duration=%s, apply_count=%s" \
+	% [spec, spec.get_active_duration(), spec.get_total_duration(), spec.get_apply_count()])
 
 
 func _on_e_stack_count_changed(spec: AttributeEffectSpec, prev_stack_count: int) -> void:
