@@ -23,7 +23,7 @@ static func _get_ticks() -> int:
 
 
 static func _ticks_to_seconds(ticks: int) -> float:
-	return ticks / 1_000_000
+	return ticks / 1_000_000.0
 
 
 ## Which _process function is used to execute effects.
@@ -166,8 +166,7 @@ var _has_specs: bool = false:
 	set(value):
 		var prev: bool = _has_specs
 		_has_specs = value
-		if prev != _has_specs:
-			_update_processing()
+		_update_processing()
 
 ## Dictionary of in the format of [code]{[member AttributeEffect.id] : int}[/code] count of all 
 ## applied [AttributeEffectSpec]s with that effect.
@@ -212,11 +211,7 @@ func _enter_tree() -> void:
 func _ready() -> void:
 	_current_value = _base_value
 	_current_value_initiated = true
-	if Engine.is_editor_hint():
-		set_process(false)
-		set_physics_process(false)
-	else:
-		_update_processing()
+	_update_processing()
 	
 	# Find & set history
 	for child: Node in get_children():
@@ -265,7 +260,6 @@ func __process() -> void:
 	assert(!_locked, "attribute is locked")
 	# Lock
 	_locked = true
-	
 	# Keep track if a temp spec was removed so we can update current value later on
 	var temp_spec_removed: bool = false
 	
@@ -742,6 +736,9 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 			_remove_spec_at_index(to_remove[index], index - removed_count)
 			removed_count += 1
 	
+	# Process if specs is not empty
+	_has_specs = !_specs.is_empty()
+	
 	_locked = false
 
 
@@ -901,7 +898,7 @@ _signal: Signal) -> bool:
 
 
 func _update_processing() -> void:
-	var can_process: bool = _has_specs && allow_effects
+	var can_process: bool = !Engine.is_editor_hint() && _has_specs && allow_effects
 	set_process(can_process && effects_process_function == ProcessFunction.PROCESS)
 	set_physics_process(can_process && effects_process_function == ProcessFunction.PHYSICS_PROCESS)
 

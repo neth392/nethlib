@@ -102,7 +102,7 @@ func has_applied() -> bool:
 ## [b]NOTE: Includes any time the [Attribute] spent in a paused state.[/b] Use
 ## [method get_active_duration] to omit the time spent paused.
 func get_total_duration() -> float:
-	return Attribute._ticks_to_second(Attribute._get_ticks() - _tick_added_on)
+	return Attribute._ticks_to_seconds(Attribute._get_ticks() - _tick_added_on)
 
 
 ## Returns total amount of duration, in seconds, this spec has been active for. Does not

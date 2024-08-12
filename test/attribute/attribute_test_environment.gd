@@ -28,31 +28,26 @@ func _ready() -> void:
 	_print("ATTRIBUTE BASE_VALUE: %s" % attr.get_base_value())
 	_print("ATTRIBUTE CURRENT_VALUE: %s" % attr.get_current_value())
 	
-	_print("APPLY EFFECT")
-	var effect: AttributeEffect = load("res://test/attribute/damage_effect.tres") as AttributeEffect
-	_print("ATTRIBUTE BASE_VALUE: %s" % attr.get_base_value())
-	_print("ATTRIBUTE CURRENT_VALUE: %s" % attr.get_current_value())
-	
 	_print(" ")
 	_print("APPLY 2 DAMAGE/SEC OVER 5 SEC")
 	var effect2: AttributeEffect = load("res://test/attribute/2_damage_sec_over_5_sec.tres") as AttributeEffect
 	
-	
-	var total_attributes: int = 1000
-	var total_effects: int = 0
-	
-	for i in total_attributes:
-		var new_attr: Attribute = attr.duplicate(DUPLICATE_USE_INSTANTIATION) as Attribute
-		new_attr.name = "HealthAttribute%s" % i
-		new_attr.id = "health%s" % i
-		container.add_child(new_attr)
-		for d in total_effects:
-			var spec: AttributeEffectSpec = effect2.to_spec()
-			new_attr.add_spec(spec)
+	attr.add_effect(effect2)
+	#var total_attributes: int = 1
+	#var total_effects: int = 1
+	#
+	#for i in total_attributes:
+		#var new_attr: Attribute = attr.duplicate(DUPLICATE_USE_INSTANTIATION) as Attribute
+		#new_attr.name = "HealthAttribute%s" % i
+		#new_attr.id = "health%s" % i
+		#container.add_child(new_attr)
+		#for d in total_effects:
+			#var spec: AttributeEffectSpec = effect2.to_spec()
+			#new_attr.add_spec(spec)
 
 
 func _print(str: String) -> void:
-	#print(str((Time.get_ticks_msec() / 1000.0) - _time_msec) +"s: " + str)
+	print(str((Time.get_ticks_msec() / 1000.0) - _time_msec) +"s: " + str)
 	pass
 
 
@@ -97,7 +92,8 @@ func _on_e_apply_blocked(spec: AttributeEffectSpec) -> void:
 
 
 func _on_e_removed(spec: AttributeEffectSpec) -> void:
-	_print("effect_removed: spec=%s" % spec)
+	_print("effect_removed: spec=%s, active_duration=%s, apply_count=%s" \
+	% [spec, spec.get_active_duration(), spec.get_apply_count()])
 
 
 func _on_e_stack_count_changed(spec: AttributeEffectSpec, prev_stack_count: int) -> void:
