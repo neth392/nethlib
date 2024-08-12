@@ -30,13 +30,10 @@ func _ready() -> void:
 	
 	_print(" ")
 	_print("APPLY 2 DAMAGE/SEC OVER 5 SEC")
-	var effect2: AttributeEffect = load("res://test/attribute/2_damage_sec_over_5_sec.tres") as AttributeEffect
 	
-	attr.add_effect(effect2)
-	
-	get_tree().paused = true
 	await get_tree().create_timer(2.0).timeout
-	get_tree().paused = false
+	var effect2: AttributeEffect = load("res://testing_please_ignore/attribute/2_damage_sec_over_5_sec.tres") as AttributeEffect
+	attr.add_effect(effect2)
 	#var total_attributes: int = 1
 	#var total_effects: int = 1
 	#

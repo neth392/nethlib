@@ -69,25 +69,5 @@ func _notification(what: int) -> void:
 			last_process += pause_duration
 
 
-func is_paused(node: Node) -> bool:
-	var paused: bool = get_tree().paused
-	match node.process_mode:
-		PROCESS_MODE_ALWAYS:
-			return false
-		PROCESS_MODE_DISABLED:
-			return true
-		PROCESS_MODE_INHERIT:
-			if node.get_parent() == null || get_tree().root == node:
-				return paused
-			return is_paused(node.get_parent())
-		PROCESS_MODE_PAUSABLE:
-			return paused
-		PROCESS_MODE_WHEN_PAUSED:
-			return !paused
-		_: # Should never reach this point
-			assert(false, "Unknown process_mode (%s) for Node (%s)" % [node.process_mode, node])
-			return false
-
-
 func _get_seconds() -> float:
 	return float(Time.get_ticks_usec()) / 1_000_000

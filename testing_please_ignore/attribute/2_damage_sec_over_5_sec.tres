@@ -1,21 +1,21 @@
 [gd_resource type="Resource" script_class="AttributeEffect" load_steps=6 format=3 uid="uid://damurgk5lppcq"]
 
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect.gd" id="1_w5g5v"]
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/tag_applier_callback.gd" id="1_xpavr"]
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/calculator/subtract_calculator.gd" id="3_8tsgy"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/tag_applier_callback.gd" id="1_3p2fs"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect.gd" id="2_5ycyd"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/calculator/subtract_calculator.gd" id="3_st5yu"]
 
 [sub_resource type="Resource" id="Resource_8odpc"]
-script = ExtResource("1_xpavr")
+script = ExtResource("1_3p2fs")
 tags = Array[StringName]([&"slow_damage"])
 remove_after = true
 error_on_no_container = false
 
 [sub_resource type="Resource" id="Resource_ku1ib"]
-script = ExtResource("3_8tsgy")
+script = ExtResource("3_st5yu")
 attribute_value_to_use = 0
 
 [resource]
-script = ExtResource("1_w5g5v")
+script = ExtResource("2_5ycyd")
 id = &"2damagesecover5sec"
 tags = PackedStringArray()
 type = 0
@@ -26,7 +26,7 @@ _emit_added_signal = true
 _emit_applied_signal = true
 _emit_removed_signal = true
 duration_type = 1
-duration_in_seconds = 4.0
+duration_in_seconds = 2.0
 _apply_on_expire = false
 _apply_limit = false
 apply_limit_amount = 0

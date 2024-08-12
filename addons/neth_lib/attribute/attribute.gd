@@ -257,6 +257,7 @@ func _physics_process(delta: float) -> void:
 ## The heart & soul of Attribute, responsible for processing & applying [AttriubteEffectSpec]s.
 ## NOT meant to be overridden at all.
 func __process() -> void:
+	print("PROCESS!")
 	assert(!_locked, "attribute is locked")
 	# Lock
 	_locked = true
