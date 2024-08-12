@@ -13,20 +13,17 @@
 class_name Attribute extends Node
 
 
+## Internal time unit used to appropriately set it to the [PauseTracker].
+static var _internal_time_unit: TimeUtil.TimeUnit = TimeUtil.TimeUnit.MICROSECONDS
+
 ## Helper function currently for [method Time.get_ticks_usec], created so that
 ## it can be swapped to other time units if deemed necessary.
 static func _get_ticks() -> int:
 	return Time.get_ticks_usec()
 
 
-## Converts [param ticks] to secounds based.
-static func _ticks_to_second(ticks: int) -> float:
-	return ticks / 1_000_000.0
-
-
-## Converts [param seconds] to ticks.
-static func _seconds_to_tick(seconds: int) -> float:
-	return seconds * 1_000_000.0
+static func _ticks_to_seconds(ticks: int) -> float:
+	return ticks / 1_000_000
 
 
 ## Which _process function is used to execute effects.
@@ -147,6 +144,14 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 		_default_effects = value
 		update_configuration_warnings()
 
+@export_group("Components")
+
+## The internal time unit used in 
+@export var internal_time_unit: TimeUtil.TimeUnit
+
+## The [PauseTracker] used by this [Attribute] to track pausing. Usually this
+## can be left untouched.
+@export var pause_tracker: PauseTracker
 
 ## The [AttributeContainer] this attribute belongs to stored as a [WeakRef] for
 ## circular reference safety.
@@ -219,6 +224,10 @@ func _ready() -> void:
 			_history = child
 			break
 	
+	# Pause Tracker
+	pause_tracker.time_unit = _internal_time_unit
+	pause_tracker.unpaused.connect(_on_unpaused)
+	
 	# Handle default effects
 	if allow_effects && !_default_effects.is_empty():
 		add_effects(_default_effects)
@@ -230,12 +239,16 @@ func _exit_tree() -> void:
 	_container = null
 
 
-## Implemented to handle pausing
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_PAUSED:
-		pass
-	elif what == NOTIFICATION_UNPAUSED:
-		pass
+## Handle pausing
+func _on_unpaused(time_paused: float) -> void:
+	var paused_at: int = int(_get_ticks() - time_paused)
+	var unpaused_at: int = _get_ticks()
+	for spec: AttributeEffectSpec in _specs.iterate():
+		# If added during the pause, set process time to unpause time
+		if spec._tick_added_on >= paused_at:
+			spec._tick_last_processed = unpaused_at
+		else: # If added before pause, add time puased to process time
+			spec._tick_last_processed += time_paused
 
 
 func _process(delta: float) -> void:
@@ -268,7 +281,7 @@ func __process() -> void:
 		var current_tick: int = _get_ticks()
 		
 		# Get the amount of time since last process
-		var seconds_since_last_process: float = _ticks_to_second(
+		var seconds_since_last_process: float = _ticks_to_seconds(
 		current_tick - spec.get_tick_last_processed())
 		
 		# Add to active duration
