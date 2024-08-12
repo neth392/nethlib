@@ -5,12 +5,12 @@
 class_name AttributeEffectCallback extends Resource
 
 enum _Function {
-	PRE_ADD,
-	ADDED,
-	APPLIED,
-	PRE_REMOVE,
-	REMOVED,
-	STACK_CHANGED
+	PRE_ADD = 0,
+	ADDED = 1,
+	APPLIED = 2,
+	PRE_REMOVE = 3,
+	REMOVED = 4,
+	STACK_CHANGED = 5,
 }
 
 static var _temporary_functions: Array[_Function] = [

@@ -219,37 +219,27 @@ enum DurationType {
 
 ## List of [AttributeEffectCallback]s to extend the functionality of this effect
 ## further than modifying the value of an [Attribute].
-@export var _callbacks: Array[AttributeEffectCallback]
+@export var _callbacks: Array[AttributeEffectCallback]:
+	set(_value):
+		_callbacks = _value
+		for callback: AttributeEffectCallback in _callbacks:
+			_add_callback_internal(callback, false)
+
 
 var _callbacks_by_function: Dictionary = {}
 
+
 func _init(_id: StringName = "") -> void:
 	id = _id
-	
 	if Engine.is_editor_hint():
 		return
 	
 	# Callback initialization
 	for _function: int in AttributeEffectCallback._Function.values():
 		_callbacks_by_function[_function] = []
-	
-	# Register default callbacks
-	for callback: AttributeEffectCallback in _callbacks:
-		_add_callback_internal(callback, false)
-	
-	# Sort Modifiers
-	_value_modifiers.sort_custom(AttributeEffectModifier.sort_descending)
-	_validate_and_assert(_value_modifiers)
-	if has_period():
-		_period_modifiers.sort_custom(AttributeEffectModifier.sort_descending)
-		_validate_and_assert(_period_modifiers)
-	if has_duration():
-		_duration_modifiers.sort_custom(AttributeEffectModifier.sort_descending)
-		_validate_and_assert(_duration_modifiers)
 
 
 func _validate_property(property: Dictionary) -> void:
-	
 	if property.name == "_emit_applied_signal":
 		if !can_emit_applied_signal():
 			_no_editor(property)
@@ -335,6 +325,7 @@ func _validate_and_assert(modifiers: Array[AttributeEffectModifier]) -> void:
 		for modifier: AttributeEffectModifier in modifiers:
 			if modifier != null:
 				modifier._validate_and_assert(self)
+
 
 ## Helper method for _validate_property.
 func _no_editor(property: Dictionary) -> void:

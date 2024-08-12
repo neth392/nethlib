@@ -73,7 +73,7 @@ func add_tag(tag: StringName) -> bool:
 
 ## Adds all of the [param tags] which are not yet added. # TODO Return 
 func add_tags(tags: Array[StringName]) -> bool:
-	assert(!tags.has("") && !tags.has(null), "tags has empty element")
+	assert(!tags.has(""), "tags has empty element")
 	var added: bool = false
 	for tag in tags:
 		if !has_tag(tag):
