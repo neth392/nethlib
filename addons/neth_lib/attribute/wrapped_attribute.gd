@@ -1,26 +1,38 @@
-## An Attribute implementation that has optional maximum & minimum Attributes.
+## An Attribute implementation that has optional maximum & minimum [Attribute]s which
+## determines the range this attribute's current & base values can live within.
 @tool
 class_name WrappedAttribute extends Attribute
 
-## Emitted when value hits the [member minimum]'s value. [param old_value] is 
-## the [member value] value before it hit the minimum.
-signal current_value_hit_minimum(old_current_value: float)
+## The value to use of the [Attribute]s for [member minimum] and [member maximum].
+enum TrackedValue {
+	## [method Attribute.get_current_value] is used as the limit.
+	CURRENT_VALUE,
+	## [method Attribute.get_base_value] is used as the limit. Do note, this means that temporary
+	## effects are essentially ignored.
+	BASE_VALUE,
+}
 
-## Emitted when value hits the [member maximum]'s value. [param old_value] is 
-## the [member value] value before it hit the minimum.
-signal current_value_hit_maximum(old_current_value: float)
+## Emitted when [method get_current_value] hits the [member minimum]'s tracked value.
+## [param prev_current_value] is the current value before it hit the minimum.
+signal current_value_hit_minimum(prev_current_value: float)
 
+## Emitted when [method get_current_value] hits the [member maximum]'s tracked value.
+## [param prev_current_value] is the current value before it hit the maximum.
+signal current_value_hit_maximum(prev_current_value: float)
 
+## Emitted when [method get_base_value] hits the [member minimum]'s tracked value.
+## [param prev_base_value] is the base value before it hit the minimum.
 signal base_value_hit_minimum(old_base_vlaue: float)
 
-
+## Emitted when [method get_base_value] hits the [member maximum]'s tracked value.
+## [param prev_base_value] is the base value before it hit the maximum.
 signal base_value_hit_maximum(old_base_vlaue: float)
 
-## Emitted when the [member minimum]'s [member Attribute.value] changes, or the
-## [member minimum] instance changes to a new [Attribute] with a different value.[br]
-## [param had_old_minimum] is true if there was a minimum previously, and if true
-## [param old_minimum] is the old minimum, otherwise it is 0.0.[br]
-## [param autowrap_after] is a [BoolRef] where if the referred [member BoolRef.value] is
+## Emitted when the [member minimum]'s tracked value changes, or the [member minimum] instance
+## changes to a new [Attribute] with a different value, or is completely removed.[br]
+## [br][param had_old_minimum] is true if there was a minimum previously.
+## [br][param old_minimum] is the old minimum, otherwise it is 0.0.[br]
+## [br][param autowrap_after] is a [BoolRef] where if the referred [member BoolRef.value] is
 ## true, autowrapping will occur if the new minimum is greater than the current value. The default
 ## value of the BoolRef is that of [member autowrap_value].
 signal minimum_value_changed(had_old_minimum: bool, old_minimum: float, autowrap_after: BoolRef)
@@ -37,6 +49,8 @@ signal maximum_value_changed(had_old_maximum: bool, old_maximum: float, autowrap
 ## If true, whenever the minimum and maximum are changed the value is automatically
 ## max'd/floor'd to the nearest mininum/maximum if it is out of bounds.
 @export var autowrap_value: bool = true
+
+@export_group("Minimum")
 
 ## If true, [member minimum] can be null meaning there is no minimum. If false, an assertion
 ## will be called on [method Node._ready] to ensure it isn't null & an error will
@@ -86,6 +100,11 @@ signal maximum_value_changed(had_old_maximum: bool, old_maximum: float, autowrap
 			_wrap_min(autowrap_after)
 		
 		update_configuration_warnings()
+
+## Determines which [Attribute] value to use for the minimum.
+@export var minimum_value: TrackedValue = TrackedValue.CURRENT_VALUE
+
+@export_group("Maximum")
 
 ## If true, [member maximum] can be null meaning there is no maximum. If false, an assertion
 ## will be called on [method Node._ready] to ensure it isn't null & an error will

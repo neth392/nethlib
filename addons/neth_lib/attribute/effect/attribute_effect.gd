@@ -18,10 +18,11 @@ enum StackMode {
 	## Stacking is not allowed and an assertion will be called
 	## if there is an attempt to stack this effect on an [Attribute].
 	DENY_ERROR = 1,
-	## Attribute effects are seperate, a new [AppliedAttributeEffect] is created
+	## Attribute effects are seperate, a new [AttributeEffectSpec] is created
 	## for every instance added to an [Attribute].
 	SEPERATE = 2,
-	## Attribute effects are combined into one [AppliedAttributeEffect].
+	## Attribute effects are combined into one [AttributeEffectSpec] whose
+	## [member AttributeEffectSpec._stack_count] is increased accordingly.
 	COMBINE = 3,
 }
 
