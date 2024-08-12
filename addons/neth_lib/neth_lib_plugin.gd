@@ -1,55 +1,55 @@
 @tool
 class_name NethLibPlugin extends EditorPlugin
 
-const SETTING_PREFIX = "nethlib/autoloads/"
+const SETTING_PREFIX = "nethlib/modules/"
 
-static var _autoloads: Dictionary = {
+static var _modules: Dictionary = {
 	"PlatformManager": {
 		"path": "platform/platform_manager.tscn",
-		"dependencies": [""],
+		"dependencies": [],
+		"enabled": false,
 	},
 	"AudioStreamer": {
 		"path": "audio/audio_streamer.tscn",
-		"dependencies": [""],
+		"dependencies": [],
+		"enabled": false,
 	},
 	"AudioBusHelper": {
 		"path": "audio/audio_bus_helper.tscn",
-		"dependencies": [""],
+		"dependencies": [],
+		"enabled": false,
 	},
 	"JSONSerialization": {
 		"path": "json/serialize/json_serialization.tscn",
-		"dependencies": [""],
+		"dependencies": [],
+		"enabled": false,
 	},
 	"JSONFileManager": {
 		"path": "json/json_file_manager.tscn",
 		"dependencies": ["JSONSerialization"],
+		"enabled": false,
 	},
 	"ExecutionTimeTest": {
 		"path": "util/execution_time_test.tscn",
-		"dependencies": [""],
+		"dependencies": [],
+		"enabled": false,
 	},
 }
 
 var _ignore_project_setting_change: bool = false
 
 func _enter_tree():
+	_scan_modules()
 	SignalUtil.connect_safely(ProjectSettings.settings_changed, _on_project_settings_changed)
-	add_autoload_singleton("PlatformManager", "platform/platform_manager.tscn")
-	add_autoload_singleton("AudioStreamer", "audio/audio_streamer.tscn")
-	add_autoload_singleton("AudioBusHelper", "audio/audio_bus_helper.tscn")
-	add_autoload_singleton("JSONSerialization", "json/serialize/json_serialization.tscn")
-	add_autoload_singleton("JSONFileManager", "json/json_file_manager.tscn")
-	add_autoload_singleton("ExecutionTimeTest", "util/execution_time_test.tscn")
 
 
 func _exit_tree():
 	SignalUtil.disconnect_safely(ProjectSettings.settings_changed, _on_project_settings_changed)
-	remove_autoload_singleton("PlatformManager")
-	remove_autoload_singleton("AudioStreamer")
-	remove_autoload_singleton("AudioBusHelper")
-	remove_autoload_singleton("JSONSerialization")
-	remove_autoload_singleton("JSONFileManager")
-	remove_autoload_singleton("ExecutionTimeTest")
+	for module_name: String in _modules:
+		var module: Dictionary = _modules[module_name]
+		if _modules[module_name]["enabled"]:
+			remove_autoload_singleton(module_name)
+		module.enabled = false
 
 
 func _get_plugin_name() -> String:
@@ -59,52 +59,78 @@ func _get_plugin_name() -> String:
 func _on_project_settings_changed() -> void:
 	if _ignore_project_setting_change:
 		return
-	_scan_autoloads()
+	_scan_modules()
 
 
-func _scan_autoloads() -> void:
-	var disabled: PackedStringArray = PackedStringArray()
-	for autoload_name: String in _autoloads:
-		if disabled.has(autoload_name):
-			continue
-		var setting_path: String = _format_autoload_path(autoload_name)
-		
+func _scan_modules() -> void:
+	for module_name: String in _modules:
+		var setting_path: String = _format_module_path(module_name)
+		var module: Dictionary = _modules[module_name]
+		# Doesn't exist, create the setting
 		if !ProjectSettings.has_setting(setting_path):
-			_set_setting(setting_path, false)
-			_disable_autoload(autoload_name, disabled)
+			_set_setting(setting_path, module.enabled, true)
+			print("DOESNT EXIST: " + setting_path)
+			if module.enabled:
+				_enable_module(module_name, module, false)
+			else:
+				_disable_module(module_name, module, false)
 			continue
 		
-		var enabled: bool = ProjectSettings.get_setting(setting_path) as bool
-		if enabled:
-			pass
-		else:
-			_disable_autoload(autoload_name)
-
-
-func _disable_autoload(autoload_name: String, already_disabled: PackedStringArray) -> void:
-	already_disabled.append(autoload_name)
-	
-	# Find other autoloads dependent on this one and disable them
-	for other_autoload_name: String in _autoloads:
-		var other_autoload: Dictionary = _autoloads[other_autoload_name]
+		var setting_enabled: bool = ProjectSettings.get_setting(setting_path)
 		
-		if !already_disabled.has(other_autoload_name) \
-		and other_autoload["dependencies"].has(other_autoload_name):
-			_disable_autoload(other_autoload_name, already_disabled)
-	
-	if ProjectSettings.has_setting("autoload/" + autoload_name):
-		remove_autoload_singleton(autoload_name)
+		# Is enabled but dependencies arent; remove
+		if setting_enabled && !_dependencies_enabled(module):
+			_set_setting(setting_path, false)
+			_disable_module(module_name, module, false)
+			push_warning("NethLib: Module %s can't be enabled as it depends on disabled module(s) %s" \
+			% [module_name, module.dependencies])
+			continue
+		
+		if setting_enabled != module.enabled:
+			if setting_enabled:
+				_enable_module(module_name, module, true)
+			else:
+				_disable_module(module_name, module, true)
 
 
-func _set_setting(path: String, value: Variant) -> void:
+func _dependencies_enabled(module: Dictionary) -> bool:
+	for dependency: String in module.dependencies:
+		if !_modules[dependency].enabled:
+			return false
+	return true
+
+
+func _enable_module(module_name: String, module: Dictionary, print_to_console: bool) -> void:
+	module.enabled = true
+	if !_has_module_singleton(module_name):
+		_ignore_project_setting_change = true
+		add_autoload_singleton(module_name, module.path)
+		_ignore_project_setting_change = false
+	if print_to_console:
+		push_warning("NethLib: Enabled module %s" % module_name)
+
+
+func _disable_module(module_name: String, module: Dictionary, print_to_console: bool) -> void:
+	module.enabled = false
+	if _has_module_singleton(module_name):
+		_ignore_project_setting_change = true
+		remove_autoload_singleton(module_name)
+		_ignore_project_setting_change = false
+	if print_to_console:
+		push_warning("NethLib: Disabled module %s" % module_name)
+
+
+func _set_setting(path: String, value: Variant, initial_value: bool = false) -> void:
 	_ignore_project_setting_change = true
 	ProjectSettings.set_setting(path, value)
+	if initial_value:
+		ProjectSettings.set_initial_value(path, value)
 	_ignore_project_setting_change = false
 
 
-func _is_module_enabled() -> void:
-	pass
+func _has_module_singleton(module_name: String) -> bool:
+	return ProjectSettings.has_setting("autoload/" + module_name)
 
 
-func _format_autoload_path(autoload_name: String) -> String:
-	return SETTING_PREFIX + autoload_name
+func _format_module_path(module_name: String) -> String:
+	return SETTING_PREFIX + module_name

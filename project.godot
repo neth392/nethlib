@@ -33,3 +33,12 @@ run/main_run_args="--release"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg", "res://addons/neth_lib/plugin.cfg")
+
+[nethlib]
+
+modules/PlatformManager=true
+modules/AudioStreamer=true
+modules/AudioBusHelper=true
+modules/JSONSerialization=true
+modules/JSONFileManager=true
+modules/ExecutionTimeTest=true
