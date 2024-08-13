@@ -39,7 +39,7 @@ static var _modules: Dictionary = {
 var _ignore_project_setting_change: bool = false
 
 func _enter_tree():
-	_scan_modules()
+	_scan_modules(true)
 	SignalUtil.connect_safely(ProjectSettings.settings_changed, _on_project_settings_changed)
 
 
@@ -59,17 +59,16 @@ func _get_plugin_name() -> String:
 func _on_project_settings_changed() -> void:
 	if _ignore_project_setting_change:
 		return
-	_scan_modules()
+	_scan_modules(false)
 
 
-func _scan_modules() -> void:
+func _scan_modules(disable_print: bool) -> void:
 	for module_name: String in _modules:
 		var setting_path: String = _format_module_path(module_name)
 		var module: Dictionary = _modules[module_name]
 		# Doesn't exist, create the setting
 		if !ProjectSettings.has_setting(setting_path):
-			_set_setting(setting_path, module.enabled, true)
-			print("DOESNT EXIST: " + setting_path)
+			_set_setting(setting_path, module, true)
 			if module.enabled:
 				_enable_module(module_name, module, false)
 			else:
@@ -80,7 +79,7 @@ func _scan_modules() -> void:
 		
 		# Is enabled but dependencies arent; remove
 		if setting_enabled && !_dependencies_enabled(module):
-			_set_setting(setting_path, false)
+			_set_setting(setting_path, module, false)
 			_disable_module(module_name, module, false)
 			push_warning("NethLib: Module %s can't be enabled as it depends on disabled module(s) %s" \
 			% [module_name, module.dependencies])
@@ -88,9 +87,9 @@ func _scan_modules() -> void:
 		
 		if setting_enabled != module.enabled:
 			if setting_enabled:
-				_enable_module(module_name, module, true)
+				_enable_module(module_name, module, !disable_print && true)
 			else:
-				_disable_module(module_name, module, true)
+				_disable_module(module_name, module, !disable_print && true)
 
 
 func _dependencies_enabled(module: Dictionary) -> bool:
@@ -120,11 +119,12 @@ func _disable_module(module_name: String, module: Dictionary, print_to_console: 
 		push_warning("NethLib: Disabled module %s" % module_name)
 
 
-func _set_setting(path: String, value: Variant, initial_value: bool = false) -> void:
+func _set_setting(path: String, module: Dictionary, initial: bool = false) -> void:
 	_ignore_project_setting_change = true
-	ProjectSettings.set_setting(path, value)
-	if initial_value:
-		ProjectSettings.set_initial_value(path, value)
+	ProjectSettings.set_setting(path, module.enabled)
+	if initial:
+		ProjectSettings.set_as_basic(path, true)
+		ProjectSettings.set_initial_value(path, module.enabled)
 	_ignore_project_setting_change = false
 
 
