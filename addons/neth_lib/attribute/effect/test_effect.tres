@@ -7,7 +7,9 @@
 [sub_resource type="Resource" id="Resource_rgap8"]
 script = ExtResource("1_ds1cb")
 tags = Array[StringName]([])
+include_effect_tags = false
 remove_after = true
+cache_tags_to_remove = false
 error_on_no_container = false
 
 [sub_resource type="Resource" id="Resource_0qi3f"]
@@ -17,13 +19,14 @@ attribute_value_to_use = 0
 [resource]
 script = ExtResource("1_agjuv")
 id = &"test_effect"
+tags = Array[StringName]([])
 type = 0
 value = 25.0
 value_calculator = SubResource("Resource_0qi3f")
 apply_priority = 0
-emit_added_signal = false
-emit_applied_signal = false
-emit_removed_signal = false
+_emit_added_signal = false
+_emit_applied_signal = false
+_emit_removed_signal = false
 duration_type = 1
 duration_in_seconds = 0.0
 _apply_on_expire = false
@@ -33,10 +36,12 @@ period_in_seconds = 0.25
 initial_period = true
 _apply_on_expire_if_period_is_zero = false
 stack_mode = 0
+_log_history = false
 add_conditions = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
 apply_conditions = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
-process_conditions = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
 _value_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
 _period_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
-_duration_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
+_duration_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([null, null])
 _callbacks = Array[Resource("res://addons/neth_lib/attribute/effect/callback/attribute_effect_callback.gd")]([SubResource("Resource_rgap8")])
+add_blockers = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
+apply_blockers = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])

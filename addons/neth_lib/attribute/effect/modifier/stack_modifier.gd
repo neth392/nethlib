@@ -15,9 +15,11 @@ enum Mode {
 @export var mode: Mode
 
 
-func _validate_and_assert(effect: AttributeEffect) -> void:
-	assert(effect.stack_mode == AttributeEffect.StackMode.COMBINE, 
-	"stack_mode != COMBINE for effect: %s" % effect)
+func _validate_and_warn(effect: AttributeEffect) -> bool:
+	if effect.stack_mode != AttributeEffect.StackMode.COMBINE:
+		push_warning("stack_mode must be COMBINE to use StackModifier")
+		return false
+	return true
 
 
 func _modify(current_modified: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:

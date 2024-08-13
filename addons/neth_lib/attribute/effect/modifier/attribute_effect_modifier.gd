@@ -23,9 +23,10 @@ static func sort_descending(a: AttributeEffectModifier, b: AttributeEffectModifi
 
 
 ## Editor tool function that is called when this modifier is added to [param effect].
-## A good place to write assertions.
-func _validate_and_assert(effect: AttributeEffect) -> void:
-	pass
+## Returns false if it can be added to the [param effect], false if not. Should ideally
+## push a warning to console as to why it can't be added.
+func _validate_and_warn(effect: AttributeEffect) -> bool:
+	return true
 
 
 ## Called every time the modified property of an [AttributeEffect] is requested.
