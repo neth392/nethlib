@@ -5,11 +5,11 @@
 
 [sub_resource type="Resource" id="Resource_j8jbk"]
 script = ExtResource("1_8nfam")
-tags = Array[StringName]([])
+tags = Array[StringName]([&"tagthatdoesntexist"])
 mode = 0
-message = "tagthatdoesntexist"
+message = ""
 emit_blocked_signal = true
-negate = true
+negate = false
 
 [resource]
 script = ExtResource("1_ul6y1")
@@ -17,7 +17,7 @@ id = &"my_blocker"
 tags = Array[StringName]([])
 type = 0
 value = 0.0
-priority = null
+priority = 0
 _emit_added_signal = true
 _emit_applied_signal = false
 _emit_removed_signal = true
@@ -37,5 +37,5 @@ _value_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifi
 _period_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
 _duration_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
 _callbacks = Array[Resource("res://addons/neth_lib/attribute/effect/callback/attribute_effect_callback.gd")]([])
-add_blockers = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([SubResource("Resource_j8jbk")])
-apply_blockers = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
+add_blockers = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
+apply_blockers = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([SubResource("Resource_j8jbk")])

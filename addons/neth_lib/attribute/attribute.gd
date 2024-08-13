@@ -323,13 +323,17 @@ func __process() -> void:
 					# Set to apply since period is <=0 & it's expired
 					apply = true
 		
-		# Apply; also resets the period in _apply_permanent_spec(...), and adds it to the remove 
-		# and/or emit dictionary/array
-		if apply:
-			var applied: bool = _apply_permanent_spec(spec, index, current_tick, new_base_value, 
-			__process_to_remove, __process_emit_applied, reset_period)
-			if applied:
-				new_base_value = spec._last_set_value
+		# Check if it should ss")
+		if apply && _test_apply(spec):
+			# Apply it
+			_apply_permanent_spec(spec, index, current_tick, new_base_value, 
+			__process_to_remove, __process_emit_applied)
+			# Update the new base value
+			new_base_value = spec._last_set_value
+		
+		# Reset the period
+		if reset_period:
+			_reset_period(spec)
 	
 	var base_value_updated: bool = _base_value != new_base_value
 	# Update base value if changed
@@ -503,14 +507,10 @@ func calculate_current_value(_validate: bool = true) -> float:
 
 ## Internal function that has a lot of parameters because I don't want to copy and
 ## paste code in __process and add_specs. Basically this bad boy just runs the apply
-## logic for the spec and returns true if applied, false if not. Doesn't change anything
-## except on the spec.
+## logic for the spec. Doesn't change anything except on the spec.
 func _apply_permanent_spec(spec: AttributeEffectSpec, index: int, current_tick: int, 
-base_value: float, to_remove: Dictionary, to_emit_applied: Array[AttributeEffectSpec],
- reset_period: bool) -> bool:
+base_value: float, to_remove: Dictionary, to_emit_applied: Array[AttributeEffectSpec]) -> void:
 	assert(spec.get_effect().is_permanent(), "spec (%s) not PERMANENT" % spec)
-	if !_test_apply(spec):
-		return false
 	spec._apply_count += 1
 	spec._tick_last_applied = current_tick
 	
@@ -530,11 +530,10 @@ base_value: float, to_remove: Dictionary, to_emit_applied: Array[AttributeEffect
 	if spec.get_effect().should_emit_applied_signal():
 		to_emit_applied.append(spec)
 
-	# Reset period after applying
-	if reset_period:
-		# Add (instead of reset) period for more accuracy when dealing w/ low frame rate
-		spec.remaining_period += spec.get_effect().get_modified_period(self, spec)
-	return true
+
+func _reset_period(spec: AttributeEffectSpec) -> void:
+	# Add (instead of reset) period for more accuracy when dealing w/ low frame rate
+	spec.remaining_period += spec.get_effect().get_modified_period(self, spec)
 
 
 ## Returns true if the [param effect] is present and has one or more [AttributeEffectSpec]s
@@ -721,11 +720,16 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		
 		# Iterate specs & apply them
 		for spec: AttributeEffectSpec in perm_specs_to_apply:
-			var index: int = perm_specs_to_apply[spec]
-			var applied: bool = _apply_permanent_spec(spec, index, current_tick, new_base_value, 
-			to_remove, to_emit_applied, spec.get_effect().has_period())
-			if applied: # Update base value if applied
+			if _test_apply(spec):
+				var index: int = perm_specs_to_apply[spec]
+				_apply_permanent_spec(spec, index, current_tick, new_base_value, to_remove, 
+				to_emit_applied)
+				# Update base value
 				new_base_value = spec._last_set_value
+			
+			# Reset period if there is one
+			if spec.get_effect().has_period(): 
+				_reset_period(spec)
 		
 		# Update base value if changed
 		if _base_value != new_base_value:
@@ -908,12 +912,10 @@ func _test_add(spec: AttributeEffectSpec) -> bool:
 			
 			# Ignore expired - they arent removed until later in the frame sometimes
 			if blocker.is_expired():
-				print("EXPIRED")
 				continue
 			
 			if !_test_conditions(spec, blocker, blocker.get_effect().add_blockers, effect_add_blocked):
 				spec._last_add_result = AddEffectResult.BLOCKED_BY_BLOCKER
-				print("BLOCKED")
 				return false
 	
 	return true

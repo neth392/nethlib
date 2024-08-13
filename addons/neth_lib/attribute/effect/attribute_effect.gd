@@ -240,11 +240,11 @@ enum DurationType {
 @export_group("Blockers")
 
 ## Blocks other [AttributeEffect]s from being added to an [Attribute] if they
-## fail any of these conditions.
+## do NOT meet any of these conditions.
 @export var add_blockers: Array[AttributeEffectCondition]
 
 ## Blocks other [AttributeEffect]s from being applied to an [Attribute] if they
-## fail any of these conditions.
+## do NOT meet any of these conditions.
 @export var apply_blockers: Array[AttributeEffectCondition]
 
 var _callbacks_by_function: Dictionary = {}
