@@ -9,6 +9,9 @@ enum Type {
 	## Makes temporary changes to an [Attribute] reflected in 
 	## [method Attribute.get_current_value].
 	TEMPORARY = 1,
+	## Does apply any value to an [Attribute], but instead blocks other [AttributeEffect]s
+	## from applying.
+	BLOCKER = 2,
 }
 
 ## Determines how this effect can be stacked on an [Attribute], if at all.
@@ -39,23 +42,21 @@ enum DurationType {
 	INSTANT = 2,
 }
 
-
 ## The ID of this attribute effect.
 @export var id: StringName
 
-## Metadata tags to help identify an effect. Unrelated to an [AttributeContainer]'s tags.
-## One example is to label all effects that cause poison damage as "poison"
-@export var tags: PackedStringArray
+## Metadata tags to help identify an effect. Similar to an [AttributeContainer]'s tags.
+## One use case would be to use tags as a category of effect, i.e. "poison" for all
+## poison damage effects.
+@export var tags: Array[StringName]
 
 ## The type of effect, see [enum AttributeEffect.Type]
 @export var type: Type = Type.PERMANENT:
 	set(_value):
 		type = _value
-		match type:
-			Type.TEMPORARY:
-				# INSTANT not compatible with TEMPORARY
-				if duration_type == DurationType.INSTANT:
-					duration_type = DurationType.INFINITE
+		if type != Type.PERMANENT && duration_type == DurationType.INSTANT:
+			# INSTANT not compatible with TEMPORARY or BLOCKER
+			duration_type = DurationType.INFINITE
 		notify_property_list_changed()
 
 ## The direct effect to [member Attribute.value]
@@ -535,6 +536,13 @@ func _to_string() -> String:
 ## Helper functions for feature support ##
 ##########################################
 
+
+## Returns true if this effect supports a [member duration_type] of 
+## [enum DurationType.INSTANT].
+func can_be_instant() -> bool:
+	return type == Type.PERMANENT
+
+
 ## Returns true if this effect supports [member duration_type] of 
 ## [enum DurationType.INSTANT] and is currently INSTANT.
 func is_instant() -> bool:
@@ -553,10 +561,10 @@ func is_temporary() -> bool:
 	return type == AttributeEffect.Type.TEMPORARY
 
 
-## Returns true if this effect supports a [member duration_type] of 
-## [enum DurationType.INSTANT].
-func can_be_instant() -> bool:
-	return type == Type.PERMANENT
+## Helper function returning true if the effect's type is 
+## [enum AttributeEffect.Type.BLOCKER], false if not.
+func is_blocker() -> bool:
+	return type == AttributeEffect.Type.BLOCKER
 
 
 ## Whether or not this effect supports [member add_conditions]
@@ -566,7 +574,7 @@ func has_add_conditions() -> bool:
 
 ## Whether or not this effect supports [member apply_conditions]
 func has_apply_conditions() -> bool:
-	return type == Type.PERMANENT
+	return type == Type.PERMANENT || type == Type.BLOCKER
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_added].
