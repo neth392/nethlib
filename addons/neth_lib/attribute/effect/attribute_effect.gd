@@ -197,30 +197,36 @@ enum DurationType {
 ## values being set.
 @export var _value_modifiers: Array[AttributeEffectModifier]:
 	set(_value):
-		_value_modifiers = _value
-		_value_modifiers.sort_custom(AttributeEffectModifier.sort_descending)
 		if OS.is_debug_build():
-			_remove_invalid_modifiers(_value_modifiers)
-		notify_property_list_changed()
+			_remove_invalid_modifiers(_value)
+		if !Engine.is_editor_hint():
+			_value.sort_custom(AttributeEffectModifier.sort_descending)
+		_value_modifiers = _value
+		if Engine.is_editor_hint():
+			notify_property_list_changed.call_deferred()
 
 ## Modififiers to modify [member period_in_seconds].
 ## NOTE: Only for [enum Type.PERMANENT] effects.
 @export var _period_modifiers: Array[AttributeEffectModifier]:
 	set(_value):
-		_period_modifiers = _value
-		_period_modifiers.sort_custom(AttributeEffectModifier.sort_descending)
 		if OS.is_debug_build():
-			_remove_invalid_modifiers(_value_modifiers)
-		notify_property_list_changed()
+			_remove_invalid_modifiers(_value)
+		if !Engine.is_editor_hint():
+			_value.sort_custom(AttributeEffectModifier.sort_descending)
+		_period_modifiers = _value
+		if Engine.is_editor_hint():
+			notify_property_list_changed.call_deferred()
 
 ## Modififiers to modify [member duration_in_seconds].
 @export var _duration_modifiers: Array[AttributeEffectModifier]:
 	set(_value):
-		_duration_modifiers = _value
-		_duration_modifiers.sort_custom(AttributeEffectModifier.sort_descending)
 		if OS.is_debug_build():
-			_remove_invalid_modifiers(_value_modifiers)
-		notify_property_list_changed()
+			_remove_invalid_modifiers(_value)
+		if !Engine.is_editor_hint():
+			_value.sort_custom(AttributeEffectModifier.sort_descending)
+		_duration_modifiers = _value
+		if Engine.is_editor_hint():
+			notify_property_list_changed.call_deferred()
 
 @export_group("Callbacks")
 
@@ -358,7 +364,7 @@ func _remove_invalid_modifiers(modifiers: Array[AttributeEffectModifier]) -> voi
 	for index: int in range(modifiers.size() -1, -1, -1):
 		var modifier :AttributeEffectModifier = modifiers[index]
 		if modifier != null && !modifier._validate_and_warn(self):
-			modifiers.remove_at(index)
+			modifiers[index] = null
 
 
 ## Helper method for _validate_property.

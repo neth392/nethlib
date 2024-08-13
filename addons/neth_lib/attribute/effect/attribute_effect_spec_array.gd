@@ -19,8 +19,8 @@ func iterate() -> Array[AttributeEffectSpec]:
 
 
 func iterate_reverse() -> Array:
-
 	return range(_array.size() -1, -1, -1)
+
 
 func add(spec_to_add: AttributeEffectSpec) -> int:
 	assert(!_array.has(spec_to_add), "spec_to_add (%s) already present" % spec_to_add)
