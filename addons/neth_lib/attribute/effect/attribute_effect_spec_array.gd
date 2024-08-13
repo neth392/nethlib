@@ -12,6 +12,10 @@ var _temp_count: int = 0:
 	set(value):
 		assert(value >= 0, "_temp_count can't be < 0")
 		_temp_count = value
+var _blocker_count: int = 0:
+	set(value):
+		assert(value >= 0, "_blocker_count can't be < 0")
+		_blocker_count = value
 
 ## Returns the underlying array for iteration purposes ONLY.
 func iterate() -> Array[AttributeEffectSpec]:
@@ -31,21 +35,30 @@ func add(spec_to_add: AttributeEffectSpec) -> int:
 			return index
 		index += 1
 	_array.append(spec_to_add)
-	if spec_to_add.get_effect().is_temporary():
-		_temp_count += 1
+	match spec_to_add.get_effect().type:
+		AttributeEffect.Type.TEMPORARY:
+			_temp_count += 1
+		AttributeEffect.Type.BLOCKER:
+			_blocker_count += 1
 	return index
 
 
 func erase(spec: AttributeEffectSpec) -> void:
 	_array.erase(spec)
-	if spec.get_effect().is_temporary():
-		_temp_count -= 1
+	match spec.get_effect().type:
+		AttributeEffect.Type.TEMPORARY:
+			_temp_count -= 1
+		AttributeEffect.Type.BLOCKER:
+			_blocker_count -= 1
 
 
 func remove_at(spec: AttributeEffectSpec, index: int) -> void:
 	_array.remove_at(index)
-	if spec.get_effect().is_temporary():
-		_temp_count -= 1
+	match spec.get_effect().type:
+		AttributeEffect.Type.TEMPORARY:
+			_temp_count -= 1
+		AttributeEffect.Type.BLOCKER:
+			_blocker_count -= 1
 
 
 func is_empty() -> bool:
@@ -58,6 +71,10 @@ func has(spec: AttributeEffectSpec) -> bool:
 
 func has_temp() -> bool:
 	return _temp_count > 0
+
+
+func has_blockers() -> bool:
+	return _blocker_count > 0
 
 
 func clear() -> void:

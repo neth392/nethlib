@@ -209,34 +209,6 @@ func _remove_from_stack(attribute: Attribute, amount: int = 1) -> void:
 	attribute.effect_stack_count_changed.emit(self, previous_stack_count)
 
 
-## Checks if there is an [AttributeEffectCondition] blocking the addition of this
-## spec to the [param attribute]. Returns the condition that is blocking it, or
-## null if there is no blocking condition. Also returns null if the effect doesn't 
-## support add conditions.
-func _can_add(attribute: Attribute) -> AttributeEffectCondition:
-	if !_effect.has_add_conditions():
-		return null
-	return _check_conditions(attribute, _effect.add_conditions)
-
-
-## Checks if there is an [AttributeEffectCondition] blocking the application of this
-## spec to the [param attribute]. Returns the condition that is blocking it, or
-## null if there is no blocking condition. Also returns null if the effect doesn't 
-## support apply conditions.
-func _can_apply(attribute: Attribute) -> AttributeEffectCondition:
-	if !_effect.has_apply_conditions():
-		return null
-	return _check_conditions(attribute, _effect.apply_conditions)
-
-
-func _check_conditions(attribute: Attribute, conditions: Array[AttributeEffectCondition]) \
- -> AttributeEffectCondition:
-	for condition: AttributeEffectCondition in conditions:
-		if !condition.meets_condition(attribute, self):
-			return condition
-	return null
-
-
 ## Runs the callback [param _function] on all [AttributeEffectCallback]s who have
 ## implemented that function.
 func _run_callbacks(_function: AttributeEffectCallback._Function, attribute: Attribute) -> void:

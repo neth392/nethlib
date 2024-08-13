@@ -47,13 +47,15 @@ enum AddEffectResult {
 	## Effect was blocked by an [AttributeEffectCondition], retrieve it via
 	## [method get_last_blocked_by].
 	BLOCKED_BY_CONDITION = 3,
+	## Effect was blocked by a condition of a BLOCKER [AttributeEffect].
+	BLOCKED_BY_BLOCKER = 4,
 	## Effect was already added to the [Attribute] and stack_mode is set to DENY.
-	STACK_DENIED = 4,
+	STACK_DENIED = 5,
 	## Effect was not added because it has a duration and it's initial duration was <= 0.0
-	INVALID_DURATION = 5,
+	INVALID_DURATION = 6,
 	## Effect is instant & can't be "added", but only applied. This does not mean success,
 	## nor an error.
-	INSTANT_CANT_ADD = 6,
+	INSTANT_CANT_ADD = 7,
 }
 
 ###################
@@ -506,7 +508,8 @@ func calculate_current_value(_validate: bool = true) -> float:
 func _apply_permanent_spec(spec: AttributeEffectSpec, index: int, current_tick: int, 
 base_value: float, to_remove: Dictionary, to_emit_applied: Array[AttributeEffectSpec],
  reset_period: bool) -> bool:
-	if !_test_apply_conditions(spec):
+	assert(spec.get_effect().is_permanent(), "spec (%s) not PERMANENT" % spec)
+	if !_test_apply(spec):
 		return false
 	spec._apply_count += 1
 	spec._tick_last_applied = current_tick
@@ -654,7 +657,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 			continue
 		
 		# Check add conditions
-		if !_test_add_conditions(spec):
+		if !_test_add(spec):
 			continue
 		
 		# Handle COMBINE stacking (only if a spec of the same effect already exists)
@@ -868,6 +871,7 @@ func _remove_spec_at_index(spec: AttributeEffectSpec, index: int) -> void:
 	
 
 func _remove_spec(spec: AttributeEffectSpec) -> void:
+	assert(has_spec(spec), "spec (%s) not in _specs" % spec)
 	_pre_remove_spec(spec)
 	_specs.erase(spec)
 	_has_specs = !_specs.is_empty()
@@ -886,24 +890,65 @@ func _post_remove_spec(spec: AttributeEffectSpec) -> void:
 	spec._run_callbacks(AttributeEffectCallback._Function.REMOVED, self)
 
 
-func _test_add_conditions(spec: AttributeEffectSpec) -> bool:
-	if _test_conditions_and_emit_failed(spec, spec._can_add, effect_add_blocked):
-		return true
-	spec._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
-	return false
+## Tests the addition of [param spec] by evaluating it's potential add [AttributeEffectCondition]s
+## and that of all BLOCKER type effects.
+func _test_add(spec: AttributeEffectSpec) -> bool:
+	# Check spec's own conditions
+	if spec.get_effect().has_add_conditions():
+		if !_test_conditions(spec, spec, spec.get_effect().add_conditions, effect_add_blocked):
+			spec._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
+			return false
+	
+	# Iterate BLOCKER effects
+	if _specs.has_blockers():
+		for blocker: AttributeEffectSpec in _specs.iterate():
+			# BLOCKERS are sorted first, so when there are no more blockers than no condition can be failed
+			if !blocker.get_effect().is_blocker():
+				break
+			
+			# Ignore expired - they arent removed until later in the frame sometimes
+			if blocker.is_expired():
+				continue
+			
+			if !_test_conditions(spec, blocker, blocker.get_effect().add_blockers, effect_add_blocked):
+				spec._last_add_result = AddEffectResult.BLOCKED_BY_BLOCKER
+				return false
+	
+	return true
 
 
-func _test_apply_conditions(spec: AttributeEffectSpec) -> bool:
-	return _test_conditions_and_emit_failed(spec, spec._can_apply, effect_apply_blocked)
+## Tests the applying of [param spec] by evaluating it's potential apply [AttributeEffectCondition]s
+## and that of all BLOCKER type effects.
+func _test_apply(spec: AttributeEffectSpec) -> bool:
+	# Check spec's own conditions
+	if spec.get_effect().has_apply_conditions():
+		if !_test_conditions(spec, spec, spec.get_effect().apply_conditions, effect_apply_blocked):
+			return false
+	
+	# Iterate BLOCKER effects
+	if _specs.has_blockers():
+		for blocker: AttributeEffectSpec in _specs.iterate():
+			# BLOCKERS are sorted first, so when there are no more blockers than no condition can be failed
+			if !blocker.get_effect().is_blocker():
+				break
+			
+			# Ignore expired - they arent removed until later in the frame sometimes
+			if blocker.is_expired():
+				continue
+			
+			if !_test_conditions(spec, blocker, blocker.get_effect().apply_blockers, effect_apply_blocked):
+				return false
+	return true
 
 
-func _test_conditions_and_emit_failed(spec: AttributeEffectSpec, callable: Callable, 
-_signal: Signal) -> bool:
-	spec._last_blocked_by = callable.call(self)
-	if spec._last_blocked_by != null:
-		if spec._last_blocked_by.emit_blocked_signal && !_signal.is_null():
-			_signal.emit(spec, spec)
-		return false
+func _test_conditions(spec_to_test: AttributeEffectSpec, condition_source: AttributeEffectSpec,
+ conditions: Array[AttributeEffectCondition], _signal: Signal) -> bool:
+	for condition: AttributeEffectCondition in conditions:
+		if !condition.meets_condition(self, spec_to_test):
+			spec_to_test._last_blocked_by = condition
+			if condition.emit_blocked_signal:
+				_signal.emit(spec_to_test, condition_source)
+			return false
 	return true
 
 
