@@ -31,6 +31,11 @@ func _ready() -> void:
 	_print(" ")
 	_print("APPLY 2 DAMAGE/SEC OVER 5 SEC")
 	
+	var blocker: AttributeEffect = load("res://testing_please_ignore/attribute/test_blocker_effect.tres") \
+	as AttributeEffect
+	attr.add_effect(blocker)
+	
+	
 	var effect2: AttributeEffect = load("res://testing_please_ignore/attribute/2_damage_sec_over_5_sec.tres") as AttributeEffect
 	attr.add_effect(effect2)
 	#var total_attributes: int = 1
@@ -79,16 +84,16 @@ func _on_e_add(spec: AttributeEffectSpec) -> void:
 	_print("effect_added: spec=%s" % spec)
 
 
-func _on_e_add_blocked(spec: AttributeEffectSpec) -> void:
-	_print("effect_add_blocked: spec=%s" % spec)
+func _on_e_add_blocked(spec: AttributeEffectSpec, blocked_by: AttributeEffectSpec) -> void:
+	_print("effect_add_blocked: spec=%s, blocked_by=%s" % [spec, blocked_by])
 
 
 func _on_e_apply(spec: AttributeEffectSpec) -> void:
 	_print("effect_applied: spec=%s" % spec)
 
 
-func _on_e_apply_blocked(spec: AttributeEffectSpec) -> void:
-	_print("effect_apply_blocked: spec=%s" % spec)
+func _on_e_apply_blocked(spec: AttributeEffectSpec, blocked_by: AttributeEffectSpec) -> void:
+	_print("effect_apply_blocked: spec=%s, blocked_by=%s" % [spec, blocked_by])
 
 
 func _on_e_removed(spec: AttributeEffectSpec) -> void:

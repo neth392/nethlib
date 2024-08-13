@@ -4,7 +4,7 @@ class_name AttributeEffectSpecArray extends Resource
 static func _sort_a_before_b(a: AttributeEffectSpec, b: AttributeEffectSpec) -> bool:
 	if a.get_effect().type != b.get_effect().type:
 		return a.get_effect().type < b.get_effect().type
-	return a.get_effect().apply_priority >= b.get_effect().apply_priority
+	return a.get_effect().priority >= b.get_effect().priority
 
 
 var _array: Array[AttributeEffectSpec] = []

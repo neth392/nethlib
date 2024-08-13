@@ -58,8 +58,6 @@ enum DurationType {
 		if type != Type.PERMANENT && duration_type == DurationType.INSTANT:
 			# INSTANT not compatible with TEMPORARY or BLOCKER
 			duration_type = DurationType.INFINITE
-		if type == Type.BLOCKER:
-			stack_mode = StackMode.DENY_ERROR
 		notify_property_list_changed()
 
 ## The direct effect to [member Attribute.value]
@@ -76,7 +74,7 @@ enum DurationType {
 ## can be applied so the override effect is applied last.
 ## [br]NOTE: Effects are first sorted by type: [enum Type.BLOCKER], [enum Type.PERMANENT], [enum Type.TEMPORARY].
 ## [br]NOTE: Priority is not used in processing of period & duration.
-@export var apply_priority: int = 0
+@export var priority: int = 0
 
 @export_group("Signals")
 
@@ -262,7 +260,7 @@ func _init(_id: StringName = "") -> void:
 
 
 func _validate_property(property: Dictionary) -> void:
-	if property.name == "value":
+	if property.name == "value" || property.name == "value_calculator":
 		if !has_value():
 			_no_editor(property)
 		return

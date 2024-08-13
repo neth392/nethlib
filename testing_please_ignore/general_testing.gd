@@ -15,8 +15,6 @@ var total_duration_active: float = 0.0
 var time_paused: float
 
 func _ready() -> void:
-	print(TimeUtil.convert_time(1255.3, TimeUtil.TimeUnit.MILLISECONDS, TimeUtil.TimeUnit.MICROSECONDS))
-	return
 	process_mode = Node.PROCESS_MODE_WHEN_PAUSED
 	get_tree().paused = true
 	return

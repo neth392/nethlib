@@ -656,7 +656,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 			spec._last_add_result = AddEffectResult.STACK_DENIED
 			continue
 		
-		# Check add conditions
+		# Check add conditions & blockers
 		if !_test_add(spec):
 			continue
 		
@@ -908,10 +908,12 @@ func _test_add(spec: AttributeEffectSpec) -> bool:
 			
 			# Ignore expired - they arent removed until later in the frame sometimes
 			if blocker.is_expired():
+				print("EXPIRED")
 				continue
 			
 			if !_test_conditions(spec, blocker, blocker.get_effect().add_blockers, effect_add_blocked):
 				spec._last_add_result = AddEffectResult.BLOCKED_BY_BLOCKER
+				print("BLOCKED")
 				return false
 	
 	return true
