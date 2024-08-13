@@ -6,9 +6,11 @@
 
 [sub_resource type="Resource" id="Resource_8odpc"]
 script = ExtResource("1_3p2fs")
-tags = Array[StringName]([&"slow_damage"])
+tags = Array[StringName]([])
+include_effect_tags = true
 remove_after = true
-error_on_no_container = false
+cache_tags_to_remove = true
+error_on_no_container = true
 
 [sub_resource type="Resource" id="Resource_ku1ib"]
 script = ExtResource("3_st5yu")
@@ -17,8 +19,8 @@ attribute_value_to_use = 0
 [resource]
 script = ExtResource("2_5ycyd")
 id = &"2damagesecover5sec"
-tags = PackedStringArray()
-type = 0
+tags = Array[StringName]([&"2damagerino"])
+type = 1
 value = 2.0
 value_calculator = SubResource("Resource_ku1ib")
 apply_priority = 0
@@ -27,7 +29,7 @@ _emit_applied_signal = true
 _emit_removed_signal = true
 duration_type = 1
 duration_in_seconds = 2.0
-_apply_on_expire = false
+_apply_on_expire = true
 _apply_limit = false
 apply_limit_amount = 0
 period_in_seconds = 1.0
@@ -41,3 +43,5 @@ _value_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifi
 _period_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
 _duration_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
 _callbacks = Array[Resource("res://addons/neth_lib/attribute/effect/callback/attribute_effect_callback.gd")]([SubResource("Resource_8odpc")])
+add_blockers = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
+apply_blockers = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])

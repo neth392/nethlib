@@ -40,15 +40,15 @@ func _validate_property(property: Dictionary) -> void:
 func _pre_add(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	var container: AttributeContainer = attribute.get_container()
 	if container != null:
+		var tags_to_apply: Array[StringName] = tags.duplicate()
+		
+		if include_effect_tags && !spec.get_effect().tags.is_empty():
+			tags_to_apply.append_array(spec.get_effect().tags)
+		
 		if cache_tags_to_remove:
-			var tags: Array[StringName] = tags.duplicate()
-			if include_effect_tags && !spec.get_effect().tags.is_empty():
-				tags.append_array(spec.get_effect().tags)
-			_cache[spec] = tags
-		else:
-			attribute.get_container().add_tags(tags)
-			if include_effect_tags && !spec.get_effect().tags.is_empty():
-				attribute.get_container().add_tags(spec.get_effect().tags)
+			_cache[spec] = tags_to_apply
+		
+		attribute.get_container().add_tags(tags_to_apply)
 	elif error_on_no_container:
 		assert(false, "no container for attribute: %s" % attribute)
 
@@ -59,7 +59,7 @@ func _pre_remove(attribute: Attribute, spec: AttributeEffectSpec) -> void:
 	var container: AttributeContainer = attribute.get_container()
 	if container != null:
 		if cache_tags_to_remove:
-			assert(_cache.has(spec), "spec (%s) not in _cache" % tags)
+			assert(_cache.has(spec), "spec (%s) not in _cache" % [tags])
 			attribute.get_container().remove_tags(_cache[spec])
 		else:
 			attribute.get_container().remove_tags(tags)
