@@ -3,15 +3,16 @@
 class_name AttributeEffect extends Resource
 
 ## The type of effect.
+## [br] NOTE: This enum's structure determines the ordering of [AttributeEffectSpecArray].
 enum Type {
+	## Does not apply any value to an [Attribute], but instead blocks other [AttributeEffect]s
+	## from applying via the use of [member apply_conditions].
+	BLOCKER = 0,
 	## Makes permanent changes to an [Attribute]'s base value.
-	PERMANENT = 0,
+	PERMANENT = 1,
 	## Makes temporary changes to an [Attribute] reflected in 
 	## [method Attribute.get_current_value].
-	TEMPORARY = 1,
-	## Does apply any value to an [Attribute], but instead blocks other [AttributeEffect]s
-	## from applying.
-	BLOCKER = 2,
+	TEMPORARY = 2,
 }
 
 ## Determines how this effect can be stacked on an [Attribute], if at all.
@@ -57,6 +58,8 @@ enum DurationType {
 		if type != Type.PERMANENT && duration_type == DurationType.INSTANT:
 			# INSTANT not compatible with TEMPORARY or BLOCKER
 			duration_type = DurationType.INFINITE
+		if type == Type.BLOCKER:
+			stack_mode = StackMode.DENY_ERROR
 		notify_property_list_changed()
 
 ## The direct effect to [member Attribute.value]
@@ -71,8 +74,7 @@ enum DurationType {
 ## If you want a temporary effect to override a value on an attribute & not have that value 
 ## modified by any other effects, then the priority should be lesser than other effects that 
 ## can be applied so the override effect is applied last.
-## [br]NOTE: Effects of [enum Type.PERMANENT] are processed BEFORE ALL effects of 
-## [enum Type.TEMPORARY], despite priority.
+## [br]NOTE: Effects are first sorted by type: [enum Type.BLOCKER], [enum Type.PERMANENT], [enum Type.TEMPORARY].
 ## [br]NOTE: Priority is not used in processing of period & duration.
 @export var apply_priority: int = 0
 
@@ -100,9 +102,6 @@ enum DurationType {
 			duration_type = DurationType.INFINITE
 			return
 		duration_type = _value
-		if duration_type == DurationType.INSTANT:
-			if stack_mode != StackMode.DENY && stack_mode != StackMode.DENY_ERROR:
-				stack_mode = StackMode.DENY
 		notify_property_list_changed()
 
 ## The amount of time in seconds this [AttributeEffect] lasts.
@@ -227,6 +226,12 @@ enum DurationType {
 		for callback: AttributeEffectCallback in _callbacks:
 			_add_callback_internal(callback, false)
 
+@export_group("Blockers")
+
+## 
+@export var add_blockers: Array[AttributeEffectCondition]
+
+@export var apply_blockers: Array[AttributeEffectCondition]
 
 var _callbacks_by_function: Dictionary = {}
 
@@ -242,6 +247,11 @@ func _init(_id: StringName = "") -> void:
 
 
 func _validate_property(property: Dictionary) -> void:
+	if property.name == "value":
+		if !has_value():
+			_no_editor(property)
+		return
+	
 	if property.name == "_emit_applied_signal":
 		if !can_emit_applied_signal():
 			_no_editor(property)
@@ -312,6 +322,11 @@ func _validate_property(property: Dictionary) -> void:
 			_no_editor(property)
 		return
 	
+	if property.name == "_value_modifiers":
+		if !has_value():
+			_no_editor(property)
+		return
+	
 	if property.name == "_period_modifiers":
 		if !has_period():
 			_no_editor(property)
@@ -320,6 +335,12 @@ func _validate_property(property: Dictionary) -> void:
 	if property.name == "_duration_modifiers":
 		if !has_duration():
 			_no_editor(property)
+		return
+	
+	if property.name == "add_blockers" || property.name == "apply_blockers":
+		if !is_blocker():
+			_no_editor(property)
+		return
 
 
 func _validate_and_assert(modifiers: Array[AttributeEffectModifier]) -> void:
@@ -388,22 +409,25 @@ func add_duration_modifier(modifier: AttributeEffectModifier) -> bool:
 	return _add_modifier(modifier, _duration_modifiers)
 
 
-## TODO
-func _add_modifier(modifier: AttributeEffectModifier, array: Array[AttributeEffectModifier]) -> bool:
+## Internal method to add a modifier
+func _add_modifier(modifier: AttributeEffectModifier, 
+array: Array[AttributeEffectModifier]) -> bool:
 	assert(modifier != null, "modifier is null")
 	if OS.is_debug_build():
-		modifier.validate_and_assert(self)
+		modifier._validate_and_assert(self)
 	
 	if !modifier.duplicate_instances && array.has(modifier):
 		return false
 	
-	var insert_index: int = 0
-	for index: int in array.size():
-		if modifier.priority > array[index].priority:
-			insert_index = index
+	var index: int = 0
+	for other_modifier: AttributeEffectModifier in array:
+		if modifier.priority >= other_modifier.priority:
+			array.insert(index, modifier)
 			break
+		index += 1
+	if index == array.size(): # Not yet added
+		array.append(modifier)
 	
-	array.insert(insert_index, modifier)
 	return true
 
 
@@ -536,6 +560,15 @@ func _to_string() -> String:
 ## Helper functions for feature support ##
 ##########################################
 
+## Returns true if this effect has a value to apply to an [Attribute].
+func has_value() -> bool:
+	return type == Type.PERMANENT || type == Type.TEMPORARY
+
+
+## Asserts [method has_value] returns true.
+func assert_has_value() -> void:
+	assert(has_value(), "effect does have a value")
+
 
 ## Returns true if this effect supports a [member duration_type] of 
 ## [enum DurationType.INSTANT].
@@ -574,7 +607,7 @@ func has_add_conditions() -> bool:
 
 ## Whether or not this effect supports [member apply_conditions]
 func has_apply_conditions() -> bool:
-	return type == Type.PERMANENT || type == Type.BLOCKER
+	return type == Type.PERMANENT
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_added].
@@ -651,7 +684,7 @@ func has_duration() -> bool:
 	return duration_type == DurationType.HAS_DURATION
 
 
-## [method assert]s that [method has_duration] is true.
+## Asserts [method has_duration] returns true.
 func assert_has_duration() -> void:
 	assert(has_duration(), "effect does not have a duration_in_seconds")
 
@@ -661,7 +694,7 @@ func has_period() -> bool:
 	return type == Type.PERMANENT && !is_instant()
 
 
-## [method has_period]s that [method has_duration] is true.
+## Asserts [method has_period] returns true.
 func assert_has_period() -> void:
 	assert(has_period(), "effect does not have a period_in_seconds")
 

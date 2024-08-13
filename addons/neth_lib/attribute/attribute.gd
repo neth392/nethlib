@@ -79,15 +79,19 @@ signal effect_added(spec: AttributeEffectSpec)
 ## or as an instant effect.
 signal effect_applied(spec: AttributeEffectSpec)
 
-## Emitted after the [param spec] was blocked from being added to
-## this [Attribute] by an [AttributeEffectCondition]. To access the condition
-## that blocked, call [method AttributeEffectSpec.get_denied_by].
-signal effect_add_blocked(spec: AttributeEffectSpec)
+## Emitted after [param blocked] was blocked from being added to
+## this [Attribute] by an [AttributeEffectCondition], accessible via 
+## [method AttributeEffectSpec.get_last_blocked_by]. [param blocked_by] is the owner
+## of that condition, and could (but not always in the case of BLOCKER effects) be the same
+## as [param blocked].
+signal effect_add_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEffectSpec)
 
-## Emitted after the added [param spec] was blocked from being applied to
-## this [Attribute] by an [AttributeEffectCondition]. To access the condition
-## that blocked, call [method AttributeEffectSpec.get_denied_by].
-signal effect_apply_blocked(spec: AttributeEffectSpec)
+## Emitted after [param blocked] was blocked from being applied to
+## this [Attribute] by an [AttributeEffectCondition], accessible via 
+## [method AttributeEffectSpec.get_last_blocked_by]. [param blocked_by] is the owner
+## of that condition, and could (but not always in the case of BLOCKER effects) be the same
+## as [param blocked].
+signal effect_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEffectSpec)
 
 ## Emitted when the [param spec] was removed. To determine if it was manual
 ## or due to expiration, see [method AttributeEffectSpec.expired].
@@ -257,7 +261,6 @@ func _physics_process(delta: float) -> void:
 ## The heart & soul of Attribute, responsible for processing & applying [AttriubteEffectSpec]s.
 ## NOT meant to be overridden at all.
 func __process() -> void:
-	print("PROCESS!")
 	assert(!_locked, "attribute is locked")
 	# Lock
 	_locked = true
@@ -899,7 +902,7 @@ _signal: Signal) -> bool:
 	spec._last_blocked_by = callable.call(self)
 	if spec._last_blocked_by != null:
 		if spec._last_blocked_by.emit_blocked_signal && !_signal.is_null():
-			_signal.emit(spec)
+			_signal.emit(spec, spec)
 		return false
 	return true
 
