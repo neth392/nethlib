@@ -101,8 +101,8 @@ signal maximum_value_changed(had_old_maximum: bool, old_maximum: float, autowrap
 		
 		update_configuration_warnings()
 
-## Determines which [Attribute] value to use for the minimum.
-@export var minimum_value: TrackedValue = TrackedValue.CURRENT_VALUE
+## Determines which [Attribute] value (current or base) to use for the [member minimum].
+@export var tracked_minimum_value: TrackedValue = TrackedValue.CURRENT_VALUE
 
 @export_group("Maximum")
 
@@ -156,6 +156,9 @@ signal maximum_value_changed(had_old_maximum: bool, old_maximum: float, autowrap
 		
 		update_configuration_warnings()
 
+## Determines which [Attribute] value (current or base) to use for the [member maximum].
+@export var tracked_maximum_value: TrackedValue = TrackedValue.CURRENT_VALUE
+
 
 func _ready() -> void:
 	super._ready()
@@ -163,6 +166,24 @@ func _ready() -> void:
 		return
 	SignalUtil.connect_safely(minimum.current_value_changed, _on_minimum_value_changed)
 	SignalUtil.connect_safely(maximum.current_value_changed, _on_maximum_value_changed)
+
+
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = super._get_configuration_warnings()
+	if !allow_null_maximum && maximum == null:
+		warnings.append("maximum is null but allow_null_maximum is false")
+	if !allow_null_minimum && minimum == null:
+		warnings.append("minimum is null but allow_null_minimum is false")
+	if minimum != null && maximum != null && maximum.value <= minimum.value:
+		warnings.append("maximum.value (%s) not > minimum.value (%s)" \
+		% [maximum.value, minimum.value])
+	# TODO Fix these
+	if minimum != null && _base_value <= _get_tracked_minimum():
+		warnings.append("_base_value (%s) is less than minimum.value (%s)" % [value, minimum.value)
+	elif maximum != null && _base_value > maximum.value:
+		warnings.append("value (%s) is greater than maximum.value (%s)" % [value, maximum.value])
+	return warnings
 
 
 ## Returns true if [member maximum] is not null.
@@ -175,30 +196,62 @@ func has_maximum() -> bool:
 	return maximum != null
 
 
-## Returns true if value is at the minimum.
-func is_minimum() -> bool:
-	return value <= minimum.value
+## Returns true if [method get_current_value] is <= [member minimum]'s value, false if not.
+## Also returns false if there is no minimum (see [method has_minimum]).
+func is_current_value_minimum() -> bool:
+	return _is_minimum(get_current_value())
 
 
-## Returns true if value is at the maximum.
-func is_maximim() -> bool:
-	return value >= maximum.value
+## Returns true if [method get_base_value] is <= [member minimum]'s value, false if not.
+## Also returns false if there is no minimum (see [method has_minimum]).
+func is_base_value_minimum() -> bool:
+	return _is_minimum(get_base_value())
 
 
-func _get_configuration_warnings() -> PackedStringArray:
-	var warnings: PackedStringArray = super._get_configuration_warnings()
-	if !allow_null_maximum && maximum == null:
-		warnings.append("maximum is null but allow_null_maximum is false")
-	if !allow_null_minimum && minimum == null:
-		warnings.append("minimum is null but allow_null_minimum is false")
-	if minimum != null && maximum != null && maximum.value <= minimum.value:
-		warnings.append("maximum.value (%s) not > minimum.value (%s)" \
-		% [maximum.value, minimum.value])
-	if minimum != null && _base_value < minimum.value:
-		warnings.append("value (%s) is less than minimum.value (%s)" % [value, minimum.value])
-	elif maximum != null && _base_value > maximum.value:
-		warnings.append("value (%s) is greater than maximum.value (%s)" % [value, maximum.value])
-	return warnings
+func _is_minimum(value: float) -> bool:
+	if has_minimum():
+		return value <= _get_tracked_minimum()
+	return false
+
+
+## Returns true if [method get_current_value] is >= [member maximum]'s value, false if not.
+## Also returns false if there is no maximum (see [method has_maximum]).
+func is_current_value_maximum() -> bool:
+	return _is_maximum(get_current_value())
+
+
+## Returns true if [method get_base_value] is  >= [member maximum]'s value, false if not.
+## Also returns false if there is no maximum (see [method has_maximum]).
+func is_base_value_maximum() -> bool:
+	return _is_maximum(get_base_value())
+
+
+func _is_maximum(value: float) -> bool:
+	if has_maximum():
+		return value >= _get_tracked_maximum()
+	return false
+
+
+func _get_tracked_minimum() -> float:
+	assert(has_minimum(), "minimum is null (there is no minimum)")
+	return _get_tracked_value(minimum, tracked_minimum_value)
+
+
+func _get_tracked_maximum() -> float:
+	assert(has_maximum(), "maximum is null (there is no maximum)")
+	return _get_tracked_value(maximum, tracked_maximum_value)
+
+
+func _get_tracked_value(attribute: Attribute, tracked: TrackedValue) -> float:
+	assert(attribute != null, "attribute is null")
+	match tracked:
+		TrackedValue.CURRENT_VALUE:
+			return attribute.get_current_value()
+		TrackedValue.BASE_VALUE:
+			return attribute.get_base_value()
+		_:
+			assert(false, "no implementation for tracked (%s)" % tracked)
+			return 0.0
 
 
 func _validate_base_value(set_value: float) -> float:
