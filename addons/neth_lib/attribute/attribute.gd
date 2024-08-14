@@ -118,8 +118,6 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 		if prev_base_value != _base_value:
 			base_value_changed.emit(prev_base_value)
 			_base_value_changed(prev_base_value)
-		if Engine.is_editor_hint():
-			_update_current_value()
 		
 		update_configuration_warnings()
 
@@ -143,6 +141,12 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 		effects_process_function = _value
 		if !Engine.is_editor_hint():
 			_update_processing()
+
+
+## If true, default effects are added via using [method Callable.call_deferred]
+## on [method add_effects], which allows time to connect to this attribute's
+## signals to be notified of the additions.
+@export var defer_default_effects: bool = false
 
 ## Array of all [AttributeEffect]s.
 @export var _default_effects: Array[AttributeEffect] = []:
@@ -215,9 +219,13 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
+	_update_processing()
+	# Escape if editor
+	if Engine.is_editor_hint():
+		return
+	
 	_current_value = _base_value
 	_current_value_initiated = true
-	_update_processing()
 	
 	# Find & set history
 	for child: Node in get_children():
@@ -231,7 +239,10 @@ func _ready() -> void:
 	
 	# Handle default effects
 	if allow_effects && !_default_effects.is_empty():
-		add_effects(_default_effects)
+		if defer_default_effects:
+			add_effects.call_deferred(_default_effects)
+		else:
+			add_effects(_default_effects)
 
 
 func _exit_tree() -> void:

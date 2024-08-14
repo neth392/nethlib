@@ -11,7 +11,7 @@ class_name AttributeHistory extends Node
 ## [member AttributeEffectSpec] that was added, and [param removed] being
 ## the instance that was removed due to [member history_length], or null if
 ## this history has not yet hit the length.
-signal history_changed(new_effect_spec: AttributeEffectSpec)
+signal changed(new_effect_spec: AttributeEffectSpec)
 
 ## Emitted when [member history_length] is changed. [param previous_length] is the
 ## previous value, and [param removed] are any specs that were removed if the new length
@@ -74,4 +74,4 @@ func _add_to_history(spec: AttributeEffectSpec) -> void:
 		removed = _history.pop_back()
 	assert(_history.size() <= history_length, "_history.size() (%s) > history_length (%s)" \
 	% [_history.size(), history_length])
-	history_changed.emit(spec, removed)
+	changed.emit(spec, removed)

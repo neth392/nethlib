@@ -15,9 +15,6 @@ var total_duration_active: float = 0.0
 var time_paused: float
 
 func _ready() -> void:
-	process_mode = Node.PROCESS_MODE_WHEN_PAUSED
-	get_tree().paused = true
-	return
 	print("paused? " + str(can_process()))
 	get_tree().paused = true
 	print("paused? " + str(can_process()))

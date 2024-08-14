@@ -7,6 +7,8 @@ var _time_msec: float
 
 @export var attr_label: Label
 
+@export var history: AttributeHistory
+
 func _ready() -> void:
 	_time_msec = Time.get_ticks_msec() / 1000.0
 	container.attribute_added.connect(_on_c_a_a)
@@ -25,6 +27,9 @@ func _ready() -> void:
 	
 	attr_label.text = attr_label.text % attr.id
 	
+	history.changed.connect(_on_h_c)
+	history.length_changed.connect(_on_h_l_c)
+	
 	_print("ATTRIBUTE BASE_VALUE: %s" % attr.get_base_value())
 	_print("ATTRIBUTE CURRENT_VALUE: %s" % attr.get_current_value())
 	
@@ -33,25 +38,25 @@ func _ready() -> void:
 	
 	var blocker: AttributeEffect = load("res://testing_please_ignore/attribute/test_blocker_effect.tres") \
 	as AttributeEffect
-	attr.add_effect(blocker)
+	#attr.add_effect(blocker)
 	
-	
+
 	var effect2: AttributeEffect = load("res://testing_please_ignore/attribute/2_damage_sec_over_5_sec.tres") as AttributeEffect
-	attr.add_effect(effect2)
-	var total_attributes: int = 100
-	var total_effects: int = 1
-	
-	for i in total_attributes:
-		var new_attr: Attribute = attr.duplicate(DUPLICATE_USE_INSTANTIATION) as Attribute
-		new_attr.name = "HealthAttribute%s" % i
-		new_attr.id = "health%s" % i
-		container.add_child(new_attr)
-		for d in total_effects:
-			new_attr.add_effects([effect2, blocker])
+	#attr.add_effect(effect2)
+	#var total_attributes: int = 100
+	#var total_effects: int = 1
+	#
+	#for i in total_attributes:
+		#var new_attr: Attribute = attr.duplicate(DUPLICATE_USE_INSTANTIATION) as Attribute
+		#new_attr.name = "HealthAttribute%s" % i
+		#new_attr.id = "health%s" % i
+		#container.add_child(new_attr)
+		#for d in total_effects:
+			#new_attr.add_effects([effect2, blocker])
 
 
 func _print(str: String) -> void:
-	#print(str((Time.get_ticks_msec() / 1000.0) - _time_msec) +"s: " + str)
+	print(str((Time.get_ticks_msec() / 1000.0) - _time_msec) +"s: " + str)
 	pass
 
 
@@ -102,3 +107,11 @@ func _on_e_removed(spec: AttributeEffectSpec) -> void:
 
 func _on_e_stack_count_changed(spec: AttributeEffectSpec, prev_stack_count: int) -> void:
 	_print("effect_removed: spec=%s, prev_stack_count=%s" % [spec, prev_stack_count])
+
+
+func _on_h_c(spec: AttributeEffectSpec) -> void:
+	print("history.history_changed: spec=%s" % spec)
+
+
+func _on_h_l_c(previous_length: int, removed: Array[AttributeEffectSpec]) -> void:
+	print("history.lenght_changed, previous_length=%s, remove=%s" % previous_length, removed)

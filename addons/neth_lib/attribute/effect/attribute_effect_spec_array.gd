@@ -32,14 +32,20 @@ func add(spec_to_add: AttributeEffectSpec) -> int:
 	for spec: AttributeEffectSpec in _array:
 		if _sort_a_before_b(spec_to_add, spec):
 			_array.insert(index, spec_to_add)
-			return index
+			break
 		index += 1
-	_array.append(spec_to_add)
+	
+	# Append if not added during loop
+	if index == _array.size():
+		_array.append(spec_to_add)
+	
+	# Increment temp or blocker count if necessary
 	match spec_to_add.get_effect().type:
 		AttributeEffect.Type.TEMPORARY:
 			_temp_count += 1
 		AttributeEffect.Type.BLOCKER:
 			_blocker_count += 1
+	
 	return index
 
 
