@@ -109,9 +109,9 @@ func _on_e_stack_count_changed(spec: AttributeEffectSpec, prev_stack_count: int)
 	_print("effect_removed: spec=%s, prev_stack_count=%s" % [spec, prev_stack_count])
 
 
-func _on_h_c(spec: AttributeEffectSpec) -> void:
-	print("history.history_changed: spec=%s" % spec)
+func _on_h_c(added: AttributeEffectSpec, removed: AttributeEffectSpec) -> void:
+	_print("history.history_changed: added=%s, remove=%s" % [added, removed])
 
 
 func _on_h_l_c(previous_length: int, removed: Array[AttributeEffectSpec]) -> void:
-	print("history.lenght_changed, previous_length=%s, remove=%s" % previous_length, removed)
+	_print("history.lenght_changed, previous_length=%s, remove=%s" % [previous_length, removed])

@@ -11,7 +11,7 @@ class_name AttributeHistory extends Node
 ## [member AttributeEffectSpec] that was added, and [param removed] being
 ## the instance that was removed due to [member history_length], or null if
 ## this history has not yet hit the length.
-signal changed(new_effect_spec: AttributeEffectSpec)
+signal changed(added: AttributeEffectSpec, removed: AttributeEffectSpec)
 
 ## Emitted when [member history_length] is changed. [param previous_length] is the
 ## previous value, and [param removed] are any specs that were removed if the new length
