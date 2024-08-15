@@ -16,6 +16,7 @@ func _ready() -> void:
 		var detector: PlatformDetector = platform.instantiate_detector()
 		assert(detector != null, "detector for %s is null" % platform)
 		if !detector._is_active():
+			print_debug("Platform (%s) not active." % platform.id)
 			continue
 		print_debug("Platform active: " + platform.id)
 		var handler: PlatformHandler = platform.instantiate_handler()
