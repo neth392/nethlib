@@ -115,10 +115,10 @@ func _ready() -> void:
 func _validate_property(property: Dictionary) -> void:
 	if property.name == "add_to_parent":
 		if !add_to_tree:
-			property.usage = PROPERTY_USAGE_NO_EDITOR
+			property.usage = PROPERTY_USAGE_STORAGE
 			return
 	if !instantiate_on_ready && _auto_instantiate_properties.has(property.name):
-		property.usage = PROPERTY_USAGE_NO_EDITOR
+		property.usage = PROPERTY_USAGE_STORAGE
 
 
 func _get_configuration_warnings() -> PackedStringArray:

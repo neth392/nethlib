@@ -25,7 +25,7 @@ static var _default_caller: Callable = func(predicate: Callable): return predica
 
 func _validate_property(property: Dictionary) -> void:
 	if allow_multiple && property.name == "error_on_multiple":
-		property.usage = PROPERTY_USAGE_NONE
+		property.usage = PROPERTY_USAGE_STORAGE
 
 
 ## Should be overridden to return an [Array] of all [ConditionalReference]s

@@ -142,7 +142,6 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 		if !Engine.is_editor_hint():
 			_update_processing()
 
-
 ## If true, default effects are added via using [method Callable.call_deferred]
 ## on [method add_effects], which allows time to connect to this attribute's
 ## signals to be notified of the additions.
@@ -378,11 +377,11 @@ func __process() -> void:
 func _validate_property(property: Dictionary) -> void:
 	if property.name == "effects_process_function":
 		if !allow_effects:
-			property.usage = PROPERTY_USAGE_NO_EDITOR
+			property.usage = PROPERTY_USAGE_STORAGE
 		return
 	if property.name == "_default_effects":
 		if !allow_effects:
-			property.usage = PROPERTY_USAGE_NO_EDITOR
+			property.usage = PROPERTY_USAGE_STORAGE
 		return
 
 

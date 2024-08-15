@@ -1,8 +1,11 @@
-[gd_resource type="Resource" script_class="AttributeEffect" load_steps=6 format=3 uid="uid://damurgk5lppcq"]
+[gd_resource type="Resource" script_class="AttributeEffect" load_steps=9 format=3 uid="uid://damurgk5lppcq"]
 
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/tag_applier_callback.gd" id="1_3p2fs"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/attribute_effect_callback.gd" id="1_ovyuw"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect.gd" id="2_5ycyd"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd" id="3_bi3xr"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/calculator/subtract_calculator.gd" id="3_st5yu"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd" id="4_g51b4"]
 
 [sub_resource type="Resource" id="Resource_8odpc"]
 script = ExtResource("1_3p2fs")
@@ -37,11 +40,11 @@ initial_period = false
 _apply_on_expire_if_period_is_zero = true
 stack_mode = 0
 _log_history = true
-add_conditions = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
-apply_conditions = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
-_value_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
-_period_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
-_duration_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
-_callbacks = Array[Resource("res://addons/neth_lib/attribute/effect/callback/attribute_effect_callback.gd")]([SubResource("Resource_8odpc")])
-add_blockers = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
-apply_blockers = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
+add_conditions = Array[ExtResource("4_g51b4")]([])
+apply_conditions = Array[ExtResource("4_g51b4")]([])
+_value_modifiers = Array[ExtResource("3_bi3xr")]([])
+_period_modifiers = Array[ExtResource("3_bi3xr")]([])
+_duration_modifiers = Array[ExtResource("3_bi3xr")]([])
+_callbacks = Array[ExtResource("1_ovyuw")]([SubResource("Resource_8odpc")])
+add_blockers = Array[ExtResource("4_g51b4")]([])
+apply_blockers = Array[ExtResource("4_g51b4")]([])

@@ -367,7 +367,7 @@ func _remove_invalid_modifiers(modifiers: Array[AttributeEffectModifier]) -> voi
 
 ## Helper method for _validate_property.
 func _no_editor(property: Dictionary) -> void:
-	property.usage = PROPERTY_USAGE_NO_EDITOR
+	property.usage = PROPERTY_USAGE_STORAGE
 
 
 func _format_enum(_enum: Dictionary, exclude: Array) -> String:

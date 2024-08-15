@@ -34,7 +34,7 @@ var _cache: Dictionary = {}
 func _validate_property(property: Dictionary) -> void:
 	if property.name == "cache_tags_to_remove":
 		if !remove_after:
-			property.usage = PROPERTY_USAGE_NO_EDITOR
+			property.usage = PROPERTY_USAGE_STORAGE
 
 
 func _pre_add(attribute: Attribute, spec: AttributeEffectSpec) -> void:

@@ -5,7 +5,6 @@
 
 [node name="Attribute" type="Node" node_paths=PackedStringArray("pause_tracker")]
 script = ExtResource("1_auulm")
-defer_default_effects = null
 pause_tracker = NodePath("PauseTracker")
 
 [node name="PauseTracker" parent="." instance=ExtResource("2_40s6w")]
