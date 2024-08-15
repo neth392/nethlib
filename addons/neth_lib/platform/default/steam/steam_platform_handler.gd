@@ -1,4 +1,5 @@
-@tool
+## Implementation for GodotSteam. Will show errors if you are not using that addon or
+## a precompile from GodotSteam
 extends PlatformHandler
 
 func _ready():
