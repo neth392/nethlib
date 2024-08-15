@@ -333,13 +333,25 @@ func __process() -> void:
 					# Set to apply since period is <=0 & it's expired
 					apply = true
 		
-		# Check if it should ss")
-		if apply && _test_apply(spec):
-			# Apply it
-			_apply_permanent_spec(spec, index, current_tick, new_base_value, 
-			__process_to_remove, __process_emit_applied)
-			# Update the new base value
-			new_base_value = spec._last_set_value
+		# Check if it should apply
+		if apply:
+			# Set pending value
+			spec._pending_value = spec.get_effect().get_modified_value(self, spec)
+			if _test_apply(spec): # Apply
+				
+				spec._last_value = spec._pending_value
+				
+				# Clear pending value
+				spec._pending_value
+				
+				spec._last_set_value = spec.get_effect().apply_calculator(new_base_value, 
+				_current_value, spec._last_value)
+				
+				# Apply it
+				_apply_permanent_spec(spec, index, current_tick, new_base_value, 
+				__process_to_remove, __process_emit_applied)
+				# Update the new base value
+				new_base_value = spec._last_set_value
 		
 		# Reset the period
 		if reset_period:
@@ -476,14 +488,6 @@ func _current_value_changed(prev_current_value: float) -> void:
 	pass
 
 
-## Sets [member AttributeEffectSpec._last_value] and [member AttributeEffectSpec._last_set_value]
-## of [param spec] based on [param base_value] and [param current_value]. For use when applying
-## an effect.
-func _update_apply_values(spec: AttributeEffectSpec, base_value: float, current_value: float) -> void:
-	spec._last_value = spec.get_effect().get_modified_value(self, spec)
-	spec._last_set_value = spec.get_effect().apply_calculator(base_value, current_value, spec._last_value)
-
-
 ## Updates the value returned by [method get_current_value] by re-applying all
 ## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY].
 func _update_current_value() -> void:
@@ -523,10 +527,6 @@ base_value: float, to_remove: Dictionary, to_emit_applied: Array[AttributeEffect
 	assert(spec.get_effect().is_permanent(), "spec (%s) not PERMANENT" % spec)
 	spec._apply_count += 1
 	spec._tick_last_applied = current_tick
-	
-	# new_base_value provided twice as TEMPORARY effects have not yet been
-	# applied to the base value
-	_update_apply_values(spec, base_value, base_value)
 	
 	# Log to history
 	if has_history() && spec.get_effect().should_log_history():
@@ -730,12 +730,26 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		
 		# Iterate specs & apply them
 		for spec: AttributeEffectSpec in perm_specs_to_apply:
+			# Set pending value
+			spec._pending_value = spec.get_effect().get_modified_value(self, spec)
 			if _test_apply(spec):
 				var index: int = perm_specs_to_apply[spec]
+				
+				spec._last_value = spec._pending_value
+				
+				# Clear pending value
+				spec._pending_value
+				
+				spec._last_set_value = spec.get_effect().apply_calculator(new_base_value, 
+				_current_value, spec._last_value)
+				
 				_apply_permanent_spec(spec, index, current_tick, new_base_value, to_remove, 
 				to_emit_applied)
 				# Update base value
 				new_base_value = spec._last_set_value
+			else:
+				# Clear pending value
+				spec._pending_value
 			
 			# Reset period if there is one
 			if spec.get_effect().has_period(): 

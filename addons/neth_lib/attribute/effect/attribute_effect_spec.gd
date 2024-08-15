@@ -43,6 +43,7 @@ var _tick_last_applied: int = -1
 var _active_duration: float = 0.0
 var _last_set_value: float
 var _last_value: float
+var _pending_value: float
 
 func _init(effect: AttributeEffect) -> void:
 	assert(effect != null, "effect is null")
@@ -130,6 +131,13 @@ func get_last_value() -> float:
 	return _last_value
 
 
+## Returns the value that is pending, and not yet applied to the [Attribute]. Pending
+## means the effect has yet to pass any [AttributeEffectCondition]s that may block it from
+## applying to an [Attribute]. This is primarily for use in [AttributeEffectCondition]s.
+func get_pending_value() -> float:
+	return _pending_value
+
+
 ## If currently blocked, returns the [AttributeEffectCondition] that blocked this spec
 ## when being added to an effect or in applying. Returns null if not currently blocked.
 func get_last_blocked_by() -> AttributeEffectCondition:
@@ -201,7 +209,7 @@ func _remove_from_stack(attribute: Attribute, amount: int = 1) -> void:
 	assert(is_stackable(), "_effect (%s) not stackable" % _effect)
 	assert(amount > 0, "amount(%s) <= 0" % amount)
 	assert(_stack_count - amount > 0, "amount(%s) - _stack_count(%s) <= 0"\
-	 % [amount, _stack_count])
+		% [amount, _stack_count])
 	
 	var previous_stack_count: int = _stack_count
 	_stack_count -= amount

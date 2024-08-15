@@ -14,8 +14,8 @@ class_name AttributeEffectCondition extends Resource
 
 ## If true, the condition result is negated.
 @export var negate: bool = false
-
 ## 
+
 func meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 	var meets: bool = _meets_condition(attribute, spec)
 	if negate:
