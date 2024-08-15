@@ -35,14 +35,28 @@ var _expired: bool = false
 var _is_added: bool = false
 var _stack_count: int = 1
 var _apply_count: int = 0
+
 var _last_blocked_by: AttributeEffectCondition
 var _last_add_result: Attribute.AddEffectResult = Attribute.AddEffectResult.NEVER_ADDED
+
 var _tick_added_on: int = -1
 var _tick_last_processed: int = -1
 var _tick_last_applied: int = -1
+
 var _active_duration: float = 0.0
-var _last_set_value: float
-var _last_value: float
+
+## The last 
+var _last_calculated_value: float
+
+var _last_effect_value: float
+
+
+
+## The last value directly set to the Attribute. Derived from applying the [AttributeEffectCalculator]
+## to the Attribute's current value and the [member _last_value_from_effect].
+var _last_value_set_to_attribute: float
+var _last_value_from_effect: float
+
 var _pending_value: float
 
 func _init(effect: AttributeEffect) -> void:

@@ -185,7 +185,7 @@ var _effect_counts: Dictionary = {}
 var _current_value: float:
 	set(value):
 		var prev_current_value: float = _current_value
-		_current_value = _validate_current_value(value)
+		_current_value = value
 		if _current_value_initiated && _current_value != prev_current_value:
 			current_value_changed.emit(prev_current_value)
 			_current_value_changed(prev_current_value)
@@ -342,7 +342,7 @@ func __process() -> void:
 				spec._last_value = spec._pending_value
 				
 				# Clear pending value
-				spec._pending_value
+				spec._pending_value = 0.0
 				
 				spec._last_set_value = spec.get_effect().apply_calculator(new_base_value, 
 				_current_value, spec._last_value)
@@ -352,6 +352,8 @@ func __process() -> void:
 				__process_to_remove, __process_emit_applied)
 				# Update the new base value
 				new_base_value = spec._last_set_value
+			else:
+				spec._pending_value = 0.0
 		
 		# Reset the period
 		if reset_period:
@@ -495,7 +497,7 @@ func _update_current_value() -> void:
 		_current_value = _base_value
 		return
 	
-	var new_current_value: float = calculate_current_value(false)
+	var new_current_value: float = calculate_current_value()
 	
 	if _current_value != new_current_value:
 		_current_value = new_current_value
@@ -506,17 +508,14 @@ func _update_current_value() -> void:
 ## is called in the middle of processing.
 ## [br][param _validate] is mostly for internal use, but if true the calculated value is ran through
 ## [method _validate_current_value] before being returned.
-func calculate_current_value(_validate: bool = true) -> float:
-	var current_value: float = _base_value
+func calculate_current_value() -> float:
+	var new_current_value: float = _base_value
 	for spec: AttributeEffectSpec in _specs.iterate():
 		if !spec.get_effect().is_temporary() || spec._expired:
-			var spec_value: float = spec.get_effect().get_modified_value(self, spec)
-			current_value = spec.get_effect().apply_calculator(_base_value, current_value, spec._last_value)
+			spec._last_value = spec.get_effect().get_modified_value(self, spec)
+			new_current_value = spec.get_effect().apply_calculator(_base_value, new_current_value, spec._last_value)
 	
-	if _validate:
-		return _validate_current_value(current_value)
-	
-	return current_value
+	return _validate_current_value(new_current_value)
 
 
 ## Internal function that has a lot of parameters because I don't want to copy and
@@ -738,7 +737,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 				spec._last_value = spec._pending_value
 				
 				# Clear pending value
-				spec._pending_value
+				spec._pending_value = 0.0
 				
 				spec._last_set_value = spec.get_effect().apply_calculator(new_base_value, 
 				_current_value, spec._last_value)
@@ -749,7 +748,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 				new_base_value = spec._last_set_value
 			else:
 				# Clear pending value
-				spec._pending_value
+				spec._pending_value = 0.0
 			
 			# Reset period if there is one
 			if spec.get_effect().has_period(): 

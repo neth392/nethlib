@@ -85,7 +85,7 @@ signal maximum_value_changed(had_prev_maximum: bool, prev_maximum: float)
 			SignalUtil.connect_safely(minimum.current_value_changed, _on_minimum_current_value_changed)
 		
 		# Get the derived values (null or float)
-		var new_min_val = null if !has_minimum() else _derive_minimum()
+		var new_min_val = null if !has_minimum() else get_minimum_value()
 		var prev_min_val = null if prev_minimum == null else \
 		_derive_value(prev_minimum, tracked_minimum_value)
 		
@@ -185,19 +185,19 @@ func _get_configuration_warnings() -> PackedStringArray:
 		warnings.append("maximum.value (%s) not > minimum.value (%s)" \
 		% [maximum.value, minimum.value])
 	
-	if minimum != null && _base_value < _derive_minimum():
+	if minimum != null && _base_value < get_minimum_value():
 		warnings.append("_base_value (%s) is less than minimum's tracked value (%s)"
-		% [_base_value, _derive_minimum()])
-	elif maximum != null && _base_value > _derive_maximum():
+		% [_base_value, get_minimum_value()])
+	elif maximum != null && _base_value > get_maximum_value():
 		warnings.append("_base_value (%s) is greater than maximum's tracked value (%s)"
-		% [_base_value, _derive_maximum()])
+		% [_base_value, get_maximum_value()])
 	
-	if apply_minimum_to_current_value && minimum != null && _current_value < _derive_minimum():
+	if apply_minimum_to_current_value && minimum != null && _current_value < get_minimum_value():
 		warnings.append("_current_value (%s) is less than minimum's tracked value (%s)"
-		% [_current_value, _derive_minimum()])
-	if apply_maximum_to_current_value && maximum != null && _current_value > _derive_maximum():
+		% [_current_value, get_minimum_value()])
+	if apply_maximum_to_current_value && maximum != null && _current_value > get_maximum_value():
 		warnings.append("_current_value (%s) is > than maximum's tracked value (%s)"
-		% [_current_value, _derive_maximum()])
+		% [_current_value, get_maximum_value()])
 	
 	return warnings
 
@@ -226,7 +226,7 @@ func is_base_value_minimum() -> bool:
 
 func _is_minimum(value: float) -> bool:
 	if has_minimum():
-		return value <= _derive_minimum()
+		return value <= get_minimum_value()
 	return false
 
 
@@ -244,16 +244,22 @@ func is_base_value_maximum() -> bool:
 
 func _is_maximum(value: float) -> bool:
 	if has_maximum():
-		return value >= _derive_minimum()
+		return value >= get_minimum_value()
 	return false
 
 
-func _derive_minimum() -> float:
+## Returns the floating point value of the [member minimum] based on 
+## [member tracked_minimum_value]. [method has_minimum] must return true or this
+## method throws an error.
+func get_minimum_value() -> float:
 	assert(has_minimum(), "minimum is null (there is no minimum)")
 	return _derive_value(minimum, tracked_minimum_value)
 
 
-func _derive_maximum() -> float:
+## Returns the floating point value of the [member maximum] based on 
+## [member tracked_maximum_value]. [method has_maximum] must return true or this
+## method throws an error.
+func get_maximum_value() -> float:
 	assert(has_maximum(), "maximum is null (there is no maximum)")
 	return _derive_value(maximum, tracked_maximum_value)
 
@@ -291,7 +297,7 @@ func _base_value_changed(prev_base_value: float) -> void:
 
 
 func _wrap_min(value: float, bool_ref: BoolRef) -> float:
-	var derived_minimum: float = _derive_minimum()
+	var derived_minimum: float = get_minimum_value()
 	if bool_ref.value && minimum != null && value < derived_minimum:
 		return derived_minimum
 	else:
@@ -299,7 +305,7 @@ func _wrap_min(value: float, bool_ref: BoolRef) -> float:
 
 
 func _wrap_max(value: float, bool_ref: BoolRef) -> float:
-	var derived_maximum: float = _derive_maximum()
+	var derived_maximum: float = get_maximum_value()
 	if bool_ref.value && maximum != null && value > derived_maximum:
 		return derived_maximum
 	else:
