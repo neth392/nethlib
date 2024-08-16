@@ -15,9 +15,19 @@ var total_duration_active: float = 0.0
 var time_paused: float
 
 func _ready() -> void:
-	print("paused? " + str(can_process()))
-	get_tree().paused = true
-	print("paused? " + str(can_process()))
+	var dic: Dictionary = {
+		"a": 1,
+		"b": 2,
+		"c": 3,
+	}
+	
+	var new_kes: Array = dic.keys()
+	new_kes.erase("a")
+	print(new_kes)
+	
+	print(dic)
+	print(dic.keys())
+	
 	return
 	get_tree().paused = true
 	await _wait(1.0)

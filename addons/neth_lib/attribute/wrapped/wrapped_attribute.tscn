@@ -5,6 +5,7 @@
 
 [node name="WrappedAttribute" instance=ExtResource("1_pbdfo")]
 script = ExtResource("2_rswyw")
+same_priority_sorting_method = 0
 autowrap_value = true
 allow_null_minimum = false
 allow_null_maximum = false

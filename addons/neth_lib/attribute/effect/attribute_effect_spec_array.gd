@@ -1,12 +1,7 @@
 ## Wrapper of an [Array] of [AttributeEffectSpec]s for safety in use with an [Attribute].
 class_name AttributeEffectSpecArray extends Resource
 
-static func _sort_a_before_b(a: AttributeEffectSpec, b: AttributeEffectSpec) -> bool:
-	if a.get_effect().type != b.get_effect().type:
-		return a.get_effect().type < b.get_effect().type
-	return a.get_effect().priority >= b.get_effect().priority
-
-
+var _same_priority_sorting_method: Attribute.SamePrioritySortingMethod
 var _array: Array[AttributeEffectSpec] = []
 var _temp_count: int = 0:
 	set(value):
@@ -16,6 +11,25 @@ var _blocker_count: int = 0:
 	set(value):
 		assert(value >= 0, "_blocker_count can't be < 0")
 		_blocker_count = value
+
+func _init(same_priority_sorting_method: Attribute.SamePrioritySortingMethod) -> void:
+	_same_priority_sorting_method = same_priority_sorting_method
+	
+
+func _sort_new_before_other(new: AttributeEffectSpec, other: AttributeEffectSpec) -> bool:
+	if new.get_effect().type != other.get_effect().type:
+		return new.get_effect().type < other.get_effect().type
+	if new.get_effect().priroity == other.get_effect().priority:
+		match _same_priority_sorting_method:
+			Attribute.SamePrioritySortingMethod.OLDER_FIRST:
+				return false
+			Attribute.SamePrioritySortingMethod.NEWER_FIRST:
+				return true
+			_:
+				assert(false, "no implementation for _same_priority_sorting_method (%s)" \
+				% _same_priority_sorting_method)
+	return new.get_effect().priority >= other.get_effect().priority
+
 
 ## Returns the underlying array for iteration purposes ONLY.
 func iterate() -> Array[AttributeEffectSpec]:
@@ -30,7 +44,7 @@ func add(spec_to_add: AttributeEffectSpec) -> int:
 	assert(!_array.has(spec_to_add), "spec_to_add (%s) already present" % spec_to_add)
 	var index: int = 0
 	for spec: AttributeEffectSpec in _array:
-		if _sort_a_before_b(spec_to_add, spec):
+		if _sort_new_before_other(spec_to_add, spec):
 			_array.insert(index, spec_to_add)
 			break
 		index += 1

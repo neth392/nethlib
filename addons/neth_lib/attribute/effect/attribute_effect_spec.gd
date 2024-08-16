@@ -3,16 +3,19 @@
 class_name AttributeEffectSpec extends Resource
 
 ## TODO Implement & Document
-signal remaining_duration_changed(prev_duration: float)
-
-## TODO Implement & Document
-signal stack_count_changed(prev_stack_count: int)
-
-## TODO Implement & Document
 signal added(to: Attribute)
 
 ## TODO Implement & Document
+signal add_blocked(to: Attribute, blocked_by: AttributeEffectSpec)
+
+## TODO Implement & Document
 signal applied(to: Attribute)
+
+## TODO Implement & Document
+signal apply_blocked(to: Attribute, blocked_by: AttributeEffectSpec)
+
+## TODO Implement & Document
+signal stack_count_changed(prev_stack_count: int)
 
 ## TODO Implement & Document
 signal removed(from: Attribute)
@@ -22,12 +25,15 @@ var remaining_duration: float:
 	set(_value):
 		var previous: float = remaining_duration
 		remaining_duration = max(0.0, _value)
-		remaining_duration_changed.emit(previous)
 
 ## The remaining amount of time, in seconds, until this effect is next triggered.
 ## Can be manually set before applying to an [Attribute] to create an initial
 ## delay.
 var remaining_period: float = 0.0
+
+## The pending value that will be set directly to the [Attribute] by this spec.
+## Based on 
+var pending_attribute_value: float
 
 var _effect: AttributeEffect
 var _initialized: bool = false
@@ -45,9 +51,13 @@ var _tick_last_applied: int = -1
 
 var _active_duration: float = 0.0
 
+var _apply_value: float
+var _apply_calculated_value: float
+var _apply_effect_value: float
+
 var _last_differential: float
 var _last_effect_value: float
-var _last_applied_value: float
+var _last_attribute_value: float
 var _last_calculated_value: float
 
 
@@ -55,8 +65,6 @@ var _last_calculated_value: float
 ## to the Attribute's current value and the [member _last_value_from_effect].
 var _last_value_set_to_attribute: float
 var _last_value_from_effect: float
-
-var _pending_value: float
 
 func _init(effect: AttributeEffect) -> void:
 	assert(effect != null, "effect is null")
@@ -138,8 +146,8 @@ func get_last_calculated_value() -> float:
 	return _last_calculated_value
 
 
-func get_last_applied_value() -> float:
-	return _last_applied_value
+#func get_last_applied_value() -> float:
+	#return _last_applied_value
 
 
 ## Returns the difference between [method get_last_applied_value] and the [Attribute]'s value before
@@ -153,11 +161,11 @@ func get_last_effect_value() -> float:
 	return _last_effect_value
 
 
-## Returns the value that is pending, and not yet applied to the [Attribute]. Pending
-## means the effect has yet to pass any [AttributeEffectCondition]s that may block it from
-## applying to an [Attribute]. This is primarily for use in [AttributeEffectCondition]s.
-func get_pending_value() -> float:
-	return _pending_value
+### Returns the value that is pending, and not yet applied to the [Attribute]. Pending
+### means the effect has yet to pass any [AttributeEffectCondition]s that may block it from
+### applying to an [Attribute]. This is primarily for use in [AttributeEffectCondition]s.
+#func get_pending_value() -> float:
+	#return _pending_value
 
 
 ## If currently blocked, returns the [AttributeEffectCondition] that blocked this spec

@@ -58,6 +58,16 @@ enum AddEffectResult {
 	INSTANT_CANT_ADD = 7,
 }
 
+## Determines how to sort [AttributeEffect]s who have the same priority.
+enum SamePrioritySortingMethod {
+	## Effects that are added are sorted [b]after[/b] effects of the same priority 
+	## that previously existed.
+	OLDER_FIRST,
+	## Effects that are added are sorted [b]before[/b] effects of the same priority
+	## that previously existed.
+	NEWER_FIRST,
+}
+
 ###################
 ## Value Signals ##
 ###################
@@ -65,8 +75,16 @@ enum AddEffectResult {
 ## Emitted when the value returned by [method get_current_value] changes.
 signal current_value_changed(prev_current_value: float)
 
-## Emitted when [member base_value] changes.
+
+## Emitted when [member _base_value] changes. Similar to [signal base_value_event]
+## but ONLY emits if the base value changed, and does not include the cause.
 signal base_value_changed(prev_base_value: float)
+
+## Emitted when [member _base_value] changes, or any PERMANENT [AttributeEffectSpec]s
+## are applied (sometimes they may apply w/ a value of 0.0). [param prev_base_value] is the
+## previous base value. [param specs] are the [AttributeEffectSpec]s that caused the change,
+## or empty if the base value was changed manually via [method set_base_value].
+signal base_value_event(prev_base_value: float, specs: Array[AttributeEffectSpec])
 
 ####################
 ## Effect Signals ##
@@ -77,9 +95,12 @@ signal base_value_changed(prev_base_value: float)
 ## [method has_effect] will return false when called with [param spec].
 signal effect_added(spec: AttributeEffectSpec)
 
-## Emitted after the [param spec] has been applied to this [Attribute], in processing
-## or as an instant effect.
-signal effect_applied(spec: AttributeEffectSpec)
+## Emitted when the [param spec] was removed. To determine if it was manual
+## or due to expiration, see [method AttributeEffectSpec.expired].
+signal effect_removed(spec: AttributeEffectSpec)
+
+## Emitted when the [param spec] had its stack count changed.
+signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_count: int)
 
 ## Emitted after [param blocked] was blocked from being added to
 ## this [Attribute] by an [AttributeEffectCondition], accessible via 
@@ -95,12 +116,16 @@ signal effect_add_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEff
 ## as [param blocked].
 signal effect_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEffectSpec)
 
-## Emitted when the [param spec] was removed. To determine if it was manual
-## or due to expiration, see [method AttributeEffectSpec.expired].
-signal effect_removed(spec: AttributeEffectSpec)
 
-## Emitted when the [param spec] had its stack count changed.
-signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_count: int)
+############################
+## Pending Effect Signals ##
+############################
+
+signal pending_apply_effect(spec: AttributeEffectSpec)
+
+## Emitted during the [AttributeEffectSpec] apply process. 
+signal pending_base_value_change(current_value: float, pending_value: float)
+
 
 
 ## The ID of the attribute.
@@ -142,6 +167,13 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 		if !Engine.is_editor_hint():
 			_update_processing()
 
+## Determines how to sort effects who share the same priority.
+@export var same_priority_sorting_method: SamePrioritySortingMethod:
+	set(value):
+		assert(Engine.is_editor_hint() || !is_node_ready(), "same_priority_sorting_method " + \
+		"can not be changed at runtime.")
+		same_priority_sorting_method = value
+
 ## If true, default effects are added via using [method Callable.call_deferred]
 ## on [method add_effects], which allows time to connect to this attribute's
 ## signals to be notified of the additions.
@@ -155,11 +187,8 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 
 @export_group("Components")
 
-## The internal time unit used in 
-@export var internal_time_unit: TimeUtil.TimeUnit
-
 ## The [PauseTracker] used by this [Attribute] to track pausing. Usually this
-## can be left untouched.
+## can be left untouched. Must NOT be null.
 @export var pause_tracker: PauseTracker
 
 ## The [AttributeContainer] this attribute belongs to stored as a [WeakRef] for
@@ -167,7 +196,7 @@ signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_coun
 var _container: WeakRef
 
 ## Cluster of all added [AttributeEffectSpec]s.
-var _specs: AttributeEffectSpecArray = AttributeEffectSpecArray.new()
+var _specs: AttributeEffectSpecArray 
 
 ## Internal storage of [member _specs]'s size for disabling processing when no effects
 ## are active, for performance gains.
@@ -203,12 +232,18 @@ var __process_to_remove: Dictionary = {}
 
 ## For use in [method __process] ONLY. Per testing, it is more efficient to use
 ## a global array than create a new one every frame.
-var __process_emit_applied: Array[AttributeEffectSpec] = []
+var _process_specs_applied: Array[AttributeEffectSpec] = []
 
 var _history: AttributeHistory
 
 ## The tick the scene tree was paused at.
 var _paused_at_tick: int = -1
+
+## Internal flag to prevent further effects from applying.
+var _stop_applying: bool = false
+
+## Internal flag to mark [method stop_applying] as a valid call or not.
+var _can_stop_applying: bool = false
 
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
@@ -276,6 +311,9 @@ func __process() -> void:
 	assert(!_locked, "attribute is locked")
 	# Lock
 	_locked = true
+	
+	_can_stop_applying = true
+	
 	# Keep track if a temp spec was removed so we can update current value later on
 	var temp_spec_removed: bool = false
 	
@@ -333,6 +371,13 @@ func __process() -> void:
 					# Set to apply since period is <=0 & it's expired
 					apply = true
 		
+		# stop_applying() was called
+		if _stop_applying:
+			# Reset the period here (that is usually done below)
+			if reset_period:
+				_reset_period(spec)
+			continue
+		
 		# Check if it should apply
 		if apply:
 			# Set pending value
@@ -348,8 +393,7 @@ func __process() -> void:
 				_current_value, spec._last_value)
 				
 				# Apply it
-				_apply_permanent_spec(spec, index, current_tick, new_base_value, 
-				__process_to_remove, __process_emit_applied)
+				_apply_permanent_spec(spec, index, current_tick, new_base_value, __process_to_remove)
 				# Update the new base value
 				new_base_value = spec._last_set_value
 			else:
@@ -359,21 +403,26 @@ func __process() -> void:
 		if reset_period:
 			_reset_period(spec)
 	
+	var prev_base_value: float = _base_value
 	var base_value_updated: bool = _base_value != new_base_value
+	
 	# Update base value if changed
 	if base_value_updated:
 		_base_value = new_base_value
+	
+	# Emit applied & base_value_event signals
+	if base_value_updated || !_process_specs_applied.is_empty():
+		for spec: AttributeEffectSpec in _process_specs_applied:
+			if spec.get_effect().should_emit_applied_signal():
+				spec.applied.emit(self)
+		base_value_event.emit(prev_base_value, _process_specs_applied)
+		_process_specs_applied = []
+	
 	# Update current value if base value changed or if a temp spec was removed
 	# Unfortunately this has to be done seperately as we can't always predict temporary
 	# specs expiring (due to effect modifiers, external logic, etc)
 	if base_value_updated || temp_spec_removed:
 		_update_current_value()
-
-	# Emit applied signals
-	if !__process_emit_applied.is_empty():
-		for spec: AttributeEffectSpec in __process_emit_applied:
-			effect_applied.emit(spec)
-		__process_emit_applied.clear()
 	
 	# Remove specs that have expired or reached application limit
 	if !__process_to_remove.is_empty():
@@ -383,6 +432,9 @@ func __process() -> void:
 			_remove_spec_at_index(__process_to_remove[spec_index], spec_index - removed_count)
 			removed_count += 1
 		__process_to_remove.clear()
+	
+	_can_stop_applying = false
+	_stop_applying = false
 	
 	# Unlock
 	_locked = false
@@ -423,6 +475,19 @@ func _get_configuration_warnings() -> PackedStringArray:
 				has_history = true
 	
 	return warnings
+
+
+## Can safely be called during the applying of [AttributeEffectSpec]s to prevent further
+## specs from applying this frame. Other effects will still have duration & period processing
+## conducted, but effects will NOT apply at all. This was designed to be used in an example
+## case where an entity has received a killing blow which means subsequent effects should stop being
+## applied. It is up to the game creator to remove the remaining effects to ensure they
+## are not processed next frame, as this method does not prevent that.
+## [br]NOTE: Will throw an error (via assertion) if this is called when effects 
+## are not being applied. 
+func stop_applying() -> void:
+	assert(_can_stop_applying, "no effects are currently being applied, invalid method call")
+	_stop_applying = true
 
 
 ## Returns the [AttributeContainer] this [Attribute] belongs to, null if there
@@ -522,7 +587,7 @@ func calculate_current_value() -> float:
 ## paste code in __process and add_specs. Basically this bad boy just runs the apply
 ## logic for the spec. Doesn't change anything except on the spec.
 func _apply_permanent_spec(spec: AttributeEffectSpec, index: int, current_tick: int, 
-base_value: float, to_remove: Dictionary, to_emit_applied: Array[AttributeEffectSpec]) -> void:
+base_value: float, to_remove: Dictionary) -> void:
 	assert(spec.get_effect().is_permanent(), "spec (%s) not PERMANENT" % spec)
 	spec._apply_count += 1
 	spec._tick_last_applied = current_tick
@@ -535,14 +600,30 @@ base_value: float, to_remove: Dictionary, to_emit_applied: Array[AttributeEffect
 	# Remove if it hit apply limit
 	if spec.hit_apply_limit() && index >= 0:
 		to_remove[index] = spec
-	# Mark for emitting signal later on
-	if spec.get_effect().should_emit_applied_signal():
-		to_emit_applied.append(spec)
 
 
 func _reset_period(spec: AttributeEffectSpec) -> void:
 	# Add (instead of reset) period for more accuracy when dealing w/ low frame rate
 	spec.remaining_period += spec.get_effect().get_modified_period(self, spec)
+
+
+## Returns a new [Array] (safe to mutate) of the current [AttributeEffectSpec]s.
+## The specs themselves are NOT duplicated.
+func get_specs() -> Array[AttributeEffectSpec]:
+	return _specs._array.duplicate(false)
+
+
+## Returns a new [Array] (safe to mutate) of all current [AttributeEffect]s.
+## The effects themselves are NOT duplicated.
+func get_effects() -> Array[AttributeEffect]:
+	return _effect_counts.keys()
+
+
+## Returns a new [Dictionary] (safe to mutate) of all current [AttributeEffect]s as keys,
+## and the integer count of the amount of [AttributeEffectSpec]s of each effect as values.
+## The effects themselves are NOT duplicated.
+func get_effects_with_counts() -> Dictionary:
+	return _effect_counts.duplicate(false)
 
 
 ## Returns true if the [param effect] is present and has one or more [AttributeEffectSpec]s
@@ -895,7 +976,7 @@ func _remove_spec_at_index(spec: AttributeEffectSpec, index: int) -> void:
 	_has_specs = !_specs.is_empty()
 	_remove_from_effect_counts(spec)
 	_post_remove_spec(spec)
-	
+
 
 func _remove_spec(spec: AttributeEffectSpec) -> void:
 	assert(has_spec(spec), "spec (%s) not in _specs" % spec)
