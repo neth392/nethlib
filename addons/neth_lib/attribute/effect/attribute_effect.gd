@@ -8,11 +8,14 @@ enum Type {
 	## Does not apply any value to an [Attribute], but instead blocks other [AttributeEffect]s
 	## from applying via the use of [member apply_conditions].
 	BLOCKER = 0,
+	## Does not apply any value to an [Attribute], but instead modifies the value of other
+	## [AttributeEffect]s applied to the attribute via the use of [AttributeEffectModifier]s.
+	MODIFIER = 1,
 	## Makes permanent changes to an [Attribute]'s base value.
-	PERMANENT = 1,
+	PERMANENT = 2,
 	## Makes temporary changes to an [Attribute] reflected in 
 	## [method Attribute.get_current_value].
-	TEMPORARY = 2,
+	TEMPORARY = 3,
 }
 
 ## Determines how this effect can be stacked on an [Attribute], if at all.
@@ -189,7 +192,9 @@ enum DurationType {
 
 @export_group("Modifiers")
 
-## Modififiers to modify [member value].
+## Modififiers to modify [member value]. For PERMANENT effects these modifify
+## this instance's value. For MODIFIER effects, these modify the effects of
+## other attributes.
 ## [br]NOTE: Be careful when using these with TEMPORARY effects. They are 
 ## not called in a scheduled manner so it could result in unpredictable
 ## values being set.
@@ -583,6 +588,10 @@ func _to_string() -> String:
 ## Returns true if this effect has a value to apply to an [Attribute].
 func has_value() -> bool:
 	return type == Type.PERMANENT || type == Type.TEMPORARY
+
+
+func canh_value_modifiers() -> bool:
+	return 
 
 
 ## Asserts [method has_value] returns true.

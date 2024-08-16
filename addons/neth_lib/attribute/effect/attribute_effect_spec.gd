@@ -55,16 +55,13 @@ var _apply_value: float
 var _apply_calculated_value: float
 var _apply_effect_value: float
 
-var _last_differential: float
+var _pending_effect_value: float
+var _pending_calculated_value: float
+
+var _last_original_attribute_value: float
+var _last_set_attribute_value: float
+# TODO: get_last_differential() method
 var _last_effect_value: float
-var _last_attribute_value: float
-var _last_calculated_value: float
-
-
-## The last value directly set to the Attribute. Derived from applying the [AttributeEffectCalculator]
-## to the Attribute's current value and the [member _last_value_from_effect].
-var _last_value_set_to_attribute: float
-var _last_value_from_effect: float
 
 func _init(effect: AttributeEffect) -> void:
 	assert(effect != null, "effect is null")
@@ -139,26 +136,7 @@ func get_active_expected_duration() -> float:
 	return remaining_duration + _active_duration
 
 
-## Returns the last value that was calculated from applying this effect's 
-## [AttributeEffectCalculator] on the [Attribute]'s value before, and 
-## the [member _last_effect_value].
-func get_last_calculated_value() -> float:
-	return _last_calculated_value
-
-
-#func get_last_applied_value() -> float:
-	#return _last_applied_value
-
-
-## Returns the difference between [method get_last_applied_value] and the [Attribute]'s value before
-## the change.
-func get_last_differential() -> float:
-	return _last_differential
-
-
-## Returns the value that was last derived from [method AttributeEffect.get_modified_value].
-func get_last_effect_value() -> float:
-	return _last_effect_value
+## TODO ADD PENDING GETTERS
 
 
 ### Returns the value that is pending, and not yet applied to the [Attribute]. Pending

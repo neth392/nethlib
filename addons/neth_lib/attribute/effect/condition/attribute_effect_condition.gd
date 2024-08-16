@@ -1,8 +1,8 @@
 ## Abstract class to check if an [Attribute] and [AttributeEffectSpec] meets a condition 
 ## for the spec to be applied.
 ## [br]Some useful considerations when designing your own conditions:
-## [br] - [method AttributeEffectSpec.get_pending_value] can be used to determien if
-## the spec should apply based on it's potential value.
+## [br] - [method AttributeEffectSpec.get_pending_value] can be used to determine if
+## the spec should apply based on it's potential value. TODO FIX THIS NOTE
 @tool
 class_name AttributeEffectCondition extends Resource
 
@@ -26,6 +26,7 @@ func meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 	return meets
 
 
-## Returns true if the [param attribute] & [param spec] meets the conditions.
+## Returns true if the [param attribute] & [param spec] meets the conditions. Should NOT
+## modify the attribute or spec at all.
 func _meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 	return true
