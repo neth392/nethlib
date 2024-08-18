@@ -5,17 +5,11 @@ class_name AttributeEffect extends Resource
 ## The type of effect.
 ## [br] NOTE: This enum's structure determines the ordering of [AttributeEffectSpecArray].
 enum Type {
-	## Does not apply any value to an [Attribute], but instead blocks other [AttributeEffect]s
-	## from applying via the use of [member apply_conditions].
-	BLOCKER = 0,
-	## Does not apply any value to an [Attribute], but instead modifies the value of other
-	## [AttributeEffect]s applied to the attribute via the use of [AttributeEffectModifier]s.
-	MODIFIER = 1,
 	## Makes permanent changes to an [Attribute]'s base value.
-	PERMANENT = 2,
+	PERMANENT = 0,
 	## Makes temporary changes to an [Attribute] reflected in 
 	## [method Attribute.get_current_value].
-	TEMPORARY = 3,
+	TEMPORARY = 1,
 }
 
 ## Determines how this effect can be stacked on an [Attribute], if at all.
@@ -63,6 +57,12 @@ enum DurationType {
 			duration_type = DurationType.INFINITE
 		notify_property_list_changed()
 
+## If true, this effect has a value that applies to an [Attribute].
+@export var has_value: bool = true:
+	set(_value):
+		has_value = _value
+		notify_property_list_changed()
+
 ## The direct effect to [member Attribute.value]
 @export var value: float
 
@@ -102,6 +102,8 @@ enum DurationType {
 		if type == Type.TEMPORARY && _value == DurationType.INSTANT:
 			duration_type = DurationType.INFINITE
 			return
+		if type == Type.PERMANENT:
+			has_value = true
 		duration_type = _value
 		notify_property_list_changed()
 
@@ -190,7 +192,7 @@ enum DurationType {
 ## applied if the effect was added.
 @export var apply_conditions: Array[AttributeEffectCondition]
 
-@export_group("Modifiers")
+@export_group("Self Modifiers")
 
 ## Modififiers to modify [member value]. For PERMANENT effects these modifify
 ## this instance's value. For MODIFIER effects, these modify the effects of
@@ -242,7 +244,12 @@ enum DurationType {
 			for callback: AttributeEffectCallback in _callbacks:
 				_add_callback_internal(callback, false)
 
-@export_group("Blockers")
+@export_group("Effect Blocker")
+
+## If true, this effect has [member add_blockers] and/or [member apply_blockers] which
+## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
+## from applying while this effect is active.
+@export var is_blocker: bool = false
 
 ## Blocks other [AttributeEffect]s from being added to an [Attribute] if they
 ## do NOT meet any of these conditions.
@@ -251,6 +258,13 @@ enum DurationType {
 ## Blocks other [AttributeEffect]s from being applied to an [Attribute] if they
 ## do NOT meet any of these conditions.
 @export var apply_blockers: Array[AttributeEffectCondition]
+
+@export_group("Effect Modifiers")
+
+## If true, this effect has TODO which modify the properties of other [AttributeEffect]s.
+@export var is_modifier: bool = false
+
+
 
 var _callbacks_by_function: Dictionary = {}
 
@@ -265,8 +279,12 @@ func _init(_id: StringName = "") -> void:
 
 
 func _validate_property(property: Dictionary) -> void:
+	if property.name == "_has_value":
+		if must_have_value():
+			_no_editor(property)
+	
 	if property.name == "value" || property.name == "value_calculator":
-		if !has_value():
+		if !has_value:
 			_no_editor(property)
 		return
 	
@@ -341,7 +359,7 @@ func _validate_property(property: Dictionary) -> void:
 		return
 	
 	if property.name == "_value_modifiers":
-		if !has_value():
+		if !has_value:
 			_no_editor(property)
 		return
 	
@@ -356,7 +374,7 @@ func _validate_property(property: Dictionary) -> void:
 		return
 	
 	if property.name == "add_blockers" || property.name == "apply_blockers":
-		if !is_blocker():
+		if !is_blocker:
 			_no_editor(property)
 		return
 
@@ -585,18 +603,14 @@ func _to_string() -> String:
 ## Helper functions for feature support ##
 ##########################################
 
-## Returns true if this effect has a value to apply to an [Attribute].
-func has_value() -> bool:
-	return type == Type.PERMANENT || type == Type.TEMPORARY
-
-
-func canh_value_modifiers() -> bool:
-	return 
+## Whether or not this effect MUST have [member value].
+func must_have_value() -> bool:
+	return type == Type.PERMANENT
 
 
 ## Asserts [method has_value] returns true.
 func assert_has_value() -> void:
-	assert(has_value(), "effect does have a value")
+	assert(has_value, "effect does have a value")
 
 
 ## Returns true if this effect supports a [member duration_type] of 
@@ -621,12 +635,6 @@ func is_permanent() -> bool:
 ## [enum AttributeEffect.Type.TEMPORARY], false if not.
 func is_temporary() -> bool:
 	return type == AttributeEffect.Type.TEMPORARY
-
-
-## Helper function returning true if the effect's type is 
-## [enum AttributeEffect.Type.BLOCKER], false if not.
-func is_blocker() -> bool:
-	return type == AttributeEffect.Type.BLOCKER
 
 
 ## Whether or not this effect supports [member add_conditions]
