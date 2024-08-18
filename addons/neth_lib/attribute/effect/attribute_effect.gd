@@ -582,6 +582,8 @@ modifiers: Array[AttributeEffectModifier]) -> float:
 	assert_spec_is_self(spec)
 	var modified: float = to_modify
 	for modifier: AttributeEffectModifier in _value_modifiers:
+		if !modifier.should_modify(attribute, spec):
+			continue
 		modified = modifier._modify(modified, attribute, spec)
 		if modifier.stop_processing_modifiers:
 			break

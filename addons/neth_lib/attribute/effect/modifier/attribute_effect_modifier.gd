@@ -1,4 +1,6 @@
-## Modifies an [AttributeEffect]'s value, period, or duration.
+## Modifies an [AttributeEffect]'s generated value, period, or duration. Does NOT
+## change any value on an [AttributeEffectSpec], such as remaining_duration or remaining_period.
+## For instant changes to those values, pair a modifier with an [AttributeEffectCallback].
 @tool
 class_name AttributeEffectModifier extends Resource
 
@@ -20,6 +22,21 @@ static func sort_descending(a: AttributeEffectModifier, b: AttributeEffectModifi
 
 ## If true, allow duplicate instances of this modifier on [AttributeEffect]s.
 @export var duplicate_instances: bool = false
+
+## Conditions that must be met for this modifier to modify an [AttributeEffectSpec].
+@export var should_modify_conditions: Array[AttributeEffectCondition]
+
+
+## Tests the [member should_modify_conditions] against the [param attribute] and
+## [param spec], returning true if there are no conditions or all conditions are met,
+## false if not.
+func should_modify(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
+	if should_modify_conditions.is_empty():
+		return true
+	for condition: AttributeEffectCondition in should_modify_conditions:
+		if !condition.meets_condition(attribute, spec):
+			return false
+	return true
 
 
 ## Editor tool function that is called when this modifier is added to [param effect].
