@@ -198,7 +198,7 @@ enum DurationType {
 			for callback: AttributeEffectCallback in _callbacks:
 				_add_callback_internal(callback, false)
 
-@export_group("Effect Blocker")
+@export_group("Blockers")
 
 ## If true, this effect has [member add_blockers] and/or [member apply_blockers] which
 ## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
@@ -213,10 +213,19 @@ enum DurationType {
 ## do NOT meet any of these conditions.
 @export var apply_blockers: Array[AttributeEffectCondition]
 
-@export_group("Effect Modifiers")
+@export_group("Modifiers")
 
 ## If true, this effect has TODO which modify the properties of other [AttributeEffect]s.
 @export var _modifier: bool = false
+
+## Modifies the [member value] of other [AttributeEffect]s.
+@export var value_modifiers: AttributeEffectModifierArray
+
+## Modifies the [member period_in_seconds] of other [AttributeEffect]s.
+@export var period_modifiers: AttributeEffectModifierArray
+
+## Modifies the [member duration_in_seconds] of other [AttributeEffect]s.
+@export var duration_modifiers: AttributeEffectModifierArray
 
 @export_group("Metadata")
 
@@ -316,23 +325,14 @@ func _validate_property(property: Dictionary) -> void:
 			_no_editor(property)
 		return
 	
-	if property.name == "_value_modifiers":
-		if !has_value:
-			_no_editor(property)
-		return
-	
-	if property.name == "_period_modifiers":
-		if !has_period():
-			_no_editor(property)
-		return
-	
-	if property.name == "_duration_modifiers":
-		if !has_duration():
-			_no_editor(property)
-		return
-	
 	if property.name == "add_blockers" || property.name == "apply_blockers":
-		if !is_blocker:
+		if !is_blocker():
+			_no_editor(property)
+		return
+	
+	if property.name == "value_modifiers" or property.name == "period_modifiers" \
+	or property.name == "duration_modifiers":
+		if !is_modifier():
 			_no_editor(property)
 		return
 
