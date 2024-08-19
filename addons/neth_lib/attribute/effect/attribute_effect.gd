@@ -74,7 +74,7 @@ enum DurationType {
 
 ## The value that is applied to an [Attribute]'s value (base or current, based on
 ## [member type]).
-@export var value: float
+@export var value: ModifiableValue = ModifiableValue.new()
 
 ## Determines how the [member value] is applied to an [Attribute] (i.e. added, multiplied, etc).
 @export var value_calculator: AttributeEffectCalculator
@@ -108,10 +108,7 @@ enum DurationType {
 		notify_property_list_changed()
 
 ## The amount of time in seconds this [AttributeEffect] lasts.
-@export_range(0.0, 100.0, 1.0, "or_greater", "hide_slider") var duration_in_seconds: float = 0.0:
-	set(_value):
-		duration_in_seconds = max(0.0, _value)
-		notify_property_list_changed()
+@export var duration_in_seconds: ModifiableValue = ModifiableValue.new()
 
 ## If the effect should automatically be applied when it's duration expires.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
@@ -144,9 +141,7 @@ enum DurationType {
 ## Amount of time, in seconds, between when this effect is applied to an [Attribute].
 ## [br]Zero or less means every frame.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export_range(0.0, 100.0, 1, "or_greater", "hide_slider") var period_in_seconds: float = 0.0:
-	set(_value):
-		period_in_seconds = max(0.0, _value)
+@export var period_in_seconds: ModifiableValue = ModifiableValue.new()
 
 ## If [member period_in_seconds] should apply as a "delay" between when this effect 
 ## is added to an [Attribute] and its first time applying.
@@ -192,44 +187,6 @@ enum DurationType {
 ## applied if the effect was added.
 @export var apply_conditions: Array[AttributeEffectCondition]
 
-@export_group("Self Modifiers")
-
-## Modififiers to modify [member value]. For PERMANENT effects these modifify
-## this instance's value. For MODIFIER effects, these modify the effects of
-## other attributes.
-@export var _value_modifiers: Array[AttributeEffectModifier]:
-	set(_value):
-		if OS.is_debug_build():
-			_remove_invalid_modifiers(_value)
-		if !Engine.is_editor_hint():
-			_value.sort_custom(AttributeEffectModifier.sort_descending)
-		_value_modifiers = _value
-		if Engine.is_editor_hint():
-			notify_property_list_changed.call_deferred()
-
-## Modififiers to modify [member period_in_seconds].
-## NOTE: Only for [enum Type.PERMANENT] effects.
-@export var _period_modifiers: Array[AttributeEffectModifier]:
-	set(_value):
-		if OS.is_debug_build():
-			_remove_invalid_modifiers(_value)
-		if !Engine.is_editor_hint():
-			_value.sort_custom(AttributeEffectModifier.sort_descending)
-		_period_modifiers = _value
-		if Engine.is_editor_hint():
-			notify_property_list_changed.call_deferred()
-
-## Modififiers to modify [member duration_in_seconds].
-@export var _duration_modifiers: Array[AttributeEffectModifier]:
-	set(_value):
-		if OS.is_debug_build():
-			_remove_invalid_modifiers(_value)
-		if !Engine.is_editor_hint():
-			_value.sort_custom(AttributeEffectModifier.sort_descending)
-		_duration_modifiers = _value
-		if Engine.is_editor_hint():
-			notify_property_list_changed.call_deferred()
-
 @export_group("Callbacks")
 
 ## List of [AttributeEffectCallback]s to extend the functionality of this effect
@@ -260,6 +217,12 @@ enum DurationType {
 
 ## If true, this effect has TODO which modify the properties of other [AttributeEffect]s.
 @export var _modifier: bool = false
+
+@export_group("Metadata")
+
+## A simple [Dictionary] that can be used to store metadata for effects. Not
+## used in any of the Attribute system's internals.
+@export var metadata: Dictionary
 
 var _callbacks_by_function: Dictionary = {}
 
@@ -427,123 +390,6 @@ func remove_callback(callback: AttributeEffectCallback) -> bool:
 	return true
 
 
-## Adds the [param modifier] to apply on [member value], returning true if
-## successfully added. Returns false if not added due to an instance already existing &
-## [member AttributeEffectModifier.duplicate_instances] being false, or if
-## [method AttributeEffectModifier._validate_and_warn] returned false.
-func add_value_modifier(modifier: AttributeEffectModifier) -> bool:
-	assert_has_value()
-	return _add_modifier(modifier, _value_modifiers)
-
-
-## Adds the [param modifier] to apply on [member period_in_seconds], returning true if
-## successfully added. Returns false if not added due to an instance already existing &
-## [member AttributeEffectModifier.duplicate_instances] being false, or if
-## [method AttributeEffectModifier._validate_and_warn] returned false.
-func add_period_modifier(modifier: AttributeEffectModifier) -> bool:
-	assert_has_period()
-	return _add_modifier(modifier, _period_modifiers)
-
-
-## Adds the [param modifier] to apply on [member duration_in_seconds], returning true if
-## successfully added. Returns false if not added due to an instance already existing &
-## [member AttributeEffectModifier.duplicate_instances] being false, or if
-## [method AttributeEffectModifier._validate_and_warn] returned false.
-func add_duration_modifier(modifier: AttributeEffectModifier) -> bool:
-	assert_has_duration()
-	return _add_modifier(modifier, _duration_modifiers)
-
-
-## Internal method to add a modifier
-func _add_modifier(modifier: AttributeEffectModifier, 
-array: Array[AttributeEffectModifier]) -> bool:
-	assert(modifier != null, "modifier is null")
-	if !modifier._validate_and_warn(self):
-		return false
-	
-	if !modifier.duplicate_instances && array.has(modifier):
-		return false
-	
-	var index: int = 0
-	for other_modifier: AttributeEffectModifier in array:
-		if modifier.priority >= other_modifier.priority:
-			array.insert(index, modifier)
-			break
-		index += 1
-	if index == array.size(): # Wasn't added in loop, append it to back
-		array.append(modifier)
-	
-	return true
-
-
-## Returns true if the [param modifier] exists for the [member value], false if not.
-func has_value_modifier(modifier: AttributeEffectModifier) -> bool:
-	assert_has_value()
-	return _value_modifiers.has(modifier)
-
-
-## Returns true if the [param modifier] exists for the [member period_in_seconds], false if not.
-func has_period_modifier(modifier: AttributeEffectModifier) -> bool:
-	assert_has_period()
-	return _period_modifiers.has(modifier)
-
-
-## Returns true if the [param modifier] exists for the [member duration_in_seconds], false if not.
-func has_duration_modifier(modifier: AttributeEffectModifier) -> bool:
-	assert_has_duration()
-	return _duration_modifiers.has(modifier)
-
-
-## Removes the [param modifier] on [member value]. [param remove_all] can be true
-## to remove all duplicate instances of the [param modifier], otherwise if false it will
-## only remove the first instance found.
-func remove_value_modifier(modifier: AttributeEffectModifier, remove_all: bool = false) -> void:
-	assert_has_value()
-	_remove_modifier(modifier, remove_all, _value_modifiers)
-
-
-## Removes the [param modifier] on [member period_in_seconds]. [param remove_all] can be true
-## to remove all duplicate instances of the [param modifier], otherwise if false it will
-## only remove the first instance found.
-func remove_period_modifier(modifier: AttributeEffectModifier, remove_all: bool = false) -> void:
-	assert_has_period()
-	_remove_modifier(modifier, remove_all, _period_modifiers)
-
-
-## Removes the [param modifier] on [member duration_in_seconds]. [param remove_all] can be true
-## to remove all duplicate instances of the [param modifier], otherwise if false it will
-## only remove the first instance found.
-func remove_duration_modifier(modifier: AttributeEffectModifier, remove_all: bool = false) -> void:
-	assert_has_duration()
-	_remove_modifier(modifier, remove_all, _duration_modifiers)
-
-
-func _remove_modifier(modifier: AttributeEffectModifier, remove_all: bool,
-array: Array[AttributeEffectModifier]) -> void:
-	array.erase(modifier)
-	if remove_all:
-		while array.has(modifier):
-			array.erase(modifier)
-
-
-## Returns a duplicated [Array] of all [AttributeEffecftModifier]s for [member value].
-func get_value_modifiers() -> Array[AttributeEffectModifier]:
-	assert_has_value()
-	return _value_modifiers.duplicate(false)
-
-
-## Returns a duplicated [Array] of all [AttributeEffecftModifier]s for [member period_in_seconds].
-func get_period_modifiers() -> Array[AttributeEffectModifier]:
-	assert_has_period()
-	return _period_modifiers.duplicate(false)
-
-
-## Returns a duplicated [Array] of all [AttributeEffecftModifier]s for [member duration_in_seconds].
-func get_duration_modifiers() -> Array[AttributeEffectModifier]:
-	assert_has_duration()
-	return _duration_modifiers.duplicate(false)
-
-
 ## Applies the [member value_calculator] on the [param attribute_value] and
 ## [param effect_value], returning the result. It must always be ensured that
 ## the [param effect_value] comes from [b]this effect[/b], otherwise results
@@ -551,38 +397,6 @@ func get_duration_modifiers() -> Array[AttributeEffectModifier]:
 func apply_calculator(attr_base_value: float, attr_current_value: float, effect_value: float) -> float:
 	assert_has_value()
 	return value_calculator._calculate(attr_base_value, attr_current_value, effect_value)
-
-
-## Returns the [member value] after applying all value [AttributeEffectModifier]s to it.
-func get_modified_value(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	assert_has_value()
-	return _get_modified(value, attribute, spec, _value_modifiers)
-
-
-## Returns the [member period_in_seconds] after applying all period [AttributeEffectModifier]s to it.
-func get_modified_period(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	assert_has_period()
-	return _get_modified(period_in_seconds, attribute, spec, _period_modifiers)
-
-
-## Returns the [member duration_in_seconds] after applying all duration [AttributeEffectModifier]s to it.
-func get_modified_duration(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	assert_has_duration()
-	return _get_modified(duration_in_seconds, attribute, spec, _duration_modifiers)
-
-
-## Helper function for the above functions
-func _get_modified(to_modify: float, attribute: Attribute, spec: AttributeEffectSpec, 
-modifiers: Array[AttributeEffectModifier]) -> float:
-	assert_spec_is_self(spec)
-	var modified: float = to_modify
-	for modifier: AttributeEffectModifier in _value_modifiers:
-		if !modifier.should_modify(attribute, spec):
-			continue
-		modified = modifier._modify(modified, attribute, spec)
-		if modifier.stop_processing_modifiers:
-			break
-	return modified
 
 
 ## Shorthand function to create an [AttributeEffectSpec] for this [AttributeEffect].

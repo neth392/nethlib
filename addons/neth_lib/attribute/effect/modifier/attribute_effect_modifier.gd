@@ -4,15 +4,6 @@
 @tool
 class_name AttributeEffectModifier extends Resource
 
-## For use in [method Array.sort_custom], returns a bool so that the modifier with
-## the greater priority is in front of the other in the array (descending order)
-static func sort_descending(a: AttributeEffectModifier, b: AttributeEffectModifier) -> bool:
-	if a == null: # Null checks here for usage in editor (sometimes a null element is present)
-		return false
-	if b == null:
-		return true
-	return a.priority > b.priority
-
 ## The priority of processing this [AttributeEffectModifier] in comparison to
 ## other modifiers. Greater priorities are processed first.
 @export var priority: int = 0
@@ -28,6 +19,7 @@ static func sort_descending(a: AttributeEffectModifier, b: AttributeEffectModifi
 ## Conditions that must be met for this modifier to modify an [AttributeEffectSpec].
 @export var conditions: Array[AttributeEffectCondition]
 
+
 ## Tests the [member should_modify_conditions] against the [param attribute] and
 ## [param spec], returning true if there are no conditions or all conditions are met,
 ## false if not.
@@ -37,13 +29,6 @@ func should_modify(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 	for condition: AttributeEffectCondition in conditions:
 		if !condition.meets_condition(attribute, spec):
 			return false
-	return true
-
-
-## Editor tool function that is called when this modifier is added to [param effect].
-## Returns false if it can be added to the [param effect], false if not. Should ideally
-## push a warning to console as to why it can't be added.
-func _validate_and_warn(effect: AttributeEffect) -> bool:
 	return true
 
 

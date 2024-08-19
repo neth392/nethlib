@@ -1,7 +1,10 @@
-[gd_resource type="Resource" script_class="AttributeEffect" load_steps=6 format=3 uid="uid://btl46n7051dh4"]
+[gd_resource type="Resource" script_class="AttributeEffect" load_steps=9 format=3 uid="uid://btl46n7051dh4"]
 
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/attribute_effect_callback.gd" id="1_af7nj"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect.gd" id="1_agjuv"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/tag_applier_callback.gd" id="1_ds1cb"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd" id="3_d53h5"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd" id="4_jcrqg"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/calculator/add_calculator.gd" id="4_kr20w"]
 
 [sub_resource type="Resource" id="Resource_rgap8"]
@@ -19,11 +22,12 @@ attribute_value_to_use = 0
 [resource]
 script = ExtResource("1_agjuv")
 id = &"test_effect"
+priority = 0
 tags = Array[StringName]([])
 type = 1
+has_value = true
 value = 25.0
 value_calculator = SubResource("Resource_0qi3f")
-apply_priority = 0
 _emit_added_signal = false
 _emit_applied_signal = false
 _emit_removed_signal = false
@@ -37,11 +41,14 @@ initial_period = true
 _apply_on_expire_if_period_is_zero = false
 stack_mode = 0
 _log_history = false
-add_conditions = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
-apply_conditions = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
-_value_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
-_period_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
-_duration_modifiers = Array[Resource("res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd")]([])
-_callbacks = Array[Resource("res://addons/neth_lib/attribute/effect/callback/attribute_effect_callback.gd")]([SubResource("Resource_rgap8")])
-add_blockers = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
-apply_blockers = Array[Resource("res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd")]([])
+add_conditions = Array[ExtResource("4_jcrqg")]([])
+apply_conditions = Array[ExtResource("4_jcrqg")]([])
+_value_modifiers = Array[ExtResource("3_d53h5")]([])
+_period_modifiers = Array[ExtResource("3_d53h5")]([])
+_duration_modifiers = Array[ExtResource("3_d53h5")]([])
+_callbacks = Array[ExtResource("1_af7nj")]([SubResource("Resource_rgap8")])
+_blocker = false
+add_blockers = Array[ExtResource("4_jcrqg")]([])
+apply_blockers = Array[ExtResource("4_jcrqg")]([])
+_modifier = false
+metadata = {}
