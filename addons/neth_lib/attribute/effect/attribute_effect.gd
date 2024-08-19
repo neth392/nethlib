@@ -43,6 +43,15 @@ enum DurationType {
 ## The ID of this attribute effect.
 @export var id: StringName
 
+## The priority to be used to determine the order when processing & applying [AttributeEffect]s
+## on an [Attribute]. Greater priorities will be processed & applied first. If two effects have
+## equal priorities, the effect most recently added to the attribute is processed first. 
+## If you want a temporary effect to override a value on an attribute & not have that value 
+## modified by any other effects, then the priority should be lesser than other effects that 
+## can be applied so the override effect is applied last.
+## [br]NOTE: Effects are first sorted by type [enum Type.PERMANENT] then [enum Type.TEMPORARY].
+@export var priority: int = 0
+
 ## Metadata tags to help identify an effect. Similar to an [AttributeContainer]'s tags.
 ## One use case would be to use tags as a category of effect, i.e. "poison" for all
 ## poison damage effects.
@@ -57,27 +66,18 @@ enum DurationType {
 			duration_type = DurationType.INFINITE
 		notify_property_list_changed()
 
-## If true, this effect has a value that applies to an [Attribute].
+## If true, this effect must have a [member value] which applies to an [Attribute].
 @export var has_value: bool = true:
 	set(_value):
 		has_value = _value
 		notify_property_list_changed()
 
-## The direct effect to [member Attribute.value]
+## The value that is applied to an [Attribute]'s value (base or current, based on
+## [member type]).
 @export var value: float
 
-## Determines how the effect is applied to an [Attribute] (i.e. added, multiplied, etc).
+## Determines how the [member value] is applied to an [Attribute] (i.e. added, multiplied, etc).
 @export var value_calculator: AttributeEffectCalculator
-
-## The priority to be used to determine the order when processing & applying [AttributeEffect]s
-## on an [Attribute]. Greater priorities will be processed & applied first. If two effects have
-## equal priorities, the effect most recently added to the attribute is processed first. 
-## If you want a temporary effect to override a value on an attribute & not have that value 
-## modified by any other effects, then the priority should be lesser than other effects that 
-## can be applied so the override effect is applied last.
-## [br]NOTE: Effects are first sorted by type: [enum Type.BLOCKER], [enum Type.PERMANENT], [enum Type.TEMPORARY].
-## [br]NOTE: Priority is not used in processing of period & duration.
-@export var priority: int = 0
 
 @export_group("Signals")
 
@@ -197,9 +197,6 @@ enum DurationType {
 ## Modififiers to modify [member value]. For PERMANENT effects these modifify
 ## this instance's value. For MODIFIER effects, these modify the effects of
 ## other attributes.
-## [br]NOTE: Be careful when using these with TEMPORARY effects. They are 
-## not called in a scheduled manner so it could result in unpredictable
-## values being set.
 @export var _value_modifiers: Array[AttributeEffectModifier]:
 	set(_value):
 		if OS.is_debug_build():
@@ -249,7 +246,7 @@ enum DurationType {
 ## If true, this effect has [member add_blockers] and/or [member apply_blockers] which
 ## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
 ## from applying while this effect is active.
-@export var is_blocker: bool = false
+@export var _blocker: bool = false
 
 ## Blocks other [AttributeEffect]s from being added to an [Attribute] if they
 ## do NOT meet any of these conditions.
@@ -262,9 +259,7 @@ enum DurationType {
 @export_group("Effect Modifiers")
 
 ## If true, this effect has TODO which modify the properties of other [AttributeEffect]s.
-@export var is_modifier: bool = false
-
-
+@export var _modifier: bool = false
 
 var _callbacks_by_function: Dictionary = {}
 
@@ -637,6 +632,16 @@ func is_permanent() -> bool:
 ## [enum AttributeEffect.Type.TEMPORARY], false if not.
 func is_temporary() -> bool:
 	return type == AttributeEffect.Type.TEMPORARY
+
+
+## TODO
+func is_blocker() -> bool:
+	return _blocker
+
+
+## TODO
+func is_modifier() -> bool:
+	return _modifier
 
 
 ## Whether or not this effect supports [member add_conditions]

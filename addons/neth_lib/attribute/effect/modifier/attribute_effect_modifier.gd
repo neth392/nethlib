@@ -17,23 +17,24 @@ static func sort_descending(a: AttributeEffectModifier, b: AttributeEffectModifi
 ## other modifiers. Greater priorities are processed first.
 @export var priority: int = 0
 
-## If true, other [AttributeEffectModifier]s will not be processed after this instance.
+## If true, other [AttributeEffectModifier]s of the same [AttributeEffect] will not be processed
+## after this instance. Does not prevent modifiers from effects that act as modifiers
+## of other effects from applying.
 @export var stop_processing_modifiers: bool = false
 
 ## If true, allow duplicate instances of this modifier on [AttributeEffect]s.
 @export var duplicate_instances: bool = false
 
 ## Conditions that must be met for this modifier to modify an [AttributeEffectSpec].
-@export var should_modify_conditions: Array[AttributeEffectCondition]
-
+@export var conditions: Array[AttributeEffectCondition]
 
 ## Tests the [member should_modify_conditions] against the [param attribute] and
 ## [param spec], returning true if there are no conditions or all conditions are met,
 ## false if not.
 func should_modify(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
-	if should_modify_conditions.is_empty():
+	if conditions.is_empty():
 		return true
-	for condition: AttributeEffectCondition in should_modify_conditions:
+	for condition: AttributeEffectCondition in conditions:
 		if !condition.meets_condition(attribute, spec):
 			return false
 	return true
@@ -46,9 +47,11 @@ func _validate_and_warn(effect: AttributeEffect) -> bool:
 	return true
 
 
-## Called every time the modified property of an [AttributeEffect] is requested.
+## Must be implemented to modify the [param value] based on the context of [param attribute]
+## and [param spec]. Must return the modified value, or can return the [param value]
+## the leave it "unmodified".
 ## [br]NOTE: [param attribute] should NOT be modified here and it's values will reflect
 ## those from the previous frame as the new calculated values are not set until after all
 ## effects have been processed on a frame.
-func _modify(current_modified: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	return current_modified
+func _modify(value: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
+	return value

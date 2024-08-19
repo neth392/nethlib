@@ -20,5 +20,5 @@ enum MinMaxValues {
 
 @export var wrapped_attribute_id: StringName
 
-func _modify(current_modified: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	return current_modified
+func _modify(value: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
+	return value

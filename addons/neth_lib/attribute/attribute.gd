@@ -588,8 +588,8 @@ func _update_current_value() -> void:
 ## [method _validate_current_value] before being returned.
 func calculate_current_value() -> float:
 	var new_current_value: float = _base_value
-	for spec: AttributeEffectSpec in _specs.iterate():
-		if spec.get_effect().is_temporary() && !spec._expired:
+	for spec: AttributeEffectSpec in _specs.iterate_temp():
+		if !spec._expired:
 			spec._last_value = spec.get_effect().get_modified_value(self, spec)
 			new_current_value = spec.get_effect().apply_calculator(_base_value, new_current_value, spec._last_value)
 	
@@ -1022,11 +1022,7 @@ func _test_add(spec: AttributeEffectSpec) -> bool:
 	
 	# Iterate BLOCKER effects
 	if _specs.has_blockers():
-		for blocker: AttributeEffectSpec in _specs.iterate():
-			# BLOCKERS are sorted first, so when there are no more blockers than no condition can be failed
-			if !blocker.get_effect().is_blocker():
-				break
-			
+		for blocker: AttributeEffectSpec in _specs.iterate_blockers():
 			# Ignore expired - they arent removed until later in the frame sometimes
 			if blocker.is_expired():
 				continue
@@ -1048,11 +1044,7 @@ func _test_apply(spec: AttributeEffectSpec) -> bool:
 	
 	# Iterate BLOCKER effects
 	if _specs.has_blockers():
-		for blocker: AttributeEffectSpec in _specs.iterate():
-			# BLOCKERS are sorted first, so when there are no more blockers than no condition can be failed
-			if !blocker.get_effect().is_blocker():
-				break
-			
+		for blocker: AttributeEffectSpec in _specs.iterate_blockers():
 			# Ignore expired - they arent removed until later in the frame sometimes
 			if blocker.is_expired():
 				continue

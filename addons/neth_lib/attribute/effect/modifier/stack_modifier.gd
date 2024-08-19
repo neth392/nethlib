@@ -22,11 +22,11 @@ func _validate_and_warn(effect: AttributeEffect) -> bool:
 	return true
 
 
-func _modify(current_modified: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
+func _modify(value: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	assert(spec._effect.stack_mode == AttributeEffect.StackMode.COMBINE,
 	"stack_mode != COMBINE for spec._effect: %s" % spec._effect)
 	
-	return _calculate(current_modified, spec.get_stack_count())
+	return _calculate(value, spec.get_stack_count())
 
 
 func _calculate(value: float, stack_count: int) -> float:
