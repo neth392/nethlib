@@ -337,15 +337,6 @@ func _validate_property(property: Dictionary) -> void:
 		return
 
 
-func _remove_invalid_modifiers(modifiers: Array[AttributeEffectModifier]) -> void:
-	if !OS.is_debug_build():
-		push_error("this function must only be run in debug builds")
-	for index: int in range(modifiers.size() -1, -1, -1):
-		var modifier: AttributeEffectModifier = modifiers[index]
-		if modifier != null && !modifier._validate_and_warn(self):
-			modifiers[index] = null
-
-
 ## Helper method for _validate_property.
 func _no_editor(property: Dictionary) -> void:
 	property.usage = PROPERTY_USAGE_STORAGE
