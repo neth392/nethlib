@@ -356,10 +356,10 @@ func __process() -> void:
 		# Check if it should apply
 		if apply:
 			spec._pending_effect_value = _get_modified_value(spec)
-			spec._pending_new_attribute_value = spec.get_effect().apply_calculator(_base_value, 
+			spec._pending_calculated_value = spec.get_effect().apply_calculator(_base_value, 
 			_current_value, spec._last_effect_value)
 			
-			
+			# TODO: Decide where to validate base value
 			if !_test_apply_conditions(spec):
 				spec._pending_effect_value = 0.0
 				continue
@@ -377,7 +377,7 @@ func __process() -> void:
 			# Increase apply count
 			spec._apply_count += 1
 			
-			# 
+			# Set tick last applied
 			spec._tick_last_applied = current_tick
 			
 			# Add to history

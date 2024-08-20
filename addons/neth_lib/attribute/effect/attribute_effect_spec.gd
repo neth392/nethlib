@@ -58,10 +58,10 @@ var _apply_effect_value: float
 var _pending_effect_value: float
 var _pending_calculated_value: float
 
+var _last_effect_value: float
 var _last_original_attribute_value: float
 var _last_set_attribute_value: float
 # TODO: get_last_differential() method
-var _last_effect_value: float
 
 func _init(effect: AttributeEffect) -> void:
 	assert(effect != null, "effect is null")
@@ -144,14 +144,22 @@ func get_active_expected_duration() -> float:
 	return remaining_duration + _active_duration
 
 
-## TODO ADD PENDING GETTERS
-
-
-### Returns the value that is pending, and not yet applied to the [Attribute]. Pending
-### means the effect has yet to pass any [AttributeEffectCondition]s that may block it from
-### applying to an [Attribute]. This is primarily for use in [AttributeEffectCondition]s.
-#func get_pending_value() -> float:
-	#return _pending_value
+### Returns the value retrieved from [member AttributeEffect.value] that is pending
+### application to the [Attribute]. If this spec is not in a pending state, 0.0 is returned.
+#func get_pending_effect_value() -> float:
+	#return _pending_effect_value
+#
+#
+### Returns the value derived from appling the effect's [AttributeEffectCalculator] on the
+### [method get_pending_effect_value] & Attribute's value. This is the value that will be set
+### directly to the [Attribute]. If this spec is not in a pending state, 0.0 is returned.
+#func get_pending_calculated_value() -> float:
+	#return _pending_calculated_value
+#
+#
+### Returns
+#func get_last_effect_value() -> float:
+	#return _last_effect_value
 
 
 ## If currently blocked, returns the [AttributeEffectCondition] that blocked this spec
