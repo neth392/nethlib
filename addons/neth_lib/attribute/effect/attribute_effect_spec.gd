@@ -51,15 +51,16 @@ var _tick_last_applied: int = -1
 
 var _active_duration: float = 0.0
 
-var _apply_value: float
-var _apply_calculated_value: float
-var _apply_effect_value: float
-
+# Effect's modified value
 var _pending_effect_value: float
-var _pending_calculated_value: float
+# Raw unvalidated attr value
+var _pending_attribute_value_raw: float
+# Validated attr value
+var _pending_attribute_value: float
 
+# Last effect's modified value
 var _last_effect_value: float
-var _last_original_attribute_value: float
+var _last_prior_attribute_value: float
 var _last_set_attribute_value: float
 # TODO: get_last_differential() method
 
@@ -249,6 +250,12 @@ func _run_stack_callbacks(attribute: Attribute, previous_stack_count: int) -> vo
 	for callback: AttributeEffectCallback in _effect._callbacks_by_function\
 	.get(AttributeEffectCallback._Function.STACK_CHANGED):
 		callback.call(function_name, attribute, self, previous_stack_count)
+
+
+func _clear_pending_values() -> void:
+	_pending_effect_value = 0.0
+	_pending_attribute_value = 0.0
+	_pending_attribute_value_raw = 0.0
 
 
 func _to_string() -> String:

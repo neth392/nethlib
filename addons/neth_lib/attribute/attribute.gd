@@ -37,20 +37,21 @@ enum ProcessFunction {
 
 ## The result of adding an [AttributeEffectSpec] to an [Attribute].
 enum AddEffectResult {
-	## No attempt was ever made to add the Effect to an [Attribute].
+	## No attempt to add the effect to an [Attribute] was ever made.
 	NEVER_ADDED = 0,
-	## Effect was successfully added.
+	## Successfully added.
 	ADDED = 1,
-	## Effect was added to an existing [AttributeEffectSpec] via stacking.
+	## Added to an existing [AttributeEffectSpec] via stacking.
 	STACKED = 2,
-	## Effect was blocked by an [AttributeEffectCondition], retrieve it via
+	## Blocked by an [AttributeEffectCondition], retrieve it via
 	## [method get_last_blocked_by].
 	BLOCKED_BY_CONDITION = 3,
-	## Effect was blocked by a condition of a BLOCKER [AttributeEffect].
+	## Blocked by a condition of a BLOCKER [AttributeEffect].
 	BLOCKED_BY_BLOCKER = 4,
-	## Effect was already added to the [Attribute] and stack_mode is set to DENY.
+	## Another spec of the same effect is already present on the [Attribute] and 
+	## stack_mode is set to DENY.
 	STACK_DENIED = 5,
-	## Effect was not added because it has a duration and it's initial duration was <= 0.0
+	## Not added because its initial duration was <= 0.0
 	INVALID_DURATION = 6,
 	## Effect is instant & can't be "added", but only applied. This does not indicate
 	## if it was applied or not.
@@ -355,45 +356,7 @@ func __process() -> void:
 		
 		# Check if it should apply
 		if apply:
-			spec._pending_effect_value = _get_modified_value(spec)
-			spec._pending_calculated_value = spec.get_effect().apply_calculator(_base_value, 
-			_current_value, spec._last_effect_value)
-			
-			# TODO: Decide where to validate base value
-			if !_test_apply_conditions(spec):
-				spec._pending_effect_value = 0.0
-				continue
-			
-			# Set effect value
-			spec._last_effect_value = spec._pending_effect_value
-			
-			# Clear pending value
-			spec._pending_effect_value = 0.0
-			
-			spec._last_original_attribute_value = _base_value
-			spec._last_set_attribute_value = spec.get_effect().apply_calculator(_base_value, 
-			_current_value, spec._last_effect_value)
-			
-			# Increase apply count
-			spec._apply_count += 1
-			
-			# Set tick last applied
-			spec._tick_last_applied = current_tick
-			
-			# Add to history
-			if has_history() && spec.get_effect().should_log_history():
-				_history._add_to_history(spec)
-			
-			# Mark for removal if it hit apply limit (& remove from effect counts)
-			if spec.hit_apply_limit():
-				__process_to_remove[index] = spec
-				_remove_from_effect_counts(spec)
-			
-			# Update the new base value
-			_base_value = spec._last_set_attribute_value
-			
-			spec._run_callbacks(AttributeEffectCallback._Function.APPLIED, self)
-			spec.applied.emit(self)
+			_apply_permanent_spec(spec, current_tick, __process_to_remove, index)
 		
 		# Reset the period
 		if reset_period:
@@ -538,7 +501,10 @@ func _update_current_value() -> void:
 	var new_current_value: float = calculate_current_value()
 	
 	if _current_value != new_current_value:
+		var prev_current_value: float = _current_value
 		_current_value = new_current_value
+		# TODO decide on where to add these signals
+		current_value_changed.emit(prev_current_value)
 
 
 ## Executes all active temporary [AttributeEffectSpec]s on the current [method get_base_value]
@@ -1036,8 +1002,8 @@ func _get_modified_period(spec: AttributeEffectSpec) -> float:
 		if modifier_spec.is_expired():
 			continue
 		modified_period = modifier_spec.get_effect().period_modifiers.modify_period(modified_period, self, spec)
-	return modified_period
 
+	return modified_period
 
 func _get_modified_duration(spec: AttributeEffectSpec) -> float:
 	var modified_duration: float = spec.get_effect().duration_in_seconds.get_modified(self, spec)
@@ -1055,6 +1021,62 @@ func _initialize_spec(spec: AttributeEffectSpec) -> void:
 	if spec.get_effect().has_duration():
 		spec.remaining_duration = _get_modified_duration(spec)
 	spec._initialized = true
+
+
+## Applies the [param spec]. Returns true if it should be removed (hit apply limit),
+## false if not.
+func _apply_permanent_spec(spec: AttributeEffectSpec, current_tick: int, to_remove: Dictionary, index: int) -> void:
+	# Get the modified value
+	spec._pending_effect_value = _get_modified_value(spec)
+	
+	# Calculate the attribute's new value
+	spec._pending_attribute_value_raw = spec.get_effect().apply_calculator(_base_value, 
+	_current_value, spec._pending_effect_value)
+	
+	# Validate the attribute's value
+	spec._pending_attribute_value = _validate_base_value(spec._pending_attribute_value_raw)
+	
+	# Check apply conditions
+	if !_test_apply_conditions(spec):
+		spec._clear_pending_values()
+		return
+	
+	# Set "last" values
+	spec._last_effect_value = spec._pending_effect_value
+	spec._last_prior_attribute_value = _base_value
+	spec._last_set_attribute_value = spec._pending_attribute_value
+	
+	# Clear pending value
+	spec._clear_pending_values()
+	
+	# Increase apply count
+	spec._apply_count += 1
+	
+	# Set tick last applied
+	spec._tick_last_applied = current_tick
+	
+	# Add to history
+	if has_history() && spec.get_effect().should_log_history():
+		_history._add_to_history(spec)
+	
+	# Mark for removal if it hit apply limit (& remove from effect counts)
+	if spec.hit_apply_limit():
+		to_remove[index] = spec
+		_remove_from_effect_counts(spec)
+	
+	# Apply it
+	_base_value = spec._last_set_attribute_value
+	if _base_value != spec._last_prior_attribute_value:
+		base_value_changed.emit(spec._last_prior_base_value, spec)
+	
+	# Emit signals
+	spec._run_callbacks(AttributeEffectCallback._Function.APPLIED, self)
+	effect_applied.emit(spec)
+	spec.applied.emit(self)
+	
+	# Update current value if needed
+	if _base_value != spec._last_prior_attribute_value:
+		_update_current_value()
 
 
 func _to_string() -> String:
