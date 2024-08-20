@@ -33,8 +33,6 @@ func should_modify(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 ## Must be implemented to modify the [param value] based on the context of [param attribute]
 ## and [param spec]. Must return the modified value, or can return the [param value]
 ## the leave it "unmodified".
-## [br]NOTE: [param attribute] should NOT be modified here and it's values will reflect
-## those from the previous frame as the new calculated values are not set until after all
-## effects have been processed on a frame.
+## [br]NOTE: The context parameters, [param attribute] and [param spec] should NOT be modified here.
 func _modify(value: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	return value

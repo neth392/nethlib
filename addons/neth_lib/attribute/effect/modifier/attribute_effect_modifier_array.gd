@@ -1,4 +1,6 @@
-## TODO
+## Wrapper of an [Array] of [AttributeEffectModifier]s that ensures they are always
+## properly sorted by [member AttributeEffectModifier.priority]. It is cumbersome
+## in the inspector, but worth it for the less complex code.
 class_name AttributeEffectModifierArray extends Resource
 
 ## For use in [method Array.sort_custom], returns a bool so that the modifier with
@@ -7,6 +9,7 @@ static func _sort_a_before_b(a: AttributeEffectModifier, b: AttributeEffectModif
 	return a.priority > b.priority
 
 
+## The [AttributeEffectModifier]s of this instance.
 @export var _modifiers: Array[AttributeEffectModifier]:
 	set(value):
 		if !Engine.is_editor_hint():
@@ -49,7 +52,8 @@ func remove(modifier: AttributeEffectModifier, remove_all_instances: bool) -> vo
 			_modifiers.erase(modifier)
 
 
-## TODO
+## Modifies the [param value] by applying the [member _modifiers] to it. [param attribute]
+## and [param spec] are the context.
 func modify_value(value: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	var modified_value: float = value
 	for modifier: AttributeEffectModifier in _modifiers:
