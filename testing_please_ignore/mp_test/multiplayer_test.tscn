@@ -1,0 +1,49 @@
+[gd_scene load_steps=3 format=3 uid="uid://o0h376xaadw7"]
+
+[ext_resource type="Script" path="res://testing_please_ignore/mp_test/multiplayer_test.gd" id="1_3sxpe"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_lq87x"]
+radius = 20.0
+
+[node name="MultiplayerTest" type="Node" node_paths=PackedStringArray("server_ui", "join_button", "host_button")]
+script = ExtResource("1_3sxpe")
+server_ui = NodePath("ServerUI")
+join_button = NodePath("ServerUI/VBoxContainer/JoinButton")
+host_button = NodePath("ServerUI/VBoxContainer/HostButton")
+
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
+
+[node name="ServerUI" type="CanvasLayer" parent="."]
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ServerUI"]
+custom_minimum_size = Vector2(100, 0)
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -50.0
+offset_top = -66.0
+offset_right = 50.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="JoinButton" type="Button" parent="ServerUI/VBoxContainer"]
+layout_mode = 2
+text = "Join"
+
+[node name="HostButton" type="Button" parent="ServerUI/VBoxContainer"]
+layout_mode = 2
+text = "Host"
+
+[node name="SpawnButton" type="Button" parent="ServerUI/VBoxContainer"]
+layout_mode = 2
+text = "Spawn Circle"
+
+[node name="Shapes" type="Node2D" parent="."]
+position = Vector2(571, 305)
+
+[node name="RigidBody2D" type="RigidBody2D" parent="Shapes"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Shapes/RigidBody2D"]
+shape = SubResource("CircleShape2D_lq87x")

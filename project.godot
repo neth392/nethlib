@@ -26,10 +26,6 @@ ExecutionTimeTest="*res://addons/neth_lib/util/execution_time_test.tscn"
 
 gdscript/warnings/untyped_declaration=2
 
-[editor]
-
-run/main_run_args="--release"
-
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg", "res://addons/neth_lib/plugin.cfg")
