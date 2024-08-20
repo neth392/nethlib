@@ -238,7 +238,7 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	
-	_current_value = _base_value
+	_current_value = _validate_current_value(_base_value)
 	_current_value_initiated = true
 	
 	# Find & set history
@@ -355,33 +355,44 @@ func __process() -> void:
 		
 		# Check if it should apply
 		if apply:
-			spec._pending_effect_value = spec.get_effect().get_modified_value(self, spec)
+			spec._pending_effect_value = _get_modified_value(spec)
 			spec._pending_new_attribute_value = spec.get_effect().apply_calculator(_base_value, 
 			_current_value, spec._last_effect_value)
-			if !_test_apply(spec):
+			
+			
+			if !_test_apply_conditions(spec):
 				spec._pending_effect_value = 0.0
 				continue
 			
+			# Set effect value
 			spec._last_effect_value = spec._pending_effect_value
+			
+			# Clear pending value
 			spec._pending_effect_value = 0.0
+			
 			spec._last_original_attribute_value = _base_value
 			spec._last_set_attribute_value = spec.get_effect().apply_calculator(_base_value, 
 			_current_value, spec._last_effect_value)
 			
+			# Increase apply count
 			spec._apply_count += 1
+			
+			# 
 			spec._tick_last_applied = current_tick
+			
+			# Add to history
 			if has_history() && spec.get_effect().should_log_history():
 				_history._add_to_history(spec)
-				
-			var hit_apply_limit: bool = _set_permanent_apply_props(spec, current_tick)
-			# Apply it
-			if hit_apply_limit:
+			
+			# Mark for removal if it hit apply limit (& remove from effect counts)
+			if spec.hit_apply_limit():
 				__process_to_remove[index] = spec
 				_remove_from_effect_counts(spec)
 			
 			# Update the new base value
 			_base_value = spec._last_set_attribute_value
 			
+			spec._run_callbacks(AttributeEffectCallback._Function.APPLIED, self)
 			spec.applied.emit(self)
 		
 		# Reset the period
@@ -446,7 +457,7 @@ func _get_configuration_warnings() -> PackedStringArray:
 ## conducted, but effects will NOT apply at all. This was designed to be used in an example
 ## case where an entity has received a killing blow which means subsequent effects should stop being
 ## applied. It is up to the game creator to remove the remaining effects to ensure they
-## are not processed next frame, as this method does not prevent that.
+## are not processed next frame, as this method does not modify the next frame at all.
 ## [br]NOTE: Will throw an error (via assertion) if this is called when effects 
 ## are not being applied. 
 func stop_applying() -> void:
@@ -540,33 +551,15 @@ func calculate_current_value() -> float:
 	for spec: AttributeEffectSpec in _specs.iterate_temp():
 		if spec.is_expired():
 			continue
-		spec._last_value = spec.get_effect().get_modified_value(self, spec)
-		new_current_value = spec.get_effect().apply_calculator(_base_value, new_current_value, spec._last_value)
-
+		spec._last_effect_value = _get_modified_value(spec)
+		new_current_value = spec.get_effect().apply_calculator(_base_value, new_current_value, spec._last_effect_value)
+	
 	return _validate_current_value(new_current_value)
-
-
-## Internal function that has a lot of parameters because I don't want to copy and
-## paste code in __process and add_specs. Basically this bad boy just runs the apply
-## logic for the spec. Doesn't change anything except on the spec.
-func _set_permanent_apply_props(spec: AttributeEffectSpec, current_tick: int) -> bool:
-	assert(spec.get_effect().is_permanent(), "spec (%s) not PERMANENT" % spec)
-	spec._apply_count += 1
-	spec._tick_last_applied = current_tick
-	
-	# Log to history
-	if has_history() && spec.get_effect().should_log_history():
-		_history._add_to_history(spec)
-	
-	spec._run_callbacks(AttributeEffectCallback._Function.APPLIED, self)
-	# Remove if it hit apply limit
-	return spec.hit_apply_limit()
-
 
 
 func _reset_period(spec: AttributeEffectSpec) -> void:
 	# Add (instead of reset) period for more accuracy when dealing w/ low frame rate
-	spec.remaining_period += spec.get_effect().get_modified_period(self, spec)
+	spec.remaining_period += _get_modified_period(spec)
 
 
 ## Returns a new [Array] (safe to mutate) of the current [AttributeEffectSpec]s.
@@ -637,12 +630,15 @@ func find_first_spec(effect: AttributeEffect) -> AttributeEffectSpec:
 func add_effect(effect: AttributeEffect) -> void:
 	assert(allow_effects, "allow_effects is false")
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
-	add_effects([effect])
+	add_effects([effect], false)
 
 
 ## Creates an [AttributeEffectSpec] from each of the [param effects] via 
-## [method AttriubteEffect.to_spec] and then calls [method add_specs]
-func add_effects(effects: Array[AttributeEffect]) -> void:
+## [method AttriubteEffect.to_spec] and then calls [method add_specs].
+## [param sort_by_priority] determines what order the specified effects should be applied in (if
+## any are to be applied instantly). If true, they are sorted by their [member AttributeEffect.priority],
+## if false they are applied in the order of the specified [param effects] array.
+func add_effects(effects: Array[AttributeEffect], sort_by_priority: bool = true) -> void:
 	assert(allow_effects, "allow_effects is false")
 	assert(!effects.has(null), "effects has null element")
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
@@ -657,11 +653,14 @@ func add_spec(spec: AttributeEffectSpec) -> void:
 	assert(allow_effects, "allow_effects is false")
 	assert(spec != null, "spec is null")
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
-	add_specs([spec])
+	add_specs([spec], false)
 
 
 ## Adds (& possibly applies) of each of the [param specs]. Can result in immediate
-## changes to the base value & current value, depending on the provided [param specs].
+## changes to the base value & current value, depending on the provided [param specs]. 
+## [param sort_by_priority] determines what order the specified specs should be applied in (if
+## any are to be applied instantly). If true, they are sorted by their [member AttributeEffect.priority],
+## if false they are applied in the order of the specified [param specs] array.
 ## [br][b]There are multiple considerations when calling this function:[/b]
 ## [br]  - If a spec has stack_mode COMBINE, it is stacked to the existing spec of the same 
 ## [AttributeEffect], and thus not added. The new stack count is the existing's + the new spec's
@@ -670,7 +669,7 @@ func add_spec(spec: AttributeEffectSpec) -> void:
 ## [br]  - If TEMPORARY, it is not applied, however the current_value is updated instantly.
 ## [br]  - If INSTANT, it is not added, only applied.
 ## [br]  - Specs are initialized unless already initialized or are stacked instead of added.
-func add_specs(specs: Array[AttributeEffectSpec]) -> void:
+func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true) -> void:
 	assert(allow_effects, "allow_effects is false")
 	assert(!specs.is_empty(), "specs is empty")
 	assert(!specs.has(null), "specs has null element")
@@ -683,10 +682,15 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	var update_current: bool = false
 	var current_tick: int = _get_ticks()
 	
+	var specs_to_add: Array[AttributeEffectSpec] = specs
+	if sort_by_priority:
+		specs_to_add = specs.duplicate(false)
+		specs_to_add.sort_custom(_specs._sort_new_before_other)
+	
 	# Initialize specs
 	# Sort specs into arrays ordered by priority
 	# Set permanent specs to apply if they should
-	for spec: AttributeEffectSpec in specs:
+	for spec: AttributeEffectSpec in specs_to_add:
 		assert(spec != null, "specs has null element")
 		assert(!spec.is_added(), "spec (%s) already added" % spec)
 		
@@ -709,7 +713,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 			continue
 		
 		# Check add conditions & blockers
-		if !_test_add(spec):
+		if !_test_add_conditions(spec):
 			continue
 		
 		# Handle COMBINE stacking (only if a spec of the same effect already exists)
@@ -728,7 +732,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		
 		# Initialize if not done so
 		if !spec.is_initialized():
-			spec._initialize(self)
+			_initialize_spec(spec)
 		
 		# Don't add it if it has remaining duration of <= 0.0
 		if spec.get_effect().has_duration() && spec.remaining_duration <= 0.0:
@@ -775,7 +779,7 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 		for spec: AttributeEffectSpec in perm_specs_to_apply:
 			# Set pending value
 			spec._pending_value = spec.get_effect().get_modified_value(self, spec)
-			if _test_apply(spec):
+			if _test_apply_conditions(spec):
 				var index: int = perm_specs_to_apply[spec]
 				
 				spec._last_value = spec._pending_value
@@ -785,9 +789,9 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 				
 				spec._last_set_value = spec.get_effect().apply_calculator(new_base_value, 
 				_current_value, spec._last_value)
-				
-				_apply_permanent_spec(spec, index, current_tick, new_base_value, to_remove, 
-				to_emit_applied)
+				## TODO FIX THIS CODE
+				#_apply_permanent_spec(spec, index, current_tick, new_base_value, to_remove, 
+				#to_emit_applied)
 				# Update base value
 				new_base_value = spec._last_set_value
 			else:
@@ -816,7 +820,8 @@ func add_specs(specs: Array[AttributeEffectSpec]) -> void:
 	if !to_remove.is_empty():
 		var removed_count: int = 0
 		for index: int in to_remove:
-			_remove_spec_at_index(to_remove[index], index - removed_count)
+			## TODO FIX THIS CODE (should be FALSE as last param & removed from effect counts above)
+			_remove_spec_at_index(to_remove[index], index - removed_count, true)
 			removed_count += 1
 	
 	# Process if specs is not empty
@@ -835,7 +840,7 @@ func remove_effect(effect: AttributeEffect) -> bool:
 	for index: int in _specs.iterate_reverse():
 		var spec: AttributeEffectSpec = _specs._array[index]
 		if spec.get_effect() == effect:
-			_remove_spec_at_index(spec, index)
+			_remove_spec_at_index(spec, index, true)
 			removed = true
 	
 	if effect.type == AttributeEffect.Type.TEMPORARY && removed:
@@ -857,7 +862,7 @@ func remove_effects(effects: Array[AttributeEffect]) -> bool:
 	for index: int in _specs.iterate_reverse():
 		var spec: AttributeEffectSpec = _specs._array[index]
 		if effects.has(spec.get_effect()):
-			_remove_spec_at_index(spec, index)
+			_remove_spec_at_index(spec, index, true)
 			removed = true
 			if spec.get_effect().is_temporary():
 				temporary_removed = true
@@ -875,7 +880,11 @@ func remove_spec(spec: AttributeEffectSpec) -> bool:
 	if !has_spec(spec):
 		return false
 	_locked = true
-	_remove_spec(spec)
+	_pre_remove_spec(spec)
+	_specs.erase(spec)
+	_has_specs = !_specs.is_empty()
+	_remove_from_effect_counts(spec)
+	_post_remove_spec(spec)
 	if spec.get_effect().is_temporary():
 		_update_current_value()
 	_locked = false
@@ -892,7 +901,7 @@ func remove_specs(specs: Array[AttributeEffectSpec]) -> bool:
 	for index: int in _specs.iterate_reverse():
 		var spec: AttributeEffectSpec = _specs._array[index]
 		if specs.has(specs):
-			_remove_spec_at_index(spec, index)
+			_remove_spec_at_index(spec, index, true)
 			removed = true
 			if spec.get_effect().is_temporary():
 				temporary_removed = true
@@ -919,7 +928,7 @@ func remove_all_specs() -> void:
 	for spec: AttributeEffectSpec in removed_specs:
 		_post_remove_spec(spec)
 	
-	_current_value = _base_value
+	_current_value = _validate_current_value(_base_value)
 	_locked = false
 
 
@@ -941,15 +950,6 @@ func _remove_spec_at_index(spec: AttributeEffectSpec, index: int, from_effect_co
 	_post_remove_spec(spec)
 
 
-func _remove_spec(spec: AttributeEffectSpec) -> void:
-	assert(has_spec(spec), "spec (%s) not in _specs" % spec)
-	_pre_remove_spec(spec)
-	_specs.erase(spec)
-	_has_specs = !_specs.is_empty()
-	_remove_from_effect_counts(spec)
-	_post_remove_spec(spec)
-
-
 func _pre_remove_spec(spec: AttributeEffectSpec) -> void:
 	spec._run_callbacks(AttributeEffectCallback._Function.PRE_REMOVE, self)
 	spec._is_added = false
@@ -963,7 +963,7 @@ func _post_remove_spec(spec: AttributeEffectSpec) -> void:
 
 ## Tests the addition of [param spec] by evaluating it's potential add [AttributeEffectCondition]s
 ## and that of all BLOCKER type effects.
-func _test_add(spec: AttributeEffectSpec) -> bool:
+func _test_add_conditions(spec: AttributeEffectSpec) -> bool:
 	# Check spec's own conditions
 	if spec.get_effect().has_add_conditions():
 		if !_test_conditions(spec, spec, spec.get_effect().add_conditions, effect_add_blocked):
@@ -986,7 +986,7 @@ func _test_add(spec: AttributeEffectSpec) -> bool:
 
 ## Tests the applying of [param spec] by evaluating it's potential apply [AttributeEffectCondition]s
 ## and that of all BLOCKER type effects.
-func _test_apply(spec: AttributeEffectSpec) -> bool:
+func _test_apply_conditions(spec: AttributeEffectSpec) -> bool:
 	# Check spec's own conditions
 	if spec.get_effect().has_apply_conditions():
 		if !_test_conditions(spec, spec, spec.get_effect().apply_conditions, effect_apply_blocked):
@@ -1046,6 +1046,15 @@ func _get_modified_duration(spec: AttributeEffectSpec) -> float:
 			continue
 		modified_duration = modifier_spec.get_effect().duration_modifiers.modify_duration(modified_duration, self, spec)
 	return modified_duration
+
+
+func _initialize_spec(spec: AttributeEffectSpec) -> void:
+	assert(!spec.is_initialized(), "spec (%s) already initialized" % spec)
+	if spec.get_effect().has_period() && spec.get_effect().initial_period:
+		spec.remaining_period = _get_modified_period(spec)
+	if spec.get_effect().has_duration():
+		spec.remaining_duration = _get_modified_duration(spec)
+	spec._initialized = true
 
 
 func _to_string() -> String:

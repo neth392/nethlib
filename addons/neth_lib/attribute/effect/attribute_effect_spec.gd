@@ -195,15 +195,6 @@ func get_stack_count() -> int:
 	return _stack_count
 
 
-func _initialize(attribute: Attribute) -> void:
-	assert(!is_initialized(), "spec already initialized")
-	if _effect.has_period() && _effect.initial_period:
-		remaining_period = _effect.get_modified_period(attribute, self)
-	if _effect.has_duration():
-		remaining_duration = _effect.get_modified_duration(attribute, self)
-	_initialized = true
-
-
 ## Adds [param amount] to the effect stack. This effect must be stackable
 ## (see [method is_stackable]) and [param amount] must be > 0.
 ## [br]Automatically emits [signal Attribute.effect_stack_count_changed].
