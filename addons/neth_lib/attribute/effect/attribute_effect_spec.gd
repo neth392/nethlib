@@ -111,6 +111,14 @@ func get_tick_last_applied() -> int:
 	return _tick_last_applied
 
 
+## Returns the amount of time, in seconds, since this spec last applied to the [Attribute].
+## If [method has_applied] returns false, 0.0 is returned.
+func get_seconds_since_last_apply() -> float:
+	if !has_applied():
+		return 0.0
+	return Attribute._ticks_to_seconds(Attribute._get_ticks() - _tick_last_applied)
+
+
 ## Returns true if the effect has been applied. Always returns false for
 ## TEMPORARY effects.
 func has_applied() -> bool:

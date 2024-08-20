@@ -24,8 +24,6 @@ class_name AttributeEffectModifier extends Resource
 ## [param spec], returning true if there are no conditions or all conditions are met,
 ## false if not.
 func should_modify(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
-	if conditions.is_empty():
-		return true
 	for condition: AttributeEffectCondition in conditions:
 		if !condition.meets_condition(attribute, spec):
 			return false

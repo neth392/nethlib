@@ -5,11 +5,11 @@ class_name AttributeEffect extends Resource
 ## The type of effect.
 ## [br] NOTE: This enum's structure determines the ordering of [AttributeEffectSpecArray].
 enum Type {
-	## Makes permanent changes to an [Attribute]'s base value.
-	PERMANENT = 0,
 	## Makes temporary changes to an [Attribute] reflected in 
 	## [method Attribute.get_current_value].
-	TEMPORARY = 1,
+	TEMPORARY = 0,
+	## Makes permanent changes to an [Attribute]'s base value.
+	PERMANENT = 1,
 }
 
 ## Determines how this effect can be stacked on an [Attribute], if at all.
@@ -49,7 +49,7 @@ enum DurationType {
 ## If you want a temporary effect to override a value on an attribute & not have that value 
 ## modified by any other effects, then the priority should be lesser than other effects that 
 ## can be applied so the override effect is applied last.
-## [br]NOTE: Effects are first sorted by type [enum Type.PERMANENT] then [enum Type.TEMPORARY].
+## [br]NOTE: Effects are first sorted by type [enum Type.TEMPORARY] then [enum Type.PERMANENT].
 @export var priority: int = 0
 
 ## Metadata tags to help identify an effect. Similar to an [AttributeContainer]'s tags.
