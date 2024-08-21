@@ -198,63 +198,10 @@ func is_expired() -> bool:
 	return !_effect.is_instant() && _effect.has_duration() && _expired
 
 
-## If this effect is stackable.
-func is_stackable() -> bool:
-	return _effect.stack_mode == AttributeEffect.StackMode.COMBINE
-
-
 ## Returns the stack count (how many [AttributeEffect]s have been stacked).
 ## Can't be less than 1.
 func get_stack_count() -> int:
 	return _stack_count
-
-
-## Adds [param amount] to the effect stack. This effect must be stackable
-## (see [method is_stackable]) and [param amount] must be > 0.
-## [br]Automatically emits [signal Attribute.effect_stack_count_changed].
-func _add_to_stack(attribute: Attribute, amount: int = 1) -> void:
-	assert(is_stackable(), "_effect (%s) not stackable" % _effect)
-	assert(amount > 0, "amount(%s) <= 0" % amount)
-	
-	var previous_stack_count: int = _stack_count
-	_stack_count += amount
-	_run_stack_callbacks(attribute, previous_stack_count)
-	attribute.effect_stack_count_changed.emit(self, previous_stack_count)
-
-
-## Removes [param amount] from the effect stack. This effect must be stackable
-## (see [method is_stackable]), [param amount] must be > 0, and 
-## [method get_stack_count] - [param amount] must be > 0.
-## [br]Automatically emits [signal Attribute.effect_stack_count_changed].
-func _remove_from_stack(attribute: Attribute, amount: int = 1) -> void:
-	assert(is_stackable(), "_effect (%s) not stackable" % _effect)
-	assert(amount > 0, "amount(%s) <= 0" % amount)
-	assert(_stack_count - amount > 0, "amount(%s) - _stack_count(%s) <= 0"\
-		% [amount, _stack_count])
-	
-	var previous_stack_count: int = _stack_count
-	_stack_count -= amount
-	_run_stack_callbacks(attribute, previous_stack_count)
-	attribute.effect_stack_count_changed.emit(self, previous_stack_count)
-
-
-## Runs the callback [param _function] on all [AttributeEffectCallback]s who have
-## implemented that function.
-func _run_callbacks(_function: AttributeEffectCallback._Function, attribute: Attribute) -> void:
-	if !AttributeEffectCallback._can_run(_function, _effect):
-		return
-	var function_name: String = AttributeEffectCallback._function_names[_function]
-	for callback: AttributeEffectCallback in _effect._callbacks_by_function.get(_function):
-		callback.call(function_name, attribute, self)
-
-
-func _run_stack_callbacks(attribute: Attribute, previous_stack_count: int) -> void:
-	var function_name: String = AttributeEffectCallback._function_names\
-	[AttributeEffectCallback._Function.STACK_CHANGED]
-	
-	for callback: AttributeEffectCallback in _effect._callbacks_by_function\
-	.get(AttributeEffectCallback._Function.STACK_CHANGED):
-		callback.call(function_name, attribute, self, previous_stack_count)
 
 
 func _clear_pending_values() -> void:

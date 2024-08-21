@@ -685,12 +685,11 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 		# Handle COMBINE stacking (only if a spec of the same effect already exists)
 		if spec.get_effect().stack_mode == AttributeEffect.StackMode.COMBINE \
 		and has_effect(spec.get_effect()):
-			var existing: Array[AttributeEffectSpec] = find_specs(spec.get_effect())
-			assert(existing.size() == 1, ("effect (%s) has stack_mode COMBINE but " + \
-			"> or < 1 specs exists on this attribute (%s)") % [spec.get_effect(), self])
-			
+			var existing: AttributeEffectSpec = find_first_spec(spec.get_effect())
+			assert(existing != null, ("existing is null, but has_effect returned true " + \
+			"for spec %s") % spec)
 			spec._last_add_result = AddEffectResult.STACKED
-			existing[0]._add_to_stack(self, spec.get_stack_count())
+			existing._add_to_stack(self, spec.get_stack_count())
 			# Update current value if a temporary spec is added
 			if spec.get_effect().is_temporary():
 				update_current = true
@@ -710,7 +709,7 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 			update_current = true
 		
 		# Run pre_add callbacks
-		spec._run_callbacks(AttributeEffectCallback._Function.PRE_ADD, self)
+		_run_callbacks(spec, AttributeEffectCallback._Function.PRE_ADD)
 		
 		# At this point it can be added
 		spec._is_added = true
@@ -726,7 +725,7 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 		_effect_counts[spec.get_effect()] = new_count
 		
 		# Run callbacks & emit signal
-		spec._run_callbacks(AttributeEffectCallback._Function.ADDED, self)
+		_run_callbacks(spec, AttributeEffectCallback._Function.ADDED)
 		if spec.get_effect().should_emit_added_signal():
 			effect_added.emit(spec)
 		
@@ -917,14 +916,14 @@ func _remove_spec_at_index(spec: AttributeEffectSpec, index: int, from_effect_co
 
 
 func _pre_remove_spec(spec: AttributeEffectSpec) -> void:
-	spec._run_callbacks(AttributeEffectCallback._Function.PRE_REMOVE, self)
+	_run_callbacks(spec, AttributeEffectCallback._Function.PRE_REMOVE)
 	spec._is_added = false
 
 
 func _post_remove_spec(spec: AttributeEffectSpec) -> void:
 	if spec.get_effect().should_emit_removed_signal():
 		effect_removed.emit(spec)
-	spec._run_callbacks(AttributeEffectCallback._Function.REMOVED, self)
+	_run_callbacks(spec, AttributeEffectCallback._Function.REMOVED)
 
 
 ## Tests the addition of [param spec] by evaluating it's potential add [AttributeEffectCondition]s
@@ -1070,13 +1069,61 @@ func _apply_permanent_spec(spec: AttributeEffectSpec, current_tick: int, to_remo
 		base_value_changed.emit(spec._last_prior_base_value, spec)
 	
 	# Emit signals
-	spec._run_callbacks(AttributeEffectCallback._Function.APPLIED, self)
+	_run_callbacks(spec, AttributeEffectCallback._Function.APPLIED)
 	effect_applied.emit(spec)
 	spec.applied.emit(self)
 	
 	# Update current value if needed
 	if _base_value != spec._last_prior_attribute_value:
 		_update_current_value()
+
+
+## Adds [param amount] to the effect stack. This effect must be stackable
+## (see [method is_stackable]) and [param amount] must be > 0.
+## [br]Automatically emits [signal effect_stack_count_changed].
+func _add_to_stack(spec: AttributeEffectSpec, amount: int = 1) -> void:
+	assert(spec.get_effect().is_stackable(), "spec (%s) not stackable" % spec)
+	assert(amount > 0, "amount(%s) <= 0" % amount)
+	
+	var previous_stack_count: int = spec._stack_count
+	spec._stack_count += amount
+	_run_stack_callbacks(spec, previous_stack_count)
+	effect_stack_count_changed.emit(spec, previous_stack_count)
+
+
+## Removes [param amount] from the effect stack. This effect must be stackable
+## (see [method is_stackable]), [param amount] must be > 0, and 
+## [method get_stack_count] - [param amount] must be > 0.
+## [br]Automatically emits [signal effect_stack_count_changed].
+func _remove_from_stack(spec: AttributeEffectSpec, amount: int = 1) -> void:
+	assert(spec.get_effect().is_stackable(), "spec (%s) not stackable" % spec)
+	assert(amount > 0, "amount(%s) <= 0" % amount)
+	assert(spec._stack_count - amount > 0, "amount(%s) - spec._stack_count(%s) <= 0 fopr spec (%s)"\
+		% [amount, spec._stack_count, spec])
+	
+	var previous_stack_count: int = spec._stack_count
+	spec._stack_count -= amount
+	_run_stack_callbacks(spec, previous_stack_count)
+	effect_stack_count_changed.emit(spec, previous_stack_count)
+
+
+## Runs the callback [param _function] on all [AttributeEffectCallback]s who have
+## implemented that function.
+func _run_callbacks(spec: AttributeEffectSpec, _function: AttributeEffectCallback._Function) -> void:
+	if !AttributeEffectCallback._can_run(_function, spec.get_effect()):
+		return
+	var function_name: String = AttributeEffectCallback._function_names[_function]
+	for callback: AttributeEffectCallback in spec.get_effect()._callbacks_by_function.get(_function):
+		callback.call(function_name, self, spec)
+
+
+func _run_stack_callbacks(spec: AttributeEffectSpec, previous_stack_count: int) -> void:
+	var function_name: String = AttributeEffectCallback._function_names\
+	[AttributeEffectCallback._Function.STACK_CHANGED]
+	
+	for callback: AttributeEffectCallback in spec.get_effect()._callbacks_by_function\
+	.get(AttributeEffectCallback._Function.STACK_CHANGED):
+		callback.call(function_name, self, spec, previous_stack_count)
 
 
 func _to_string() -> String:

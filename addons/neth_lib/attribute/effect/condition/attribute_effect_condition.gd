@@ -19,6 +19,8 @@ class_name AttributeEffectCondition extends Resource
 @export var negate: bool = false
 
 
+## Tests that the [param attribute] & [param spec] meets this condition.
+## [br]WARNING: Do NOT override this.
 func meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 	var meets: bool = _meets_condition(attribute, spec)
 	if negate:
@@ -28,5 +30,6 @@ func meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 
 ## Returns true if the [param attribute] & [param spec] meets the conditions. Should NOT
 ## modify the attribute or spec at all.
+## [br]NOTE: OVERRIDE THIS
 func _meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 	return true

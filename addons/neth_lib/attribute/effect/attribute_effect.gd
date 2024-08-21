@@ -568,3 +568,8 @@ func can_log_history() -> bool:
 ## Returns true if this effect's applications should be logged in an [AttributeHistory].
 func should_log_history() -> bool:
 	return can_log_history() && _log_history
+
+
+## If this effect is stackable.
+func is_stackable() -> bool:
+	return stack_mode == AttributeEffect.StackMode.COMBINE
