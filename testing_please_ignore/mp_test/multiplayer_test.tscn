@@ -1,17 +1,27 @@
-[gd_scene load_steps=3 format=3 uid="uid://o0h376xaadw7"]
+[gd_scene load_steps=4 format=3 uid="uid://o0h376xaadw7"]
 
 [ext_resource type="Script" path="res://testing_please_ignore/mp_test/multiplayer_test.gd" id="1_3sxpe"]
+[ext_resource type="PackedScene" uid="uid://cmos3dl2fqdmy" path="res://testing_please_ignore/mp_test/mp_test_node_to_sync.tscn" id="2_kltd6"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_lq87x"]
-radius = 20.0
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_g3fdq"]
 
-[node name="MultiplayerTest" type="Node" node_paths=PackedStringArray("server_ui", "join_button", "host_button")]
+[node name="MultiplayerTest" type="Node" node_paths=PackedStringArray("host_label", "server_ui", "join_button", "host_button", "spawn_button", "sync_nodes", "add_to_string_button")]
 script = ExtResource("1_3sxpe")
+host_label = NodePath("ServerUI/VBoxContainer/HostLabel")
 server_ui = NodePath("ServerUI")
 join_button = NodePath("ServerUI/VBoxContainer/JoinButton")
 host_button = NodePath("ServerUI/VBoxContainer/HostButton")
+spawn_button = NodePath("ServerUI/VBoxContainer/Spawn")
+scene_to_spawn = ExtResource("2_kltd6")
+sync_nodes = NodePath("SyncNodes")
+add_to_string_button = NodePath("ServerUI/VBoxContainer/AddToString")
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://testing_please_ignore/mp_test/mp_test_node_to_sync.tscn")
+spawn_path = NodePath("../SyncNodes")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_g3fdq")
 
 [node name="ServerUI" type="CanvasLayer" parent="."]
 
@@ -28,6 +38,9 @@ offset_right = 50.0
 grow_horizontal = 2
 grow_vertical = 0
 
+[node name="HostLabel" type="Label" parent="ServerUI/VBoxContainer"]
+layout_mode = 2
+
 [node name="JoinButton" type="Button" parent="ServerUI/VBoxContainer"]
 layout_mode = 2
 text = "Join"
@@ -36,14 +49,12 @@ text = "Join"
 layout_mode = 2
 text = "Host"
 
-[node name="SpawnButton" type="Button" parent="ServerUI/VBoxContainer"]
+[node name="AddToString" type="Button" parent="ServerUI/VBoxContainer"]
 layout_mode = 2
-text = "Spawn Circle"
 
-[node name="Shapes" type="Node2D" parent="."]
-position = Vector2(571, 305)
+[node name="Spawn" type="Button" parent="ServerUI/VBoxContainer"]
+layout_mode = 2
+text = "Spawn
+"
 
-[node name="RigidBody2D" type="RigidBody2D" parent="Shapes"]
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Shapes/RigidBody2D"]
-shape = SubResource("CircleShape2D_lq87x")
+[node name="SyncNodes" type="CanvasLayer" parent="."]

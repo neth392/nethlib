@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://cmos3dl2fqdmy"]
+
+[ext_resource type="Script" path="res://testing_please_ignore/mp_test/mp_test_node_to_sync.gd" id="1_5x3a0"]
+
+[node name="MpTestNodeToSync" type="VBoxContainer"]
+script = ExtResource("1_5x3a0")
+test_sync_string = "tesst"
+
+[node name="StringLabel" type="Label" parent="."]
+layout_mode = 2
