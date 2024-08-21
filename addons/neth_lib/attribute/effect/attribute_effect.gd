@@ -168,6 +168,12 @@ enum DurationType {
 		stack_mode = _value
 		notify_property_list_changed()
 
+## The 
+@export var has_stack_limit: bool = false
+
+## The stack limit
+@export var stack_limit: int = 0
+
 @export_group("Attribute History")
 
 ## If true, anytime this effect is applied to an [Attribute] it is registered

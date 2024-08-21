@@ -26,6 +26,11 @@ var remaining_duration: float:
 		var previous: float = remaining_duration
 		remaining_duration = max(0.0, _value)
 
+## Customizable metadata for this [AttributeEffectSpec], for use with conditions,
+## callbacks, etc. Not in use by the Attribute system itself, but used with some of
+## the built in conditions, callbacks, & modifiers.
+var meta: Dictionary = {}
+
 ## The remaining amount of time, in seconds, until this effect is next triggered.
 ## Can be manually set before applying to an [Attribute] to create an initial
 ## delay.

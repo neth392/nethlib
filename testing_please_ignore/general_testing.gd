@@ -13,9 +13,9 @@ func _ready() -> void:
 			print(x)
 	ExecutionTimeTest.print_time_taken("is_empty")
 	
-	
 	ExecutionTimeTest.start()
 	for i in times:
 		for x: String in empty_array:
 			print(x)
 	ExecutionTimeTest.print_time_taken("iterate")
+	
