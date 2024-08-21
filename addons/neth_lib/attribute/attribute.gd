@@ -124,7 +124,7 @@ signal effect_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeE
 @export var _base_value: float:
 	set(value):
 		var prev_base_value: float = _base_value
-		_base_value = _validate_base_value(value)
+		_base_value = value
 		if prev_base_value != _base_value:
 			_notify_base_value_changed(prev_base_value)
 		update_configuration_warnings()
