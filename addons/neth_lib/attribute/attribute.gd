@@ -51,11 +51,9 @@ enum AddEffectResult {
 	## Another spec of the same effect is already present on the [Attribute] and 
 	## stack_mode is set to DENY.
 	STACK_DENIED = 5,
-	## Not added because its initial duration was <= 0.0
-	INVALID_DURATION = 6,
 	## Effect is instant & can't be "added", but only applied. This does not indicate
 	## if it was applied or not.
-	INSTANT_CANT_ADD = 7,
+	INSTANT_CANT_ADD = 6,
 }
 
 ## Determines how to sort [AttributeEffect]s who have the same priority.
@@ -351,16 +349,27 @@ func __process() -> void:
 		if _stop_applying:
 			# Reset the period here (that is usually done below)
 			if reset_period:
-				_reset_period(spec)
+				spec.remaining_period += _get_modified_period(spec)
 			continue
 		
 		# Check if it should apply
 		if apply:
-			_apply_permanent_spec(spec, current_tick, __process_to_remove, index)
+			# Apply it
+			_apply_permanent_spec(spec, current_tick)
+			
+			# Mark it for removal if it hit apply limit
+			if spec.hit_apply_limit():
+				__process_to_remove[index] = spec
+				# Remove from effect counts instantly so has_effect return false
+				_remove_from_effect_counts(spec)
+			
+			# Update current value
+			if _base_value != spec._last_prior_attribute_value:
+				_update_current_value()
 		
 		# Reset the period
 		if reset_period:
-			_reset_period(spec)
+			spec.remaining_period += _get_modified_period(spec)
 	
 	# Remove specs that have expired or reached application limit
 	if !__process_to_remove.is_empty():
@@ -523,19 +532,24 @@ func calculate_current_value() -> float:
 	return _validate_current_value(new_current_value)
 
 
-func _reset_period(spec: AttributeEffectSpec) -> void:
-	# Add (instead of reset) period for more accuracy when dealing w/ low frame rate
-	spec.remaining_period += _get_modified_period(spec)
-
-
 ## Returns a new [Array] (safe to mutate) of the current [AttributeEffectSpec]s.
 ## The specs themselves are NOT duplicated.
-func get_specs() -> Array[AttributeEffectSpec]:
+## [br]If [param ignore_expired] is true, specs that are expired OR hit their apply limit
+## are ignored, otherwise they are included (not recommended for most cases).
+func get_specs(ignore_expired: bool = true) -> Array[AttributeEffectSpec]:
+	if ignore_expired:
+		return _specs._array.filter(
+			func (spec: AttributeEffectSpec) -> bool:
+			return !ignore_expired || (!spec.is_expired() && !spec.hit_apply_limit())
+			)
 	return _specs._array.duplicate(false)
 
 
 ## Returns a new [Array] (safe to mutate) of all current [AttributeEffect]s.
 ## The effects themselves are NOT duplicated.
+## [br]NOTE: If this is called mid process, expired effects & effects that have hit their
+## apply limit are internally still present as they're removed at the end of the frame, 
+## but they will not show up in any publicly facing functions including this one.
 func get_effects() -> Array[AttributeEffect]:
 	return _effect_counts.keys()
 
@@ -543,6 +557,9 @@ func get_effects() -> Array[AttributeEffect]:
 ## Returns a new [Dictionary] (safe to mutate) of all current [AttributeEffect]s as keys,
 ## and the integer count of the amount of [AttributeEffectSpec]s of each effect as values.
 ## The effects themselves are NOT duplicated.
+## [br]NOTE: If this is called mid process, expired effects & effects that have hit their
+## apply limit are internally still present as they're removed at the end of the frame, 
+## but they will not show up in any publicly facing functions including this one.
 func get_effects_with_counts() -> Dictionary:
 	return _effect_counts.duplicate(false)
 
@@ -550,6 +567,9 @@ func get_effects_with_counts() -> Dictionary:
 ## Returns true if the [param effect] is present and has one or more [AttributeEffectSpec]s
 ## applied to this [Attribute], false if not. Does not account for any specs that are
 ## expired & not yet removed (during the processing).
+## [br]NOTE: If this is called mid process, expired effects & effects that have hit their
+## apply limit are internally still present as they're removed at the end of the frame, 
+## but they will not show up in any publicly facing functions including this one.
 func has_effect(effect: AttributeEffect) -> bool:
 	assert(effect != null, "effect is null")
 	return _effect_counts.has(effect)
@@ -557,6 +577,9 @@ func has_effect(effect: AttributeEffect) -> bool:
 
 ## Returns the total amount of [AttributeEffectSpec]s whose effect is [param effect].
 ## Highly efficient as it simply uses [method Dictionary.get] on an internally managed dictionary.
+## [br]NOTE: If this is called mid process, expired effects & effects that have hit their
+## apply limit are internally still present as they're removed at the end of the frame, 
+## but they will not show up in any publicly facing functions including this one.
 func get_effect_count(effect: AttributeEffect) -> int:
 	assert(effect != null, "effect is null")
 	return _effect_counts.get(effect, 0)
@@ -570,10 +593,14 @@ func has_spec(spec: AttributeEffectSpec) -> bool:
 
 ## Searches through all active [AttributeEffectSpec]s and returns a new [Array] of all specs
 ## whose [method AttributEffectSpec.get_effect] equals [param effect].
-func find_specs(effect: AttributeEffect) -> Array[AttributeEffectSpec]:
+## [br]If [param ignore_expired] is true, specs that are expired OR hit their apply limit
+## are ignored, otherwise they are included (not recommended for most cases).
+func find_specs(effect: AttributeEffect, ignore_expired: bool = true) -> Array[AttributeEffectSpec]:
 	var specs: Array[AttributeEffectSpec] = []
 	for spec: AttributeEffectSpec in _specs.iterate():
 		if spec.get_effect() == effect:
+			if ignore_expired && (spec.is_expired() || spec.hit_apply_limit()):
+				continue
 			specs.append(spec)
 			continue
 	return specs
@@ -584,9 +611,13 @@ func find_specs(effect: AttributeEffect) -> Array[AttributeEffectSpec]:
 ## if there is no spec of [param effect]. Useful when you know that the [param effect]'s
 ## stack mode is COMBINE, DENY, or DENY_ERROR as in those cases there can only 
 ## be one instance of the effect.
-func find_first_spec(effect: AttributeEffect) -> AttributeEffectSpec:
+## [br]If [param ignore_expired] is true, specs that are expired OR hit their apply limit
+## are ignored, otherwise they are included (not recommended for most cases).
+func find_first_spec(effect: AttributeEffect, ignore_expired: bool = true) -> AttributeEffectSpec:
 	for spec: AttributeEffectSpec in _specs.iterate():
 		if spec.get_effect() == effect:
+			if ignore_expired && (spec.is_expired() || spec.hit_apply_limit()):
+				continue
 			return spec
 	return null
 
@@ -643,9 +674,6 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 	
 	_locked = true
 	
-	var perm_specs_to_apply: Dictionary = {}
-	
-	var update_current: bool = false
 	var current_tick: int = _get_ticks()
 	
 	var specs_to_add: Array[AttributeEffectSpec] = specs
@@ -665,10 +693,10 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 		!has_effect(spec.get_effect()), 
 		"spec (%s)'s effect stack_mode == DENY_ERROR but stacking was attempted" % spec)
 		
-		# Effect is instant, ignore other logic.
+		# Effect is instant, ignore other logic & apply it
 		if spec.get_effect().is_instant():
 			spec._last_add_result = AddEffectResult.INSTANT_CANT_ADD
-			perm_specs_to_apply[spec] = -1
+			_apply_permanent_spec(spec, current_tick)
 			continue
 		
 		# Do not stack if DENY or DENY_ERROR & effect already exists
@@ -689,24 +717,20 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 			assert(existing != null, ("existing is null, but has_effect returned true " + \
 			"for spec %s") % spec)
 			spec._last_add_result = AddEffectResult.STACKED
-			existing._add_to_stack(self, spec.get_stack_count())
+			_add_to_stack(spec, spec.get_stack_count())
 			# Update current value if a temporary spec is added
+			# TODO Determine if I should apply here
 			if spec.get_effect().is_temporary():
-				update_current = true
+				_update_current_value()
 			continue
 		
 		# Initialize if not done so
 		if !spec.is_initialized():
 			_initialize_spec(spec)
 		
-		# Don't add it if it has remaining duration of <= 0.0
-		if spec.get_effect().has_duration() && spec.remaining_duration <= 0.0:
-			spec._last_add_result = AddEffectResult.INVALID_DURATION
-			continue
-		
-		# Update current value if a temporary spec is added
-		if spec.get_effect().is_temporary():
-			update_current = true
+		# Ensure duration is valid
+		assert(!spec.get_effect().has_duration() || spec.remaining_duration > 0.0,
+		"spec (%s) has a remaining_duration <= 0.0" % spec)
 		
 		# Run pre_add callbacks
 		_run_callbacks(spec, AttributeEffectCallback._Function.PRE_ADD)
@@ -720,7 +744,7 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 		# Add to array
 		var index: int = _specs.add(spec)
 		
-		# Add to _effect_countsg
+		# Add to _effect_counts
 		var new_count: int = _effect_counts.get(spec.get_effect(), 0) + 1
 		_effect_counts[spec.get_effect()] = new_count
 		
@@ -729,65 +753,24 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 		if spec.get_effect().should_emit_added_signal():
 			effect_added.emit(spec)
 		
-		# Mark it to apply if initial period <= 0.0
+		# Update current value if a temporary spec is added
+		if spec.get_effect().is_temporary():
+			_update_current_value()
+			continue
+		
+		# Apply it if initial period <= 0.0
 		if spec.get_effect().has_period() && spec.remaining_period <= 0.0:
-			perm_specs_to_apply[spec] = index
-	
-	var to_remove: Dictionary = {}
-	var to_emit_applied: Array[AttributeEffectSpec] = []
-
-	# Apply all permanent specs that should apply
-	if !perm_specs_to_apply.is_empty():
-		var new_base_value: float = _base_value
-		
-		# Iterate specs & apply them
-		for spec: AttributeEffectSpec in perm_specs_to_apply:
-			# Set pending value
-			spec._pending_value = spec.get_effect().get_modified_value(self, spec)
-			if _test_apply_conditions(spec):
-				var index: int = perm_specs_to_apply[spec]
-				
-				spec._last_value = spec._pending_value
-				
-				# Clear pending value
-				spec._pending_value = 0.0
-				
-				spec._last_set_value = spec.get_effect().apply_calculator(new_base_value, 
-				_current_value, spec._last_value)
-				## TODO FIX THIS CODE
-				#_apply_permanent_spec(spec, index, current_tick, new_base_value, to_remove, 
-				#to_emit_applied)
-				# Update base value
-				new_base_value = spec._last_set_value
-			else:
-				# Clear pending value
-				spec._pending_value = 0.0
+			_apply_permanent_spec(spec, current_tick)
 			
-			# Reset period if there is one
-			if spec.get_effect().has_period(): 
-				_reset_period(spec)
-		
-		# Update base value if changed
-		if _base_value != new_base_value:
-			_base_value = new_base_value
-			# If base value changed, update current value next
-			update_current = true
-	
-	# Update current value if neccessary
-	if update_current:
-		_update_current_value()
-	
-	# Emit applied signal for applied specs
-	for spec: AttributeEffectSpec in to_emit_applied:
-		effect_applied.emit(spec)
-	
-	# Remove specs that have hit their apply limit
-	if !to_remove.is_empty():
-		var removed_count: int = 0
-		for index: int in to_remove:
-			## TODO FIX THIS CODE (should be FALSE as last param & removed from effect counts above)
-			_remove_spec_at_index(to_remove[index], index - removed_count, true)
-			removed_count += 1
+			# Remove if it hit apply limit
+			if spec.hit_apply_limit():
+				_remove_spec_at_index(spec, index, true)
+			else: # Update period
+				spec.remaining_period += _get_modified_period(spec)
+			
+			# Update the current value
+			if _base_value != spec._last_prior_attribute_value:
+				_update_current_value()
 	
 	# Process if specs is not empty
 	_has_specs = !_specs.is_empty()
@@ -1023,8 +1006,8 @@ func _initialize_spec(spec: AttributeEffectSpec) -> void:
 
 
 ## Applies the [param spec]. Returns true if it should be removed (hit apply limit),
-## false if not.
-func _apply_permanent_spec(spec: AttributeEffectSpec, current_tick: int, to_remove: Dictionary, index: int) -> void:
+## false if not. Does not update the current value, that must be done manually after.
+func _apply_permanent_spec(spec: AttributeEffectSpec, current_tick: int) -> void:
 	# Get the modified value
 	spec._pending_effect_value = _get_modified_value(spec)
 	
@@ -1056,12 +1039,7 @@ func _apply_permanent_spec(spec: AttributeEffectSpec, current_tick: int, to_remo
 	
 	# Add to history
 	if has_history() && spec.get_effect().should_log_history():
-		_history._add_to_history(spec)
-	
-	# Mark for removal if it hit apply limit (& remove from effect counts)
-	if spec.hit_apply_limit():
-		to_remove[index] = spec
-		_remove_from_effect_counts(spec)
+		_history._add_to_history(spec) 
 	
 	# Apply it
 	_base_value = spec._last_set_attribute_value
@@ -1070,12 +1048,9 @@ func _apply_permanent_spec(spec: AttributeEffectSpec, current_tick: int, to_remo
 	
 	# Emit signals
 	_run_callbacks(spec, AttributeEffectCallback._Function.APPLIED)
-	effect_applied.emit(spec)
+	if spec.get_effect().should_emit_applied_signal():
+		effect_applied.emit(spec)
 	spec.applied.emit(self)
-	
-	# Update current value if needed
-	if _base_value != spec._last_prior_attribute_value:
-		_update_current_value()
 
 
 ## Adds [param amount] to the effect stack. This effect must be stackable

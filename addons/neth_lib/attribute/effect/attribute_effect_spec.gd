@@ -58,9 +58,9 @@ var _active_duration: float = 0.0
 
 # Effect's modified value
 var _pending_effect_value: float
-# Raw unvalidated attr value
+# Raw UNVALIDATED attr value
 var _pending_attribute_value_raw: float
-# Validated attr value
+# VALIDATED new attr value
 var _pending_attribute_value: float
 
 # Last effect's modified value
