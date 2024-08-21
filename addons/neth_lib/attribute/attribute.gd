@@ -73,10 +73,8 @@ enum SamePrioritySortingMethod {
 ## Emitted when the value returned by [method get_current_value] changes.
 signal current_value_changed(prev_current_value: float)
 
-## Emitted when [member _base_value] changes. Similar to [signal base_value_event]
-## but ONLY emits if the base value changed, and does not include the cause. [param spec]
-## is the [AttributeEffectSpec] that caused the change, null if the change was done manually
-## via [method set_base_value].
+## Emitted when [member _base_value] changes. [param spec] is what caused the
+## change, or null if [method set_base_value] was used directly.
 signal base_value_changed(prev_base_value: float, spec: AttributeEffectSpec)
 
 ####################
@@ -88,8 +86,10 @@ signal base_value_changed(prev_base_value: float, spec: AttributeEffectSpec)
 ## [method has_effect] will return false when called with [param spec].
 signal effect_added(spec: AttributeEffectSpec)
 
-## TODO
-signal effect_applied(spec: AttributeEffectSpec)
+## Emitted when the [param spec] is applied. Only emitted for [enum AttributeEffect.Type.PERMANENT]
+## effects, not [enum AttributeEffect.Type.TEMPORARY]. [member prev_base_value] is
+## 
+signal permanent_effect_applied(spec: AttributeEffectSpec, prev_base_value: float)
 
 ## Emitted when the [param spec] was removed. To determine if it was manual
 ## or due to expiration, see [method AttributeEffectSpec.expired].
@@ -203,8 +203,6 @@ var _current_value: float:
 			_notify_current_value_changed(prev_current_value)
 		update_configuration_warnings()
 
-var _current_value_initiated: bool = false
-
 ## A lock mechanism to ensure code ran from signals emitted from this attribute does not
 ## attempt any unsafe changes that would break the logic & predictability of effects.
 var _locked: bool = false
@@ -238,7 +236,6 @@ func _ready() -> void:
 		return
 	
 	_current_value = _validate_current_value(_base_value)
-	_current_value_initiated = true
 	
 	# Find & set history
 	for child: Node in get_children():
@@ -325,7 +322,7 @@ func __process() -> void:
 				__process_to_remove[index] = spec
 				# Update current value if this expired
 				if spec.get_effect().is_temporary():
-					_update_current_value()
+					update_current_value()
 				# Set to apply if effect is apply on expire
 				if spec.get_effect().is_apply_on_expire():
 					apply = true
@@ -365,7 +362,7 @@ func __process() -> void:
 			
 			# Update current value
 			if _base_value != spec._last_prior_attribute_value:
-				_update_current_value()
+				update_current_value()
 		
 		# Reset the period
 		if reset_period:
@@ -461,11 +458,12 @@ func get_base_value() -> float:
 
 ## Manually sets the base value, also updating the current value.
 func set_base_value(new_base_value: float) -> void:
-	if _base_value != new_base_value:
+	var validated_new_base_value: float = _validate_base_value(new_base_value)
+	if _base_value != validated_new_base_value:
 		var prev_base_value: float = _base_value
-		_base_value = new_base_value
+		_base_value = validated_new_base_value
 		base_value_changed.emit(prev_base_value, null)
-		_update_current_value()
+		update_current_value()
 
 
 ## Returns the current value, which is the [member base_value] affected by
@@ -506,13 +504,11 @@ func _notify_current_value_changed(prev_current_value: float) -> void:
 
 ## Updates the value returned by [method get_current_value] by re-applying all
 ## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY].
-func _update_current_value() -> void:
+func update_current_value() -> void:
 	var new_current_value: float = calculate_current_value()
-	
 	if _current_value != new_current_value:
 		var prev_current_value: float = _current_value
 		_current_value = new_current_value
-		# TODO decide on where to add these signals
 		current_value_changed.emit(prev_current_value)
 
 
@@ -720,7 +716,7 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 			# Update current value if a temporary spec is added
 			# TODO Determine if I should apply here
 			if spec.get_effect().is_temporary():
-				_update_current_value()
+				update_current_value()
 			continue
 		
 		# Initialize if not done so
@@ -754,7 +750,7 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 		
 		# Update current value if a temporary spec is added
 		if spec.get_effect().is_temporary():
-			_update_current_value()
+			update_current_value()
 			continue
 		
 		# Apply it if initial period <= 0.0
@@ -769,7 +765,7 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 			
 			# Update the current value
 			if _base_value != spec._last_prior_attribute_value:
-				_update_current_value()
+				update_current_value()
 	
 	# Process if specs is not empty
 	_has_specs = !_specs.is_empty()
@@ -791,7 +787,7 @@ func remove_effect(effect: AttributeEffect) -> bool:
 			removed = true
 	
 	if effect.type == AttributeEffect.Type.TEMPORARY && removed:
-		_update_current_value()
+		update_current_value()
 	
 	_locked = false
 	return removed
@@ -815,7 +811,7 @@ func remove_effects(effects: Array[AttributeEffect]) -> bool:
 				temporary_removed = true
 	
 	if temporary_removed:
-		_update_current_value()
+		update_current_value()
 	
 	_locked = false
 	return removed
@@ -833,7 +829,7 @@ func remove_spec(spec: AttributeEffectSpec) -> bool:
 	_remove_from_effect_counts(spec)
 	_post_remove_spec(spec)
 	if spec.get_effect().is_temporary():
-		_update_current_value()
+		update_current_value()
 	_locked = false
 	return true
 
@@ -854,7 +850,7 @@ func remove_specs(specs: Array[AttributeEffectSpec]) -> bool:
 				temporary_removed = true
 	
 	if temporary_removed:
-		_update_current_value()
+		update_current_value()
 	_locked = false
 	return removed
 
@@ -1048,7 +1044,7 @@ func _apply_permanent_spec(spec: AttributeEffectSpec, current_tick: int) -> void
 	# Emit signals
 	_run_callbacks(spec, AttributeEffectCallback._Function.APPLIED)
 	if spec.get_effect().should_emit_applied_signal():
-		effect_applied.emit(spec)
+		permanent_effect_applied.emit(spec)
 	spec.applied.emit(self)
 
 
