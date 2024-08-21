@@ -685,7 +685,6 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 	# Sort specs into arrays ordered by priority
 	# Set permanent specs to apply if they should
 	for spec: AttributeEffectSpec in specs_to_add:
-		assert(spec != null, "specs has null element")
 		assert(!spec.is_added(), "spec (%s) already added" % spec)
 		
 		# Throw error if spec's effect exists & has StackMode.DENY_ERROR
