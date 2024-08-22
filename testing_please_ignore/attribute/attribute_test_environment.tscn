@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://s8ry7xrdqlp4"]
+[gd_scene load_steps=8 format=3 uid="uid://s8ry7xrdqlp4"]
 
 [ext_resource type="Script" path="res://testing_please_ignore/attribute/attribute_test_environment.gd" id="1_6thqn"]
 [ext_resource type="PackedScene" uid="uid://84fe3nd5qp4l" path="res://addons/neth_lib/attribute/attribute_container.tscn" id="2_mg524"]
@@ -6,6 +6,7 @@
 [ext_resource type="Resource" uid="uid://damurgk5lppcq" path="res://testing_please_ignore/attribute/2_damage_sec_over_5_sec.tres" id="4_a7csn"]
 [ext_resource type="PackedScene" uid="uid://b8nvub03th7l8" path="res://addons/neth_lib/attribute/util/attribute_history.tscn" id="4_wa5bo"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect.gd" id="4_wgqvk"]
+[ext_resource type="Resource" uid="uid://dyj8usliv1txj" path="res://testing_please_ignore/attribute/10_pct_health_boost.tres" id="6_rsirs"]
 
 [node name="AttributeTestEnvironment" type="CanvasLayer" node_paths=PackedStringArray("container", "attr", "attr_label", "history")]
 script = ExtResource("1_6thqn")
@@ -32,6 +33,6 @@ id = &"health"
 _base_value = 100.0
 same_priority_sorting_method = 0
 defer_default_effects = true
-_default_effects = Array[ExtResource("4_wgqvk")]([ExtResource("4_a7csn")])
+_default_effects = Array[ExtResource("4_wgqvk")]([ExtResource("4_a7csn"), ExtResource("6_rsirs")])
 
 [node name="AttributeHistory" parent="AttributeContainer/HealthAttribute" instance=ExtResource("4_wa5bo")]

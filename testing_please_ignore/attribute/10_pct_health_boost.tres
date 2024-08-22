@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AttributeEffect" load_steps=14 format=3 uid="uid://dyj8usliv1txj"]
+[gd_resource type="Resource" script_class="AttributeEffect" load_steps=12 format=3 uid="uid://dyj8usliv1txj"]
 
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/attribute_effect_callback.gd" id="1_71m7j"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd" id="2_1avub"]
@@ -7,15 +7,6 @@
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier_array.gd" id="5_y46o7"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect.gd" id="6_v3rhk"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/calculator/multiply_calculator.gd" id="7_qqnab"]
-
-[sub_resource type="Resource" id="Resource_yqbme"]
-script = ExtResource("5_y46o7")
-_modifiers = Array[ExtResource("4_gfbqv")]([])
-
-[sub_resource type="Resource" id="Resource_rhjq1"]
-script = ExtResource("3_13nvc")
-value = 0.0
-value_modifiers = SubResource("Resource_yqbme")
 
 [sub_resource type="Resource" id="Resource_3io31"]
 script = ExtResource("5_y46o7")
@@ -47,7 +38,6 @@ _emit_added_signal = true
 _emit_applied_signal = false
 _emit_removed_signal = true
 duration_type = 0
-duration_in_seconds = SubResource("Resource_rhjq1")
 _apply_on_expire = false
 _apply_limit = false
 apply_limit_amount = 0
@@ -55,8 +45,6 @@ period_in_seconds = SubResource("Resource_jf4ao")
 initial_period = false
 _apply_on_expire_if_period_is_zero = false
 stack_mode = 1
-has_stack_limit = false
-stack_limit = 0
 _log_history = false
 add_conditions = Array[ExtResource("2_1avub")]([])
 apply_conditions = Array[ExtResource("2_1avub")]([])

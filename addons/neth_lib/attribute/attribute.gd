@@ -515,7 +515,7 @@ func update_current_value() -> void:
 		spec._pending_current_attribute_value = new_current_value
 		spec._pending_effect_value = _get_modified_value(spec)
 		spec._pending_raw_attribute_value = spec.get_effect().apply_calculator(_base_value, new_current_value, spec._last_effect_value)
-		spec._pending_set_attribute_value = _validate_current_value(spec._pending_attribute_value_raw)
+		spec._pending_set_attribute_value = _validate_current_value(spec._pending_raw_attribute_value)
 		if !_test_apply_conditions(spec):
 			spec._clear_pending_values()
 			continue
@@ -523,7 +523,7 @@ func update_current_value() -> void:
 		spec._last_effect_value = spec._pending_effect_value
 		spec._last_prior_attribute_value = _current_value
 		spec._last_raw_attribute_value = spec._pending_raw_attribute_value
-		spec._last_set_attribute_value = spec._pending_attribute_value
+		spec._last_set_attribute_value = spec._pending_set_attribute_value
 		spec._clear_pending_values()
 		new_current_value = spec._last_set_attribute_value
 	
