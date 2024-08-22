@@ -462,7 +462,7 @@ func has_add_conditions() -> bool:
 
 ## Whether or not this effect supports [member apply_conditions]
 func has_apply_conditions() -> bool:
-	return type == Type.PERMANENT
+	return has_value
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_added].
