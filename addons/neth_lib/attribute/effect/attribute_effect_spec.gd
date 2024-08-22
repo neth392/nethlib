@@ -46,6 +46,7 @@ var _expired: bool = false
 var _is_added: bool = false
 var _stack_count: int = 1
 var _apply_count: int = 0
+var _is_applying: bool = false
 
 var _last_blocked_by: AttributeEffectCondition
 var _last_add_result: Attribute.AddEffectResult = Attribute.AddEffectResult.NEVER_ADDED
@@ -58,14 +59,17 @@ var _active_duration: float = 0.0
 
 # Effect's modified value
 var _pending_effect_value: float
+# Current attribute value
+var _pending_current_attribute_value: float
 # Raw UNVALIDATED attr value
-var _pending_attribute_value_raw: float
+var _pending_raw_attribute_value: float
 # VALIDATED new attr value
-var _pending_attribute_value: float
+var _pending_set_attribute_value: float
 
 # Last effect's modified value
 var _last_effect_value: float
 var _last_prior_attribute_value: float
+var _last_raw_attribute_value: float
 var _last_set_attribute_value: float
 # TODO: get_last_differential() method
 
@@ -186,6 +190,12 @@ func get_apply_count() -> int:
 	return _apply_count
 
 
+## Returns true if this effect is currently applying and thus not blocked by a condition, expired,
+## or hit its apply limit. False if not.
+func is_applying() -> bool:
+	return _is_applying
+
+
 ## Returns true if [method get_effect] has an apply limit & this spec's [method get_apply_count]
 ## has either met or exceeded the [member AttributeEffect.apply_limit_amount].
 func hit_apply_limit() -> bool:
@@ -205,9 +215,10 @@ func get_stack_count() -> int:
 
 
 func _clear_pending_values() -> void:
+	_pending_current_attribute_value = 0.0
 	_pending_effect_value = 0.0
-	_pending_attribute_value = 0.0
-	_pending_attribute_value_raw = 0.0
+	_pending_raw_attribute_value = 0.0
+	_pending_set_attribute_value = 0.0
 
 
 func _to_string() -> String:

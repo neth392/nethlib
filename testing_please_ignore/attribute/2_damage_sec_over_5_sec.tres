@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="AttributeEffect" load_steps=17 format=3 uid="uid://damurgk5lppcq"]
+[gd_resource type="Resource" script_class="AttributeEffect" load_steps=12 format=3 uid="uid://damurgk5lppcq"]
 
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/tag_applier_callback.gd" id="1_3p2fs"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/attribute_effect_callback.gd" id="1_ovyuw"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect.gd" id="2_5ycyd"]
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd" id="3_bi3xr"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/calculator/subtract_calculator.gd" id="3_st5yu"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd" id="4_g51b4"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/modifiable_value.gd" id="4_tuxff"]
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier_array.gd" id="6_gh72b"]
 
 [sub_resource type="Resource" id="Resource_8odpc"]
 script = ExtResource("1_3p2fs")
@@ -17,32 +15,17 @@ remove_after = true
 cache_tags_to_remove = true
 error_on_no_container = true
 
-[sub_resource type="Resource" id="Resource_4g7cs"]
-script = ExtResource("6_gh72b")
-_modifiers = Array[ExtResource("3_bi3xr")]([])
-
 [sub_resource type="Resource" id="Resource_n1tvp"]
 script = ExtResource("4_tuxff")
-value = 0.0
-value_modifiers = SubResource("Resource_4g7cs")
-
-[sub_resource type="Resource" id="Resource_80ms6"]
-script = ExtResource("6_gh72b")
-_modifiers = Array[ExtResource("3_bi3xr")]([])
+value = 10.0
 
 [sub_resource type="Resource" id="Resource_o4er3"]
 script = ExtResource("4_tuxff")
-value = 0.0
-value_modifiers = SubResource("Resource_80ms6")
-
-[sub_resource type="Resource" id="Resource_7c7cd"]
-script = ExtResource("6_gh72b")
-_modifiers = Array[ExtResource("3_bi3xr")]([])
+value = 1.0
 
 [sub_resource type="Resource" id="Resource_lap2l"]
 script = ExtResource("4_tuxff")
-value = 0.0
-value_modifiers = SubResource("Resource_7c7cd")
+value = 2.0
 
 [sub_resource type="Resource" id="Resource_ku1ib"]
 script = ExtResource("3_st5yu")
@@ -60,7 +43,7 @@ value_calculator = SubResource("Resource_ku1ib")
 _emit_added_signal = true
 _emit_applied_signal = true
 _emit_removed_signal = true
-duration_type = 0
+duration_type = 1
 duration_in_seconds = SubResource("Resource_n1tvp")
 _apply_on_expire = true
 _apply_limit = false

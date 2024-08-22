@@ -84,33 +84,32 @@ signal base_value_changed(prev_base_value: float, spec: AttributeEffectSpec)
 ## Emitted after the [param spec] was added to this [Attribute]. If the
 ## relative [AttributeEffect] is of [enum AttributEffect.DurationType.INSTANT] then
 ## [method has_effect] will return false when called with [param spec].
-signal effect_added(spec: AttributeEffectSpec)
+signal spec_added(spec: AttributeEffectSpec)
 
 ## Emitted when the [param spec] is applied. Only emitted for [enum AttributeEffect.Type.PERMANENT]
-## effects, not [enum AttributeEffect.Type.TEMPORARY]. [member prev_base_value] is
-## 
-signal permanent_effect_applied(spec: AttributeEffectSpec, prev_base_value: float)
+## effects, not [enum AttributeEffect.Type.TEMPORARY].
+signal permanent_spec_applied(spec: AttributeEffectSpec)
 
 ## Emitted when the [param spec] was removed. To determine if it was manual
 ## or due to expiration, see [method AttributeEffectSpec.expired].
-signal effect_removed(spec: AttributeEffectSpec)
+signal spec_removed(spec: AttributeEffectSpec)
 
 ## Emitted when the [param spec] had its stack count changed.
-signal effect_stack_count_changed(spec: AttributeEffectSpec, previous_stack_count: int)
+signal spec_stack_count_changed(spec: AttributeEffectSpec, previous_stack_count: int)
 
 ## Emitted after [param blocked] was blocked from being added to
 ## this [Attribute] by an [AttributeEffectCondition], accessible via 
 ## [method AttributeEffectSpec.get_last_blocked_by]. [param blocked_by] is the owner
 ## of that condition, and could (but not always in the case of BLOCKER effects) be the same
 ## as [param blocked].
-signal effect_add_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEffectSpec)
+signal spec_add_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEffectSpec)
 
 ## Emitted after [param blocked] was blocked from being applied to
 ## this [Attribute] by an [AttributeEffectCondition], accessible via 
 ## [method AttributeEffectSpec.get_last_blocked_by]. [param blocked_by] is the owner
 ## of that condition, and could (but not always in the case of BLOCKER effects) be the same
 ## as [param blocked].
-signal effect_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEffectSpec)
+signal spec_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEffectSpec)
 
 
 ## The ID of the attribute.
@@ -179,7 +178,7 @@ signal effect_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeE
 var _container: WeakRef
 
 ## Cluster of all added [AttributeEffectSpec]s.
-var _specs: AttributeEffectSpecArray 
+var _specs: AttributeEffectSpecArray
 
 ## Internal storage of [member _specs]'s size for disabling processing when no effects
 ## are active, for performance gains.
@@ -235,6 +234,7 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	
+	_specs = AttributeEffectSpecArray.new(same_priority_sorting_method)
 	_current_value = _validate_current_value(_base_value)
 	
 	# Find & set history
@@ -508,32 +508,29 @@ func _notify_current_value_changed(prev_current_value: float) -> void:
 ## a TEMPORARY effect is added/removed. Should be called manually if a TEMPORARY
 ## effect's conditions change.
 func update_current_value() -> void:
-	var new_current_value: float = calculate_current_value()
-	if _current_value != new_current_value:
-		var prev_current_value: float = _current_value
-		_current_value = new_current_value
-		current_value_changed.emit(prev_current_value)
-
-
-## Executes all active temporary [AttributeEffectSpec]s on the current [method get_base_value]
-## and returns the calculated current value. May not reflect [method get_current_value] if this
-## is called in the middle of processing. It is usually recommended to call [method update_current_value]
-## and then [method get_current_value], this function is for advanced cases.
-func calculate_current_value() -> float:
 	var new_current_value: float = _base_value
 	for spec: AttributeEffectSpec in _specs.iterate_temp():
 		if spec.is_expired():
 			continue
+		spec._pending_current_attribute_value = new_current_value
 		spec._pending_effect_value = _get_modified_value(spec)
-		spec._pending_attribute_value_raw = spec.get_effect().apply_calculator(_base_value, new_current_value, spec._last_effect_value)
-		spec._pending_attribute_value = _validate_current_value(spec._pending_attribute_value_raw)
+		spec._pending_raw_attribute_value = spec.get_effect().apply_calculator(_base_value, new_current_value, spec._last_effect_value)
+		spec._pending_set_attribute_value = _validate_current_value(spec._pending_attribute_value_raw)
 		if !_test_apply_conditions(spec):
+			spec._clear_pending_values()
 			continue
 		
-		spec._last_effect_value = _get_modified_value(spec)
-		new_current_value = spec.get_effect().apply_calculator(_base_value, new_current_value, spec._last_effect_value)
+		spec._last_effect_value = spec._pending_effect_value
+		spec._last_prior_attribute_value = _current_value
+		spec._last_raw_attribute_value = spec._pending_raw_attribute_value
+		spec._last_set_attribute_value = spec._pending_attribute_value
+		spec._clear_pending_values()
+		new_current_value = spec._last_set_attribute_value
 	
-	return _validate_current_value(new_current_value)
+	if _current_value != new_current_value:
+		var prev_current_value: float = _current_value
+		_current_value = new_current_value
+		current_value_changed.emit(prev_current_value)
 
 
 ## Returns a new [Array] (safe to mutate) of the current [AttributeEffectSpec]s.
@@ -754,7 +751,7 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 		# Run callbacks & emit signal
 		_run_callbacks(spec, AttributeEffectCallback._Function.ADDED)
 		if spec.get_effect().should_emit_added_signal():
-			effect_added.emit(spec)
+			spec_added.emit(spec)
 		
 		# Update current value if a temporary spec is added
 		if spec.get_effect().is_temporary():
@@ -908,7 +905,7 @@ func _pre_remove_spec(spec: AttributeEffectSpec) -> void:
 
 func _post_remove_spec(spec: AttributeEffectSpec) -> void:
 	if spec.get_effect().should_emit_removed_signal():
-		effect_removed.emit(spec)
+		spec_removed.emit(spec)
 	_run_callbacks(spec, AttributeEffectCallback._Function.REMOVED)
 
 
@@ -917,7 +914,7 @@ func _post_remove_spec(spec: AttributeEffectSpec) -> void:
 func _test_add_conditions(spec: AttributeEffectSpec) -> bool:
 	# Check spec's own conditions
 	if spec.get_effect().has_add_conditions():
-		if !_test_conditions(spec, spec, spec.get_effect().add_conditions, effect_add_blocked):
+		if !_test_conditions(spec, spec, spec.get_effect().add_conditions, spec_add_blocked):
 			spec._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
 			return false
 	
@@ -928,7 +925,7 @@ func _test_add_conditions(spec: AttributeEffectSpec) -> bool:
 			if blocker.is_expired():
 				continue
 			
-			if !_test_conditions(spec, blocker, blocker.get_effect().add_blockers, effect_add_blocked):
+			if !_test_conditions(spec, blocker, blocker.get_effect().add_blockers, spec_add_blocked):
 				spec._last_add_result = AddEffectResult.BLOCKED_BY_BLOCKER
 				return false
 	
@@ -940,7 +937,7 @@ func _test_add_conditions(spec: AttributeEffectSpec) -> bool:
 func _test_apply_conditions(spec: AttributeEffectSpec) -> bool:
 	# Check spec's own conditions
 	if spec.get_effect().has_apply_conditions():
-		if !_test_conditions(spec, spec, spec.get_effect().apply_conditions, effect_apply_blocked):
+		if !_test_conditions(spec, spec, spec.get_effect().apply_conditions, spec_apply_blocked):
 			return false
 	
 	# Iterate BLOCKER effects
@@ -950,7 +947,7 @@ func _test_apply_conditions(spec: AttributeEffectSpec) -> bool:
 			if blocker.is_expired():
 				continue
 			
-			if !_test_conditions(spec, blocker, blocker.get_effect().apply_blockers, effect_apply_blocked):
+			if !_test_conditions(spec, blocker, blocker.get_effect().apply_blockers, spec_apply_blocked):
 				return false
 	return true
 
@@ -1011,15 +1008,18 @@ func _initialize_spec(spec: AttributeEffectSpec) -> void:
 ## Applies the [param spec]. Returns true if it should be removed (hit apply limit),
 ## false if not. Does not update the current value, that must be done manually after.
 func _apply_permanent_spec(spec: AttributeEffectSpec, current_tick: int) -> void:
+	# Set pending current value
+	spec._pending_current_attribute_value = _base_value
+	
 	# Get the modified value
 	spec._pending_effect_value = _get_modified_value(spec)
 	
 	# Calculate the attribute's new value
-	spec._pending_attribute_value_raw = spec.get_effect().apply_calculator(_base_value, 
+	spec._pending_raw_attribute_value = spec.get_effect().apply_calculator(_base_value, 
 	_current_value, spec._pending_effect_value)
 	
 	# Validate the attribute's value
-	spec._pending_attribute_value = _validate_base_value(spec._pending_attribute_value_raw)
+	spec._pending_set_attribute_value = _validate_base_value(spec._pending_raw_attribute_value)
 	
 	# Check apply conditions
 	if !_test_apply_conditions(spec):
@@ -1029,7 +1029,8 @@ func _apply_permanent_spec(spec: AttributeEffectSpec, current_tick: int) -> void
 	# Set "last" values
 	spec._last_effect_value = spec._pending_effect_value
 	spec._last_prior_attribute_value = _base_value
-	spec._last_set_attribute_value = spec._pending_attribute_value
+	spec._last_raw_attribute_value = spec._pending_raw_attribute_value
+	spec._last_set_attribute_value = spec._pending_set_attribute_value
 	
 	# Clear pending value
 	spec._clear_pending_values()
@@ -1047,13 +1048,12 @@ func _apply_permanent_spec(spec: AttributeEffectSpec, current_tick: int) -> void
 	# Apply it
 	_base_value = spec._last_set_attribute_value
 	if _base_value != spec._last_prior_attribute_value:
-		base_value_changed.emit(spec._last_prior_base_value, spec)
+		base_value_changed.emit(spec._last_prior_attribute_value, spec)
 	
 	# Emit signals
 	_run_callbacks(spec, AttributeEffectCallback._Function.APPLIED)
 	if spec.get_effect().should_emit_applied_signal():
-		permanent_effect_applied.emit(spec)
-	spec.applied.emit(self)
+		permanent_spec_applied.emit(spec)
 
 
 ## Adds [param amount] to the effect stack. This effect must be stackable
@@ -1066,7 +1066,7 @@ func _add_to_stack(spec: AttributeEffectSpec, amount: int = 1) -> void:
 	var previous_stack_count: int = spec._stack_count
 	spec._stack_count += amount
 	_run_stack_callbacks(spec, previous_stack_count)
-	effect_stack_count_changed.emit(spec, previous_stack_count)
+	spec_stack_count_changed.emit(spec, previous_stack_count)
 
 
 ## Removes [param amount] from the effect stack. This effect must be stackable
@@ -1082,7 +1082,7 @@ func _remove_from_stack(spec: AttributeEffectSpec, amount: int = 1) -> void:
 	var previous_stack_count: int = spec._stack_count
 	spec._stack_count -= amount
 	_run_stack_callbacks(spec, previous_stack_count)
-	effect_stack_count_changed.emit(spec, previous_stack_count)
+	spec_stack_count_changed.emit(spec, previous_stack_count)
 
 
 ## Runs the callback [param _function] on all [AttributeEffectCallback]s who have

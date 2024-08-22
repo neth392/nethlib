@@ -29,6 +29,7 @@ layout_mode = 2
 
 [node name="HealthAttribute" parent="AttributeContainer" instance=ExtResource("3_thicr")]
 id = &"health"
+_base_value = 100.0
 same_priority_sorting_method = 0
 defer_default_effects = true
 _default_effects = Array[ExtResource("4_wgqvk")]([ExtResource("4_a7csn")])
