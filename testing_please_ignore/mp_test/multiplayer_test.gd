@@ -11,11 +11,19 @@ const PORT: int = 25565
 @export var scene_to_spawn: PackedScene
 @export var sync_nodes: Node
 @export var add_to_string_button: Button
+@export var spawner: MultiplayerSpawner
+@export var clear_string_button: Button 
+
+var synced_node: MpTestNodeToSync
+var server_id: int = 1
 
 func _ready() -> void:
 	host_button.pressed.connect(host)
 	join_button.pressed.connect(join)
 	spawn_button.pressed.connect(_spawn_pressed)
+	add_to_string_button.pressed.connect(_add_to_string_pressed)
+	spawner.spawned.connect(_spawned)
+	clear_string_button.pressed.connect(_clear_string_pressed)
 
 
 func host() -> void:
@@ -61,11 +69,44 @@ func _spawn_pressed() -> void:
 		return
 	_kill_spawn_button.rpc()
 	print("_spawn_pressed: IS AUTHORITY")
-	var node: MpTestNodeToSync = scene_to_spawn.instantiate() as MpTestNodeToSync
-	sync_nodes.add_child(node, true)
-	node.test_sync_string = "Changed!"
+	synced_node = scene_to_spawn.instantiate() as MpTestNodeToSync
+	sync_nodes.add_child(synced_node, true)
+	synced_node.test_sync_string = "Start: "
 
 
 @rpc("authority", "call_local")
 func _kill_spawn_button() -> void:
 	spawn_button.queue_free()
+
+
+func _spawned(node: Node) -> void:
+	print("SPAWNED: " + node.name)
+	synced_node = node as MpTestNodeToSync
+
+
+func _add_to_string_pressed() -> void:
+	if synced_node == null:
+		print("NO NODE!")
+		return
+	if multiplayer.multiplayer_peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
+		print("NOT CONNECTED!")
+		return
+	if multiplayer.is_server():
+		# Add something to the string so I can see if it replicates
+		synced_node.test_sync_string += str(synced_node.test_sync_string.length())
+	else:
+		synced_node.set_test_sync_string.rpc_id(1, synced_node.test_sync_string + str(synced_node.test_sync_string.length()))
+
+
+func _clear_string_pressed() -> void:
+	if synced_node == null:
+		print("NO NODE!")
+		return
+	if multiplayer.multiplayer_peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
+		print("NOT CONNECTED!")
+		return
+	if multiplayer.is_server():
+		# Add something to the string so I can see if it replicates
+		synced_node.test_sync_string = ""
+	else:
+		synced_node.set_test_sync_string.rpc_id(1, "")

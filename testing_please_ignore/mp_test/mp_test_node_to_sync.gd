@@ -17,3 +17,7 @@ func _ready() -> void:
 
 func _to_string() -> String:
 	return ObjectUtil.to_string_helper("MpTestNodeToSync", self)
+
+@rpc("any_peer", "call_remote")
+func set_test_sync_string(text: String) -> void:
+	test_sync_string = text
