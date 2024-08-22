@@ -68,7 +68,7 @@ func _scan_modules(disable_print: bool) -> void:
 		var module: Dictionary = _modules[module_name]
 		# Doesn't exist, create the setting
 		if !ProjectSettings.has_setting(setting_path):
-			_set_setting(setting_path, module, true)
+			_set_setting(setting_path, module)
 			if module.enabled:
 				_enable_module(module_name, module, false)
 			else:
@@ -79,7 +79,7 @@ func _scan_modules(disable_print: bool) -> void:
 		
 		# Is enabled but dependencies arent; remove
 		if setting_enabled && !_dependencies_enabled(module):
-			_set_setting(setting_path, module, false)
+			_set_setting(setting_path, module)
 			_disable_module(module_name, module, false)
 			push_warning("NethLib: Module %s can't be enabled as it depends on disabled module(s) %s" \
 			% [module_name, module.dependencies])
@@ -119,12 +119,11 @@ func _disable_module(module_name: String, module: Dictionary, print_to_console: 
 		push_warning("NethLib: Disabled module %s" % module_name)
 
 
-func _set_setting(path: String, module: Dictionary, initial: bool = false) -> void:
+func _set_setting(path: String, module: Dictionary) -> void:
 	_ignore_project_setting_change = true
 	ProjectSettings.set_setting(path, module.enabled)
-	if initial:
-		ProjectSettings.set_as_basic(path, true)
-		ProjectSettings.set_initial_value(path, module.enabled)
+	ProjectSettings.set_as_basic(path, true)
+	ProjectSettings.set_initial_value(path, module.enabled)
 	_ignore_project_setting_change = false
 
 
