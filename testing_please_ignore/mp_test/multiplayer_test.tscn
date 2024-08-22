@@ -1,9 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://o0h376xaadw7"]
+[gd_scene load_steps=3 format=3 uid="uid://o0h376xaadw7"]
 
 [ext_resource type="Script" path="res://testing_please_ignore/mp_test/multiplayer_test.gd" id="1_3sxpe"]
 [ext_resource type="PackedScene" uid="uid://cmos3dl2fqdmy" path="res://testing_please_ignore/mp_test/mp_test_node_to_sync.tscn" id="2_kltd6"]
-
-[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_g3fdq"]
 
 [node name="MultiplayerTest" type="Node" node_paths=PackedStringArray("host_label", "server_ui", "join_button", "host_button", "spawn_button", "sync_nodes", "add_to_string_button")]
 script = ExtResource("1_3sxpe")
@@ -19,9 +17,6 @@ add_to_string_button = NodePath("ServerUI/VBoxContainer/AddToString")
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("res://testing_please_ignore/mp_test/mp_test_node_to_sync.tscn")
 spawn_path = NodePath("../SyncNodes")
-
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
-replication_config = SubResource("SceneReplicationConfig_g3fdq")
 
 [node name="ServerUI" type="CanvasLayer" parent="."]
 

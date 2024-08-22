@@ -12,8 +12,6 @@ const PORT: int = 25565
 @export var sync_nodes: Node
 @export var add_to_string_button: Button
 
-@onready var synchronizer: MultiplayerSynchronizer = $MultiplayerSynchronizer
-
 func _ready() -> void:
 	host_button.pressed.connect(host)
 	join_button.pressed.connect(join)
@@ -65,9 +63,6 @@ func _spawn_pressed() -> void:
 	print("_spawn_pressed: IS AUTHORITY")
 	var node: MpTestNodeToSync = scene_to_spawn.instantiate() as MpTestNodeToSync
 	sync_nodes.add_child(node, true)
-	
-	synchronizer.root_path = node.get_path()
-	synchronizer.replication_config.add_property(":test_sync_string")
 	node.test_sync_string = "Changed!"
 
 
