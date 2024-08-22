@@ -28,7 +28,7 @@ enum Mode {
 ## of increase mode. For example, if increase_mode is ADD, you may want this to be SUBTRACT.
 @export var decrease_mode: Mode
 
-func _validate_and_assert(effect: AttributeEffect) -> void:
+func _run_assertions(effect: AttributeEffect) -> void:
 	assert(effect.stack_mode == AttributeEffect.StackMode.COMBINE,
 	"stack_mode != COMBINE for effect: %s" % effect)
 	assert(effect.duration_type == AttributeEffect.DurationType.HAS_DURATION,

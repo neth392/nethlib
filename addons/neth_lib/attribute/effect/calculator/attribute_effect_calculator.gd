@@ -3,15 +3,6 @@
 @tool
 class_name AttributeEffectCalculator extends Resource
 
-
-## Called when this calculator is set to the [param effect]. A good place
-## to call assertions to prevent calculators being applied to effects they may
-## not play nicely with. Also called any time a property of [param effect] is modified.
-## Only called while in the editor or when the game is running in debug mode.
-func _validate_and_assert(effect: AttributeEffect) -> void:
-	pass
-
-
 ## Must be overridden to calculate & return the value to be set to an [Attribute]. The below
 ## attribute values (excluding [param effect_value]) are the current & not final values as
 ## this method is called during the calculation process of an [Attribute] before values are set

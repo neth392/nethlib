@@ -87,7 +87,7 @@ enum DurationType {
 
 ## If true, [signal Attribute.effect_applied] will be emitted every time an
 ## [AttributeEffectSpec] of this effect is successfully applied on an [Attribute].
-## [br]NOTE: ONLY AVAILABLE FOR [enum Type.PERMANENT].
+## [br]NOTE: ONLY AVAILABLE FOR [enum Type.PERMANENT] as TEMPORARY effects are not reliably applied.
 @export var _emit_applied_signal: bool = false
 
 ## If true, [signal Attribute.effect_removed] will be emitted every time an
@@ -198,6 +198,9 @@ enum DurationType {
 		if !Engine.is_editor_hint():
 			for callback: AttributeEffectCallback in _callbacks:
 				_add_callback_internal(callback, false)
+		else:
+			for callback: AttributeEffectCallback in _callbacks:
+				callback._run_assertions(self)
 
 @export_group("Blockers")
 
@@ -343,6 +346,7 @@ func _no_editor(property: Dictionary) -> void:
 	property.usage = PROPERTY_USAGE_STORAGE
 
 
+## Helper method for _validate_property.
 func _format_enum(_enum: Dictionary, exclude: Array) -> String:
 	var hint_string: Array[String] = []
 	for name: String in _enum.keys():
@@ -356,6 +360,8 @@ func _format_enum(_enum: Dictionary, exclude: Array) -> String:
 ## Adds the [param callback] from this effect. An assertion is in place to prevent
 ## multiple [AttributeEffectCallback]s of the same instance being added to an effect.
 func add_callback(callback: AttributeEffectCallback) -> void:
+	if Engine.is_editor_hint():
+		callback._run_assertions(self)
 	_add_callback_internal(callback, true)
 
 
@@ -398,6 +404,7 @@ func to_spec() -> AttributeEffectSpec:
 	return AttributeEffectSpec.new(self)
 
 
+## TBD: Make this more verbose?
 func _to_string() -> String:
 	return "AttributeEffect(id:%s)" % id
 

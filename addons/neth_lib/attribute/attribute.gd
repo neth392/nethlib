@@ -901,6 +901,7 @@ func _remove_spec_at_index(spec: AttributeEffectSpec, index: int, from_effect_co
 func _pre_remove_spec(spec: AttributeEffectSpec) -> void:
 	_run_callbacks(spec, AttributeEffectCallback._Function.PRE_REMOVE)
 	spec._is_added = false
+	spec._is_applying = false
 
 
 func _post_remove_spec(spec: AttributeEffectSpec) -> void:
@@ -938,6 +939,7 @@ func _test_apply_conditions(spec: AttributeEffectSpec) -> bool:
 	# Check spec's own conditions
 	if spec.get_effect().has_apply_conditions():
 		if !_test_conditions(spec, spec, spec.get_effect().apply_conditions, spec_apply_blocked):
+			spec._is_applying = false
 			return false
 	
 	# Iterate BLOCKER effects
@@ -948,7 +950,9 @@ func _test_apply_conditions(spec: AttributeEffectSpec) -> bool:
 				continue
 			
 			if !_test_conditions(spec, blocker, blocker.get_effect().apply_blockers, spec_apply_blocked):
+				spec._is_applying = false
 				return false
+	spec._is_applying = true
 	return true
 
 

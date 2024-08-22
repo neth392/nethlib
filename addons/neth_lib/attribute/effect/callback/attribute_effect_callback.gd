@@ -74,9 +74,8 @@ var _functions: Array[_Function] = []
 
 
 ## Editor tool function that is called when this callback is added to [param effect].
-## A good place to write assertions.
-## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
-func _validate_and_assert(effect: AttributeEffect) -> void:
+## Write assertions here so that callbacks aren't added to effects they won't play nicely with.
+func _run_assertions(effect: AttributeEffect) -> void:
 	pass
 
 
