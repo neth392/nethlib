@@ -503,7 +503,10 @@ func _notify_current_value_changed(prev_current_value: float) -> void:
 
 
 ## Updates the value returned by [method get_current_value] by re-applying all
-## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY].
+## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY]. This is called
+## automatically whenever base_value changes, a PERMANENT effect is applied, or
+## a TEMPORARY effect is added/removed. Should be called manually if a TEMPORARY
+## effect's conditions change.
 func update_current_value() -> void:
 	var new_current_value: float = calculate_current_value()
 	if _current_value != new_current_value:
@@ -514,14 +517,19 @@ func update_current_value() -> void:
 
 ## Executes all active temporary [AttributeEffectSpec]s on the current [method get_base_value]
 ## and returns the calculated current value. May not reflect [method get_current_value] if this
-## is called in the middle of processing.
-## [br][param _validate] is mostly for internal use, but if true the calculated value is ran through
-## [method _validate_current_value] before being returned.
+## is called in the middle of processing. It is usually recommended to call [method update_current_value]
+## and then [method get_current_value], this function is for advanced cases.
 func calculate_current_value() -> float:
 	var new_current_value: float = _base_value
 	for spec: AttributeEffectSpec in _specs.iterate_temp():
 		if spec.is_expired():
 			continue
+		spec._pending_effect_value = _get_modified_value(spec)
+		spec._pending_attribute_value_raw = spec.get_effect().apply_calculator(_base_value, new_current_value, spec._last_effect_value)
+		spec._pending_attribute_value = _validate_current_value(spec._pending_attribute_value_raw)
+		if !_test_apply_conditions(spec):
+			continue
+		
 		spec._last_effect_value = _get_modified_value(spec)
 		new_current_value = spec.get_effect().apply_calculator(_base_value, new_current_value, spec._last_effect_value)
 	

@@ -189,8 +189,9 @@ enum DurationType {
 
 ## All [AttributeEffectCondition]s that must be met for this effect to be
 ## applied to an [Attribute]. This array can safely be directly modified or set.[br]
-## [br]NOTE: Only for [enum Type.PERMANENT] effects, as TEMPORARY effects are [b]always[/b]
-## applied if the effect was added.
+## [br]NOTE: When using with TEMPORARY effects, [method Attribute.update_current_value]
+## will need to be called manually if a condition changes. That fucntion is only automatically
+## called when an effect is added/removed or a PERMANENT effect is applied.
 @export var apply_conditions: Array[AttributeEffectCondition]
 
 @export_group("Callbacks")
