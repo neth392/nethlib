@@ -1,5 +1,5 @@
-## Responsible for calculating how to apply an [AttributeEffect]'s resultant value 
 ## to an [Attribute].
+## Responsible for calculating how to apply an [AttributeEffect]'s resultant value 
 @tool
 class_name AttributeEffectCalculator extends Resource
 

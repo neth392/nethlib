@@ -25,6 +25,15 @@ static func _ticks_to_seconds(ticks: int) -> float:
 	return ticks / 1_000_000.0
 
 
+## Represents either [method get_base_value] or [method get_current_value], for use
+## in tools that need to export a selectable value of an Attribute.
+enum Value {
+	## Represents [method get_base_value]
+	BASE_VALUE = 0,
+	## Represents [method get_current_value]
+	CURRENT_VALUE = 1,
+}
+
 ## Which _process function is used to execute effects.
 enum ProcessFunction {
 	## [method Node._process] is used.
