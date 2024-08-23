@@ -1,6 +1,15 @@
-## A configurable resource that causes changes to an [Attribute].
+## An effect that can cause changes to an [Attribute]'s value, among many other functionalities.
 @tool
 class_name AttributeEffect extends Resource
+
+enum ValueType {
+	## There is no [member value]
+	NONE = 0,
+	## [member value] is "static", set to a specific number via the inspector or code.
+	STATIC = 1,
+	## [member value] is derived from an [Attribute].
+	DERIVED_FROM_ATTRIBUTE = 2,
+}
 
 ## The type of effect.
 ## [br] NOTE: This enum's structure determines the ordering of [AttributeEffectSpecArray].
@@ -64,12 +73,14 @@ enum DurationType {
 		if type != Type.PERMANENT && duration_type == DurationType.INSTANT:
 			# INSTANT not compatible with TEMPORARY or BLOCKER
 			duration_type = DurationType.INFINITE
+		if type == Type.PERMANENT && value_type == ValueType.NONE:
+			value_type = ValueType.STATIC
 		notify_property_list_changed()
 
 ## If true, this effect must have a [member value] which applies to an [Attribute].
-@export var has_value: bool = true:
+@export var value_type: ValueType:
 	set(_value):
-		has_value = _value
+		value_type = _value
 		notify_property_list_changed()
 
 ## The value that is applied to an [Attribute]'s value (base or current, based on
@@ -102,8 +113,6 @@ enum DurationType {
 		if type == Type.TEMPORARY && _value == DurationType.INSTANT:
 			duration_type = DurationType.INFINITE
 			return
-		if type == Type.PERMANENT:
-			has_value = true
 		duration_type = _value
 		notify_property_list_changed()
 
@@ -250,12 +259,21 @@ func _init(_id: StringName = "") -> void:
 
 
 func _validate_property(property: Dictionary) -> void:
-	if property.name == "_has_value":
-		if must_have_value():
-			_no_editor(property)
+	if property.name == "value_type":
+		var exclude: Array = [ValueType.NONE] if must_have_value() else []
+		property.hint_string = _format_enum(ValueType, exclude)
+		return
 	
-	if property.name == "value" || property.name == "value_calculator":
-		if !has_value:
+	if property.name == "value":
+		match value_type:
+			ValueType.NONE:
+				_no_editor(property)
+			ValueType.DERIVED_FROM_ATTRIBUTE:
+				property.usage = PROPERTY_USAGE_READ_ONLY
+		return
+	
+	if property.name == "value_calculator":
+		if !has_value():
 			_no_editor(property)
 		return
 	
@@ -418,9 +436,14 @@ func must_have_value() -> bool:
 	return type == Type.PERMANENT
 
 
+## Returns true if this effect has a value ([member value])
+func has_value() -> bool:
+	return value_type != ValueType.NONE
+
+
 ## Asserts [method has_value] returns true.
 func assert_has_value() -> void:
-	assert(has_value, "effect does have a value")
+	assert(has_value(), "effect does have a value")
 
 
 ## Returns true if this effect supports a [member duration_type] of 
@@ -464,7 +487,7 @@ func has_add_conditions() -> bool:
 
 ## Whether or not this effect supports [member apply_conditions]
 func has_apply_conditions() -> bool:
-	return has_value
+	return has_value()
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_added].

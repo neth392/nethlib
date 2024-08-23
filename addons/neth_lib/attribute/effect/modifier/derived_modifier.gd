@@ -1,12 +1,10 @@
 ## Overrides an [AttributeEffect]'s value with the value of an [Attribute].
-extends AttributeEffectModifier
+class_name DerivedModifier extends AttributeEffectModifier
 
+## The value to use of the [Attribute].
+@export var value_to_use: Attribute.Value
 
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass # Replace with function body.
+var _attribute: Attribute
 
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
+func _modify(value: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
+	return value
