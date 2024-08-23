@@ -330,7 +330,7 @@ func __process() -> void:
 				# Add it to be removed at the end of this function
 				__process_to_remove[index] = spec
 				# Update current value if this expired
-				if spec.get_effect().is_temporary() && spec.get_effect().has_value():
+				if spec.get_effect().is_temporary() && spec.get_effect().has_value:
 					update_current_value()
 				# Set to apply if effect is apply on expire
 				if spec.get_effect().is_apply_on_expire():
@@ -519,7 +519,7 @@ func _notify_current_value_changed(prev_current_value: float) -> void:
 func update_current_value() -> void:
 	var new_current_value: float = _base_value
 	for spec: AttributeEffectSpec in _specs.iterate_temp():
-		if spec.is_expired() || !spec.get_effect().has_value():
+		if spec.is_expired() || !spec.get_effect().has_value:
 			continue
 		spec._pending_current_attribute_value = new_current_value
 		spec._pending_effect_value = _get_modified_value(spec)
@@ -645,7 +645,7 @@ func add_effect(effect: AttributeEffect) -> void:
 ## [param sort_by_priority] determines what order the specified effects should be applied in (if
 ## any are to be applied instantly). If true, they are sorted by their [member AttributeEffect.priority],
 ## if false they are applied in the order of the specified [param effects] array.
-func add_effects(effects: Array[AttributeEffect], sort_by_priority: bool = true) -> void:
+func add_effects(source: Node, effects: Array[AttributeEffect], sort_by_priority: bool = true) -> void:
 	assert(allow_effects, "allow_effects is false")
 	assert(!effects.has(null), "effects has null element")
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
@@ -729,7 +729,7 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 			_add_to_stack(spec, spec.get_stack_count())
 			# Update current value if a temporary spec is added
 			# TODO Determine if I should apply here
-			if spec.get_effect().is_temporary() && spec.get_effect().has_value():
+			if spec.get_effect().is_temporary() && spec.get_effect().has_value:
 				update_current_value()
 			continue
 		
@@ -763,7 +763,7 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 			spec_added.emit(spec)
 		
 		# Update current value if a temporary spec is added & has value
-		if spec.get_effect().is_temporary() && spec.get_effect().has_value():
+		if spec.get_effect().is_temporary() && spec.get_effect().has_value:
 			update_current_value()
 			continue
 		
@@ -800,7 +800,7 @@ func remove_effect(effect: AttributeEffect) -> bool:
 			_remove_spec_at_index(spec, index, true)
 			removed = true
 	
-	if removed && effect.is_temporary() && effect.has_value():
+	if removed && effect.is_temporary() && effect.has_value:
 		update_current_value()
 	
 	_locked = false
@@ -821,7 +821,7 @@ func remove_effects(effects: Array[AttributeEffect]) -> bool:
 		if effects.has(spec.get_effect()):
 			_remove_spec_at_index(spec, index, true)
 			removed = true
-			if spec.get_effect().is_temporary() && spec.get_effect().has_value():
+			if spec.get_effect().is_temporary() && spec.get_effect().has_value:
 				temporary_removed = true
 	
 	if temporary_removed:
@@ -842,7 +842,7 @@ func remove_spec(spec: AttributeEffectSpec) -> bool:
 	_has_specs = !_specs.is_empty()
 	_remove_from_effect_counts(spec)
 	_post_remove_spec(spec)
-	if spec.get_effect().is_temporary() && spec.get_effect().has_value():
+	if spec.get_effect().is_temporary() && spec.get_effect().has_value:
 		update_current_value()
 	_locked = false
 	return true
@@ -860,7 +860,7 @@ func remove_specs(specs: Array[AttributeEffectSpec]) -> bool:
 		if specs.has(specs):
 			_remove_spec_at_index(spec, index, true)
 			removed = true
-			if spec.get_effect().is_temporary() && spec.get_effect().has_value():
+			if spec.get_effect().is_temporary() && spec.get_effect().has_value:
 				temporary_removed = true
 	
 	if temporary_removed:

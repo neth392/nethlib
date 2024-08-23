@@ -1,24 +1,6 @@
-## Data class that represents an individual instance of an [AttributeEffect] 
-## which was (or can be) applied to an [Attribute].
-class_name AttributeEffectSpec extends Resource
-
-## TODO Implement & Document
-signal added(to: Attribute)
-
-## TODO Implement & Document
-signal add_blocked(to: Attribute, blocked_by: AttributeEffectSpec)
-
-## TODO Implement & Document
-signal applied(to: Attribute)
-
-## TODO Implement & Document
-signal apply_blocked(to: Attribute, blocked_by: AttributeEffectSpec)
-
-## TODO Implement & Document
-signal stack_count_changed(prev_stack_count: int)
-
-## TODO Implement & Document
-signal removed(from: Attribute)
+## Represents an individual instance of an [AttributeEffect] that is applied
+## to an [Attribute].
+class_name AttributeEffectSpec extends Node
 
 ## The remaining duration in seconds, can not be set to less than 0.0.
 var remaining_duration: float:
@@ -41,6 +23,7 @@ var remaining_period: float = 0.0
 var pending_attribute_value: float
 
 var _effect: AttributeEffect
+var _source: WeakRef
 var _initialized: bool = false
 var _expired: bool = false
 var _is_added: bool = false
@@ -73,14 +56,23 @@ var _last_raw_attribute_value: float
 var _last_set_attribute_value: float
 # TODO: get_last_differential() method
 
-func _init(effect: AttributeEffect) -> void:
+func _init(effect: AttributeEffect, source: Node) -> void:
 	assert(effect != null, "effect is null")
+	assert(source != null, "source is null")
 	_effect = effect
+	_source = weakref(source)
 
 
 ## Returns the [AttributeEffect] instance this spec was created for.
 func get_effect() -> AttributeEffect:
 	return _effect
+
+
+## The source of this [AttributeEffectSpec] (i.e. what applied it to the [Attribute]).
+## Internally, it is kept in a [WeakRef], so if the source [Node] is no longer valid then
+## this could return null.
+func get_source() -> Node:
+	return _source.get_ref() as Node
 
 
 ## Whether or not this instance has been initialized by an [Attribute].
@@ -104,6 +96,7 @@ func is_added() -> bool:
 	return _is_added
 
 
+## Returns the tick this spec was added to an [Attribute] on.
 func get_tick_added_on() -> int:
 	return _tick_added_on
 

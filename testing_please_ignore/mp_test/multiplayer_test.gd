@@ -14,8 +14,15 @@ const PORT: int = 25565
 @export var spawner: MultiplayerSpawner
 @export var clear_string_button: Button 
 
+@onready var resource_button: Button = $ServerUI/VBoxContainer/Resource
+
 var synced_node: MpTestNodeToSync
 var server_id: int = 1
+
+var _resource_sync: ResourceSync:
+	set(value):
+		_resource_sync = value
+		print("RESOURCE SYNC SET: " + str(multiplayer.multiplayer_peer.get_unique_id()))
 
 func _ready() -> void:
 	host_button.pressed.connect(host)
@@ -24,6 +31,7 @@ func _ready() -> void:
 	add_to_string_button.pressed.connect(_add_to_string_pressed)
 	spawner.spawned.connect(_spawned)
 	clear_string_button.pressed.connect(_clear_string_pressed)
+	resource_button.pressed.connect(_on_resource_pressed)
 
 
 func host() -> void:
@@ -110,3 +118,19 @@ func _clear_string_pressed() -> void:
 		synced_node.test_sync_string = ""
 	else:
 		synced_node.set_test_sync_string.rpc_id(1, "")
+
+
+func _on_resource_pressed() -> void:
+	if multiplayer.multiplayer_peer.get_unique_id() != 1:
+		print("Not host!")
+		return
+	
+	var resource: ResourceSync = ResourceSync.new()
+	resource.my_array = [7, 7, 7]
+	resource.my_string = "a synchronized string"
+	set_resource.rpc(resource)
+	
+
+@rpc("call_local")
+func set_resource(resource: ResourceSync) -> void:
+	_resource_sync = resource

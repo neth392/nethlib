@@ -2,15 +2,6 @@
 @tool
 class_name AttributeEffect extends Resource
 
-enum ValueType {
-	## There is no [member value]
-	NONE = 0,
-	## [member value] is "static", set to a specific number via the inspector or code.
-	STATIC = 1,
-	## [member value] is derived from an [Attribute].
-	DERIVED_FROM_ATTRIBUTE = 2,
-}
-
 ## The type of effect.
 ## [br] NOTE: This enum's structure determines the ordering of [AttributeEffectSpecArray].
 enum Type {
@@ -73,14 +64,15 @@ enum DurationType {
 		if type != Type.PERMANENT && duration_type == DurationType.INSTANT:
 			# INSTANT not compatible with TEMPORARY or BLOCKER
 			duration_type = DurationType.INFINITE
-		if type == Type.PERMANENT && value_type == ValueType.NONE:
-			value_type = ValueType.STATIC
+		if type == Type.PERMANENT && !has_value:
+			has_value = true
 		notify_property_list_changed()
 
 ## If true, this effect must have a [member value] which applies to an [Attribute].
-@export var value_type: ValueType:
+@export var has_value: bool:
 	set(_value):
-		value_type = _value
+		has_value = _value
+		assert(!must_have_value() || has_value, "must_have_value() is true but has_value is false")
 		notify_property_list_changed()
 
 ## The value that is applied to an [Attribute]'s value (base or current, based on
@@ -259,21 +251,8 @@ func _init(_id: StringName = "") -> void:
 
 
 func _validate_property(property: Dictionary) -> void:
-	if property.name == "value_type":
-		var exclude: Array = [ValueType.NONE] if must_have_value() else []
-		property.hint_string = _format_enum(ValueType, exclude)
-		return
-	
-	if property.name == "value":
-		match value_type:
-			ValueType.NONE:
-				_no_editor(property)
-			ValueType.DERIVED_FROM_ATTRIBUTE:
-				property.usage = PROPERTY_USAGE_READ_ONLY
-		return
-	
-	if property.name == "value_calculator":
-		if !has_value():
+	if property.name == "value" || property.name == "value_calculator":
+		if !has_value:
 			_no_editor(property)
 		return
 	
@@ -418,8 +397,8 @@ func apply_calculator(attr_base_value: float, attr_current_value: float, effect_
 ## Shorthand function to create an [AttributeEffectSpec] for this [AttributeEffect].
 ## [br]Can be overridden for custom [AttributeEffectSpec] implementations if you know
 ## what you are doing.
-func to_spec() -> AttributeEffectSpec:
-	return AttributeEffectSpec.new(self)
+func to_spec(source: Node) -> AttributeEffectSpec:
+	return AttributeEffectSpec.new(self, source)
 
 
 ## TBD: Make this more verbose?
@@ -436,14 +415,9 @@ func must_have_value() -> bool:
 	return type == Type.PERMANENT
 
 
-## Returns true if this effect has a value ([member value])
-func has_value() -> bool:
-	return value_type != ValueType.NONE
-
-
-## Asserts [method has_value] returns true.
+## Asserts [member has_value] returns true.
 func assert_has_value() -> void:
-	assert(has_value(), "effect does have a value")
+	assert(has_value, "effect does have a value")
 
 
 ## Returns true if this effect supports a [member duration_type] of 
@@ -487,7 +461,7 @@ func has_add_conditions() -> bool:
 
 ## Whether or not this effect supports [member apply_conditions]
 func has_apply_conditions() -> bool:
-	return has_value()
+	return has_value
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_added].

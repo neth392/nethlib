@@ -59,4 +59,8 @@ layout_mode = 2
 text = "Spawn
 "
 
+[node name="Resource" type="Button" parent="ServerUI/VBoxContainer"]
+layout_mode = 2
+text = "Resource"
+
 [node name="SyncNodes" type="CanvasLayer" parent="."]
