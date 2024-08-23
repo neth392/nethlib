@@ -121,7 +121,7 @@ func _clear_string_pressed() -> void:
 
 
 func _on_resource_pressed() -> void:
-	if multiplayer.multiplayer_peer.get_unique_id() != 1:
+	if !multiplayer.is_server():
 		print("Not host!")
 		return
 	

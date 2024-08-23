@@ -1,4 +1,4 @@
-## Represents a native type that is supported by Godot's [JSON] methods.[br]
+## Represents a primitive type that is supported by Godot's [JSON] methods.[br]
 ## Native types are not deserialized *into*, but must be directly assigned by
 ## a [JSONSerializer].
 class_name NativeJSONSerializer extends JSONSerializer
@@ -8,14 +8,9 @@ static var _native_types: Array[Variant.Type] = [
 		TYPE_BOOL,
 		TYPE_INT,
 		TYPE_FLOAT,
-		TYPE_PACKED_INT32_ARRAY,
-		TYPE_PACKED_INT64_ARRAY,
-		TYPE_PACKED_FLOAT32_ARRAY,
-		TYPE_PACKED_FLOAT64_ARRAY,
-		TYPE_PACKED_STRING_ARRAY,
 		TYPE_STRING,
+		TYPE_MAX
 	]
-
 
 static func is_native(instance: Variant) -> bool:
 	return _native_types.has(typeof(instance))
@@ -36,7 +31,7 @@ func _can_serialize(instance: Variant) -> bool:
 func _serialize(instance: Variant) -> Variant:
 	return {
 		"t": typeof(instance),
-		"v": instance
+		"v": instance,
 	}
 
 

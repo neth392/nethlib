@@ -1,32 +1,30 @@
+## Autoloaded class responsible for managing [JSONSerializer]s and providing
+## serialization & deserialization.
 extends Node
 
-## Types supported natively by Godot's JSON.[br]
-## Array & Dictionary are excluded as their types may not be compatible.
-static var _native_types: Array[Variant.Type] = [
-		TYPE_NIL,
-		TYPE_BOOL,
-		TYPE_INT,
-		TYPE_FLOAT,
-		TYPE_PACKED_INT32_ARRAY,
-		TYPE_PACKED_INT64_ARRAY,
-		TYPE_PACKED_FLOAT32_ARRAY,
-		TYPE_PACKED_FLOAT64_ARRAY,
-		TYPE_PACKED_STRING_ARRAY,
-		TYPE_STRING,
-		TYPE_DICTIONARY,
-		TYPE_ARRAY,
-	]
+@export var serialize_all_types: bool = true
 
-var _serializers_ordered: Array[JSONSerializer] = []
-var _serializers_by_id: Dictionary = {}
+@export var _default_native_serializers: Array[JSONSerializer]
+@export var _default_object_serializers: Array[JSONSerializer]
+
+var _native_serializers: Dictionary = {}
+var _object_serializers: Dictionary = {}
+
 
 func _ready() -> void:
+	var script: Script
+	ProjectSettings.settings_changed.connect(_on_project_setting_changed)
 	add_serializer(NativeJSONSerializer.new())
 	add_serializer(preload("./default/vector2_json_serializer.gd").new())
 	add_serializer(preload("./default/vector3_json_serializer.gd").new())
 	add_serializer(preload("./default/color_json_serializer.gd").new())
 	add_serializer(preload("./default/array_json_serializer.gd").new())
 	add_serializer(preload("./default/dictionary_json_serializer.gd").new())
+
+
+func _on_project_setting_changed() -> void:
+	# TODO serialize_all_types project setting
+	pass
 
 
 ## Constructs & returns a new JSON-parsable [Dictionary] containing a "type" key

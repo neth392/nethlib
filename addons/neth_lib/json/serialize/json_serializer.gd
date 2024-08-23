@@ -1,5 +1,5 @@
-## A JSON Serializer for a specific type.
-class_name JSONSerializer extends RefCounted
+## A JSON Serializer for a specific type (or types in some cases)
+class_name JSONSerializer extends Resource
 
 ## What type of deserialization is supported by this [JSONSerializer].
 enum DeserializeMode {
@@ -11,14 +11,24 @@ enum DeserializeMode {
 	BOTH,
 }
 
-## The ID of this [JSONSerializer], must be unique from all other serializers.
-var id: StringName
+var id: Variant:
+	get():
+		var id: Variant = _get_id()
+		assert(id != null, "_get_id() returned null")
+		return id
+	set(value):
+		assert(false, "overide _get_id() to change the ID")
+
 var deserialize_mode: DeserializeMode
 
-func _init(_id: StringName, _deserialize_mode: DeserializeMode):
-	assert(!_id.is_empty(), "_id is empty")
-	id = _id
+
+func _init(_deserialize_mode: DeserializeMode):
 	deserialize_mode = _deserialize_mode
+
+
+func _get_id() -> Variant:
+	assert(false, "_get_id() not implemented")
+	return null
 
 
 func has_deserialize_func() -> bool:
@@ -29,12 +39,6 @@ func has_deserialize_func() -> bool:
 func has_deserialize_into_func() -> bool:
 	return deserialize_mode == DeserializeMode.DESERIALIZE_INTO \
 		or deserialize_mode == DeserializeMode.BOTH
-
-
-## Optional priority of this [JSONSerializer]. Greater values have greater
-## priority, useful for when working with inherited types.
-func _get_priority() -> int:
-	return 0
 
 
 ## Returns true if the [param variant] is supported by this serializer.

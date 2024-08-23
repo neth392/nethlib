@@ -30,8 +30,8 @@ var _properties: Dictionary
 var _remaps: Dictionary
 
 
-func _init(_id: StringName, _deserialize_mode: DeserializeMode = DeserializeMode.BOTH):
-	super._init(_id, _deserialize_mode)
+func _init(_deserialize_mode: DeserializeMode = DeserializeMode.BOTH):
+	super._init(_deserialize_mode)
 	_properties = _get_properties()
 	if OS.is_debug_build():
 		for property_name in _properties:
@@ -151,6 +151,10 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 		instance.set(property_name, deserialized)
 	
 	return instance
+
+
+
+
 
 
 ## Must be overridden to return a new instance of the object that is used in
