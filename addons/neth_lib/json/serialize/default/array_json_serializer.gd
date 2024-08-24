@@ -1,12 +1,8 @@
-extends JSONSerializer
+class_name ArrayJSONSerializer extends JSONSerializer
 
 
-func _init() -> void:
-	super._init(&"Array", DeserializeMode.BOTH)
-
-
-func _can_serialize(instance: Variant) -> bool:
-	return typeof(instance) == TYPE_ARRAY
+func _get_id() -> Variant:
+	return TYPE_ARRAY
 
 
 func _serialize(instance: Variant) -> Variant:
@@ -29,10 +25,12 @@ func _serialize(instance: Variant) -> Variant:
 
 
 func _deserialize(serialized: Variant) -> Variant:
-	return _deserialize_into([], serialized)
+	var array: Array = []
+	_deserialize_into(array, serialized)
+	return array
 
 
-func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
+func _deserialize_into(instance: Variant, serialized: Variant) -> void:
 	assert(instance is Array, "instance not of type Array")
 	assert(serialized is Array, "serialized not of type Array")
 	
@@ -58,5 +56,3 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 			% [script.resource_name, instance, deserialized])
 		
 		instance.append(deserialized)
-	
-	return instance

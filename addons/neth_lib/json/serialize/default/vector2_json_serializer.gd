@@ -1,14 +1,8 @@
-extends JSONSerializer
+class_name Vector2JSONSerializer extends JSONSerializer
 
 
-func _init():
-	super._init(&"Vector2", DeserializeMode.DESERIALIZE)
-
-func _get_id() -> StringName:
+func _get_id() -> Variant:
 	return TYPE_VECTOR2
-
-func _can_serialize(instance) -> bool:
-	return typeof(instance) == TYPE_VECTOR2
 
 
 func _serialize(instance: Variant) -> Variant:

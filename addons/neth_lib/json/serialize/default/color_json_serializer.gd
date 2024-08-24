@@ -1,12 +1,8 @@
-extends JSONSerializer
+class_name ColorJSONSerializer extends JSONSerializer
 
 
-func _init() -> void:
-	super._init(&"Color", DeserializeMode.DESERIALIZE)
-
-
-func _can_serialize(instance) -> bool:
-	return typeof(instance) == TYPE_COLOR
+func _get_id() -> Variant:
+	return TYPE_COLOR
 
 
 func _serialize(instance: Variant) -> Variant:

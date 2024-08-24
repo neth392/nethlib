@@ -2,17 +2,18 @@
 class_name JSONSerializer extends Resource
 
 ## The ID of this [JSONSerializer]
-var id: Variant:
+var id: String:
 	get():
 		var id: Variant = _get_id()
 		assert(id != null, "_get_id() returned null")
-		return id
+		return str(id) # Convert to string
 	set(value):
 		assert(false, "override _get_id() to change the ID")
 
 
 ## Must be overridden to return the ID of this [JSONSerializer], to be stored in the JSON to determine
-## which [JSONSerializer] to use when deserializing.
+## which [JSONSerializer] to use when deserializing. Returned [Variant] will be converted to a [String]
+## by [member id]'s getter.
 func _get_id() -> Variant:
 	assert(false, "_get_id() not implemented")
 	return null

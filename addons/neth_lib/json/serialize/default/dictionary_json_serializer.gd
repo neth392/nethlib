@@ -1,12 +1,8 @@
-extends JSONSerializer
+class_name DictionaryJSONSerializer extends JSONSerializer
 
 
-func _init() -> void:
-	super._init(&"Dictionary", DeserializeMode.BOTH)
-
-
-func _can_serialize(instance) -> bool:
-	return typeof(instance) == TYPE_DICTIONARY
+func _get_id() -> Variant:
+	return TYPE_DICTIONARY
 
 
 func _serialize(instance: Variant) -> Variant:
@@ -32,10 +28,12 @@ func _serialize(instance: Variant) -> Variant:
 
 
 func _deserialize(serialized: Variant) -> Variant:
-	return _deserialize_into({}, serialized)
+	var dictionary: Variant = {}
+	_deserialize_into(dictionary, serialized)
+	return dictionary
 
 
-func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
+func _deserialize_into(instance: Variant, serialized: Variant) -> void:
 	assert(instance is Dictionary, "instance not of type Dictionary")
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	
@@ -56,5 +54,3 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 			value = JSONSerialization.deserialize(wrapped_value)
 		
 		instance[key] = value
-	
-	return instance

@@ -1,12 +1,12 @@
-class_name Vector3JSONSerializer extends JSONSerializer
+class_name Vector3IJSONSerializer extends JSONSerializer
 
 
 func _get_id() -> Variant:
-	return TYPE_VECTOR3
+	return TYPE_VECTOR3I
 
 
 func _serialize(instance: Variant) -> Variant:
-	assert(instance is Vector3, "instance not of type Vector3")
+	assert(instance is Vector3i, "instance not of type Vector3i")
 	return {
 		"x": instance.x,
 		"y": instance.y,
@@ -19,4 +19,4 @@ func _deserialize(serialized: Variant) -> Variant:
 	assert(serialized["x"] is float, "x is not a float")
 	assert(serialized["y"] is float, "y is not a float")
 	assert(serialized["z"] is float, "z is not a float")
-	return Vector3(serialized["x"], serialized["y"], serialized["z"])
+	return Vector3i(int(serialized["x"]), int(serialized["y"]), int(serialized["z"]))

@@ -10,7 +10,7 @@ func _init(_primitive_type: Variant.Type = TYPE_NIL) -> void:
 
 
 func _get_id() -> Variant:
-	return JSONSerialization.convert_type_to_id(primitive_type)
+	return primitive_type
 
 
 func _serialize(instance: Variant) -> Variant:

@@ -1,8 +1,22 @@
-## Autoloaded class responsible for managing [JSONSerializer]s and providing
+## Autoloaded class (named JSONSerialization) responsible for managing [JSONSerializer]s and providing
 ## serialization & deserialization.
 extends Node
 
 @export var serialize_all_types: bool = true
+
+## Parameter used in [method JSON.stringify]
+## TODO add to project settings
+var indent: String = ""
+## Parameter used in [method JSON.stringify]
+## TODO add to project settings
+var sort_keys: bool = true
+## Parameter used in [method JSON.stringify]
+## TODO add to project settings
+var full_precision: bool = false
+## Parameter used in [method JSON.parse]
+## TODO add to project settings
+var keep_text: bool = false
+
 
 ## [member JSONSerializer.id]:[JSONSerializer]
 var _serializers: Dictionary = {}
@@ -30,13 +44,22 @@ func _ready() -> void:
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_FLOAT64_ARRAY))
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_STRING_ARRAY))
 	
-	
+	# Add other default serializers
+	add_serializer(ArrayJSONSerializer.new())
+	add_serializer(DictionaryJSONSerializer.new())
+	add_serializer(ColorJSONSerializer.new())
+	add_serializer(Vector2JSONSerializer.new())
+	add_serializer(Vector2IJSONSerializer.new())
+	add_serializer(Vector3JSONSerializer.new())
+	add_serializer(Vector3IJSONSerializer.new())
+	add_serializer(Vector4JSONSerializer.new())
+	add_serializer(Vector4IJSONSerializer.new())
 	
 	ProjectSettings.settings_changed.connect(_on_project_setting_changed)
 
 
 func _on_project_setting_changed() -> void:
-	# TODO serialize_all_types project setting
+	# TODO serialize_all_types project setting maybe?
 	pass
 
 
@@ -94,13 +117,8 @@ func derive_serializer_id(variant: Variant) -> Variant:
 		if !_class.is_empty():
 			return _class
 	
-	# 3. Use the type
-	return convert_type_to_id(typeof(variant))
-
-
-## Converts the [param type] to a usable ID for a [JSONSerializer].
-func convert_type_to_id(type: Variant.Type) -> String:
-	return str(type)
+	# 3. Use the type as string version (otherwise its serialized as a float)
+	return str(typeof(variant))
 
 
 ## Returns the [JSONSerializer] for use with serializing the [param variant]. If no
@@ -170,27 +188,27 @@ func deserialize_into(instance: Variant, wrapped_value: Dictionary) -> void:
 ## Helper function that calls [method serialize] with the [param variant],
 ## then passing that varaint & other parameters into [method JSON.stringify], returning
 ## that value.
-func stringify(variant: Variant, indent: String = "", sort_keys: bool = true, full_precision: bool = false) -> String:
+func stringify(variant: Variant) -> String:
 	var serialized: Dictionary = serialize(variant)
 	return JSON.stringify(serialized, indent, sort_keys, full_precision)
 
 
-## Helper function that calls [method JSON.parse] with [param wrapped_json_string], and then
-## send the resulting [Variant] to [method deserialize], returning that value.
-func parse(wrapped_json_string: String, keep_text: bool = false) -> Variant:
-	var parsed: Variant = _parse(wrapped_json_string, keep_text)
+## Helper function that calls [method JSON.parse] with [param wrapped_json_string], then
+## sends the resulting [Variant] to [method deserialize], returning that value.
+func parse(wrapped_json_string: String) -> Variant:
+	var parsed: Variant = _parse(wrapped_json_string)
 	return deserialize(parsed as Dictionary)
 
 
-## Helper function to call [method JSON.parse_string] with [param wrapped_json_string] , and then
-## send the resulting [Variant] and [param instance] to [method deserialize_into].
-func parse_into(instance: Variant, wrapped_json_string: String, keep_text: bool = false) -> void:
-	var parsed: Variant = _parse(wrapped_json_string, keep_text)
+## Helper function to call [method JSON.parse_string] with [param wrapped_json_string], then
+## sends the resulting [Variant] and [param instance] to [method deserialize_into].
+func parse_into(instance: Variant, wrapped_json_string: String) -> void:
+	var parsed: Variant = _parse(wrapped_json_string)
 	deserialize_into(instance, parsed as Dictionary)
 
 
 ## Internal helper function for [method parse] and [method parse_into].
-func _parse(wrapped_json_string: String, keep_text: bool = false) -> Variant:
+func _parse(wrapped_json_string: String) -> Variant:
 	var json: JSON = JSON.new()
 	var error: Error = json.parse(wrapped_json_string, keep_text)
 	assert(error == OK, "JSON error: line=%s,message=%s" % [json.get_error_line(), json.get_error_message()])
