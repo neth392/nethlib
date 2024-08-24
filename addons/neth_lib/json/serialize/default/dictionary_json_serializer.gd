@@ -1,4 +1,4 @@
-class_name DictionaryJSONSerializer extends JSONSerializer
+extends JSONSerializer
 
 
 func _get_id() -> Variant:

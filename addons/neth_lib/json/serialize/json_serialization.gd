@@ -45,15 +45,15 @@ func _ready() -> void:
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_STRING_ARRAY))
 	
 	# Add other default serializers
-	add_serializer(ArrayJSONSerializer.new())
-	add_serializer(DictionaryJSONSerializer.new())
-	add_serializer(ColorJSONSerializer.new())
-	add_serializer(Vector2JSONSerializer.new())
-	add_serializer(Vector2IJSONSerializer.new())
-	add_serializer(Vector3JSONSerializer.new())
-	add_serializer(Vector3IJSONSerializer.new())
-	add_serializer(Vector4JSONSerializer.new())
-	add_serializer(Vector4IJSONSerializer.new())
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/array_json_serializer.gd").new())
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/dictionary_json_serializer.gd").new())
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/color_json_serializer.gd").new())
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector2_json_serializer.gd").new())
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector2i_json_serializer.gd").new())
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector3_json_serializer.gd").new())
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector3i_json_serializer.gd").new())
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector4_json_serializer.gd").new())
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector4i_json_serializer.gd").new())
 	
 	ProjectSettings.settings_changed.connect(_on_project_setting_changed)
 

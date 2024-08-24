@@ -1,5 +1,5 @@
 @tool
-class_name ObjectJSONSerializerBuilder extends ObjectJSONSerializer
+class_name ObjectJSONSerializerBuilder extends JSONSerializer
 
 ## The script of the type this deserializer is for.
 @export var object_script: GDScript:
@@ -28,14 +28,14 @@ func _validate_property(property: Dictionary) -> void:
 	pass
 
 
-func _get_property_list() -> Array[Dictionary]:
-	pass
+func _get_id() -> Variant:
+	return object_script.resource_path
 
 
 ## Must be overridden to return a new instance of the object that is used in
 ## [method _deserialize].
 func _create_instance() -> Object:
-	return null
+	return object_script.get_script_method_list()
 
 
 ## Must be overridden to return an [Dictionary] of [StringName]s keys representing

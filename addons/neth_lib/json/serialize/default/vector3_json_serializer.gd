@@ -1,4 +1,4 @@
-class_name Vector3JSONSerializer extends JSONSerializer
+extends JSONSerializer
 
 
 func _get_id() -> Variant:
