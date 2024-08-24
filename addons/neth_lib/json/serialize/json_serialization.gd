@@ -4,8 +4,6 @@ extends Node
 
 @export var serialize_all_types: bool = true
 
-@export var default_serializers: Array[JSONSerializer]
-
 ## [member JSONSerializer.id]:[JSONSerializer]
 var _serializers: Dictionary = {}
 
@@ -15,6 +13,25 @@ var _deserialization_remaps: Dictionary = {}
 
 
 func _ready() -> void:
+	# Add types confirmed to be working with PrimitiveJSONSerializer
+	# see default/primitive_json_serializer_tests.gd for code used to test this
+	# Some were omitted as they made no sense; such as Basis which worked but
+	# Vector3 didnt, and a Basis is comprised of 3 Vector3s ??? Don't want to risk that
+	# getting all fucky wucky in a release build.
+	add_serializer(PrimitiveJSONSerializer.new(TYPE_NIL))
+	add_serializer(PrimitiveJSONSerializer.new(TYPE_BOOL))
+	add_serializer(PrimitiveJSONSerializer.new(TYPE_INT))
+	add_serializer(PrimitiveJSONSerializer.new(TYPE_FLOAT))
+	add_serializer(PrimitiveJSONSerializer.new(TYPE_STRING))
+	add_serializer(PrimitiveJSONSerializer.new(TYPE_STRING_NAME))
+	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_INT32_ARRAY))
+	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_INT64_ARRAY))
+	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_FLOAT32_ARRAY))
+	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_FLOAT64_ARRAY))
+	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_STRING_ARRAY))
+	
+	
+	
 	ProjectSettings.settings_changed.connect(_on_project_setting_changed)
 
 
@@ -45,6 +62,8 @@ func unwrap_value(wrapped_value: Dictionary) -> Variant:
 ## Retunrs true if [param variant] is supported by a [JSONSerializer], false if not.
 func is_serializiable(variant: Variant) -> bool:
 	var id: Variant = derive_serializer_id(variant)
+	if variant is Object:
+		print("ID: " + str(id))
 	return _serializers.has(id)
 
 
@@ -105,14 +124,15 @@ func get_deserializer(wrapped_value: Dictionary) -> JSONSerializer:
 	assert(_serializers.has(wrapped_value.i), ("no JSONSerializer with id (%s) found for " + \
 	"wrapped_value(%s)") % [wrapped_value.i, wrapped_value])
 	
-	return _serializers[wrapped_value.id]
+	return _serializers[wrapped_value.i]
 
 
 ## Serializes the [param variant] into a wrapped [Dictionary] (see [method wrap_value]) 
 ## that can be safely stored via JSON & deserialized via [method deserialize_into] (excluding
 ## native types)
 func serialize(variant: Variant) -> Dictionary:
-	assert(is_serializiable(variant), "variant (%s) not supported by any JSONSerializer")
+	# str(variant) needed as some types such as RID will not work w/o it
+	assert(is_serializiable(variant), "variant (%s) not supported by any JSONSerializer" % str(variant))
 	
 	var serializer: JSONSerializer = get_serializer(variant)
 	var serialized: Variant = serializer._serialize(variant)
