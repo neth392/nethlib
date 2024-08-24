@@ -50,8 +50,15 @@ func is_serializiable(variant: Variant) -> bool:
 
 ## Adds the [param serializer].
 func add_serializer(serializer: JSONSerializer) -> void:
+	assert(serializer != null, "serializer is null")
 	assert(!_serializers.has(serializer.id), "a serializer with id (%s) already exists" % serializer.id)
 	_serializers[serializer.id] = serializer
+
+
+## Removes the [param serializer], returning true if removed, false if not.
+func remove_serializer(serializer: JSONSerializer) -> bool:
+	assert(serializer != null, "serializer is null")
+	return _serializers.erase(serializer.id)
 
 
 ## Derives the serializer ID from [param variant].
@@ -69,7 +76,12 @@ func derive_serializer_id(variant: Variant) -> Variant:
 			return _class
 	
 	# 3. Use the type
-	return typeof(variant)
+	return convert_type_to_id(typeof(variant))
+
+
+## Converts the [param type] to a usable ID for a [JSONSerializer].
+func convert_type_to_id(type: Variant.Type) -> String:
+	return str(type)
 
 
 ## Returns the [JSONSerializer] for use with serializing the [param variant]. If no
@@ -84,7 +96,10 @@ func get_serializer(variant: Variant) -> JSONSerializer:
 
 ## Returns the [JSONSerializer] for use with deserializing the [param wrapped_value].
 ## [param serialize] must be a [Dictionary] wrapped by [JSONSerialization].
-## If no 
+## An assertion is called so that in debug mode if no [JSONSerializer] is found for the 
+## [param wrapped_value], an error is thrown. In release mode an error will be thrown
+## as well, but from trying to access a missing key from the internal [member _serializers]
+## dictionary.
 func get_deserializer(wrapped_value: Dictionary) -> JSONSerializer:
 	assert(wrapped_value.has("i"), "'i' key not found in wrapped_value (%s)" % wrapped_value)
 	assert(_serializers.has(wrapped_value.i), ("no JSONSerializer with id (%s) found for " + \
@@ -136,7 +151,6 @@ func deserialize_into(instance: Variant, wrapped_value: Dictionary) -> void:
 ## then passing that varaint & other parameters into [method JSON.stringify], returning
 ## that value.
 func stringify(variant: Variant, indent: String = "", sort_keys: bool = true, full_precision: bool = false) -> String:
-	assert(variant != null, "variant is null")
 	var serialized: Dictionary = serialize(variant)
 	return JSON.stringify(serialized, indent, sort_keys, full_precision)
 

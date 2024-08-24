@@ -6,7 +6,7 @@ class_name PrimitiveJSONSerializer extends JSONSerializer
 @export var primitive_type: Variant.Type
 
 func _get_id() -> Variant:
-	return primitive_type
+	return JSONSerialization.convert_type_to_id(primitive_type)
 
 
 func _serialize(instance: Variant) -> Variant:
