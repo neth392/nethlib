@@ -1,8 +1,8 @@
 [gd_scene load_steps=3 format=3 uid="uid://uk88qvvbb8df"]
 
 [ext_resource type="Script" path="res://testing_please_ignore/general_testing.gd" id="1_eoet1"]
-[ext_resource type="Script" path="res://testing_please_ignore/test_parent.gd" id="2_iw5gy"]
+[ext_resource type="Script" path="res://testing_please_ignore/test_child.gd" id="2_blpc8"]
 
 [node name="GeneralTesting" type="Node"]
 script = ExtResource("1_eoet1")
-script_to_test = ExtResource("2_iw5gy")
+script_to_test = ExtResource("2_blpc8")

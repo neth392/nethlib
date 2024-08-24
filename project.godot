@@ -19,6 +19,8 @@ PlatformManager="*res://addons/neth_lib/platform/platform_manager.tscn"
 AudioStreamer="*res://addons/neth_lib/audio/audio_streamer.tscn"
 AudioBusHelper="*res://addons/neth_lib/audio/audio_bus_helper.tscn"
 ExecutionTimeTest="*res://addons/neth_lib/util/execution_time_test.tscn"
+JSONSerialization="*res://addons/neth_lib/json/serialize/json_serialization.tscn"
+JSONFileManager="*res://addons/neth_lib/json/json_file_manager.tscn"
 
 [debug]
 
@@ -33,5 +35,6 @@ enabled=PackedStringArray("res://addons/gut/plugin.cfg", "res://addons/neth_lib/
 modules/PlatformManager=true
 modules/AudioStreamer=true
 modules/AudioBusHelper=true
-modules/JSONSerialization=false
 modules/ExecutionTimeTest=true
+modules/JSONFileManager=true
+modules/JSONSerialization=true
