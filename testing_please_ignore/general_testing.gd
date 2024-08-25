@@ -15,5 +15,5 @@ func _ready() -> void:
 	# ClassDB.instantiate("Label")
 	
 	# Perhaps custom annotaions
-	
-	print(ClassDB.class_get_property_list(type))
+	for property in ClassDB.class_get_property_list(&"Label"):
+		print(property)

@@ -5,6 +5,13 @@
 ## implemented as well.
 class_name ObjectJSONSerializer extends JSONSerializer
 
+
+static var defaults: Dictionary = {}
+
+static func get_built_in_properties() -> void:
+	for _class: String in ClassDB.get_class_list():
+		ClassDB.class_get_property_list(_class)
+
 ## How to handle properties from [member _properties] that are either
 ## not found in serialized data or have a null value.
 enum IfMissing {
@@ -151,10 +158,6 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 		instance.set(property_name, deserialized)
 	
 	return instance
-
-
-
-
 
 
 ## Must be overridden to return a new instance of the object that is used in

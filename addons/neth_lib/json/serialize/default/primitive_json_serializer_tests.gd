@@ -62,7 +62,6 @@ var type_examples: Dictionary = {
 	TYPE_COLOR: Color.NAVAJO_WHITE,  # Example for COLOR type with RGBA values
 	TYPE_STRING_NAME: StringName("example_name"),  # Example for STRING_NAME type
 	TYPE_NODE_PATH: NodePath("/root/ExampleNode"),  # Example for NODE_PATH type
-	TYPE_RID: TestParent.new().get_rid(),  # Example for RID type, though typically empty
 	TYPE_OBJECT: Object.new(),  # Example for OBJECT type, a generic new Object
 	TYPE_CALLABLE: Callable(Object.new(), "method_name"),  # Example for CALLABLE type
 	TYPE_SIGNAL: Signal(),  # Example for SIGNAL type
