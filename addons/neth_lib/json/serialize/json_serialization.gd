@@ -1,5 +1,6 @@
 ## Autoloaded class (named JSONSerialization) responsible for managing [JSONSerializer]s and providing
 ## serialization & deserialization.
+@tool
 extends Node
 
 @export var serialize_all_types: bool = true
@@ -50,10 +51,12 @@ func _ready() -> void:
 	add_serializer(load("res://addons/neth_lib/json/serialize/default/color_json_serializer.gd").new())
 	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector2_json_serializer.gd").new())
 	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector2i_json_serializer.gd").new())
-	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector3_json_serializer.gd").new())
+	var vector3: JSONSerializer = load("res://addons/neth_lib/json/serialize/default/vector3_json_serializer.gd").new()
+	add_serializer(vector3)
 	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector3i_json_serializer.gd").new())
 	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector4_json_serializer.gd").new())
 	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector4i_json_serializer.gd").new())
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/basis_json_serializer.gd").new(vector3))
 	
 	ProjectSettings.settings_changed.connect(_on_project_setting_changed)
 
@@ -128,7 +131,12 @@ func derive_serializer_id(variant: Variant) -> Variant:
 func get_serializer(variant: Variant) -> JSONSerializer:
 	assert(is_serializiable(variant), "variant (%s) not supported by any JSONSerializer")
 	var id: Variant = derive_serializer_id(variant)
-	return _serializers[id]
+	return get_serializer_by_id(id)
+
+
+## Returns the [JSONSerializer] with the [param id], or null if one does not exist.
+func get_serializer_by_id(id: Variant) -> JSONSerializer:
+	return _serializers.get(id)
 
 
 ## Returns the [JSONSerializer] for use with deserializing the [param wrapped_value].

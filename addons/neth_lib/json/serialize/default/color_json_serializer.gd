@@ -40,10 +40,10 @@ func _deserialize(serialized: Variant) -> Variant:
 	color.g = serialized["g"]
 	color.b = serialized["b"]
 	color.a = serialized["a"]
-	color.r8 = serialized["r8"]
-	color.g8 = serialized["g8"]
-	color.b8 = serialized["b8"]
-	color.a8 = serialized["a8"]
+	color.r8 = int(serialized["r8"])
+	color.g8 = int(serialized["g8"])
+	color.b8 = int(serialized["b8"])
+	color.a8 = int(serialized["a8"])
 	color.h = serialized["h"]
 	color.s = serialized["s"]
 	color.v = serialized["v"]

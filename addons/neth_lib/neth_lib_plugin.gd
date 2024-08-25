@@ -37,13 +37,16 @@ static var _modules: Dictionary = {
 }
 
 var _ignore_project_setting_change: bool = false
+var _json_plugin: JSONEditorInspectorPlugin = JSONEditorInspectorPlugin.new()
 
 func _enter_tree():
 	_scan_modules(true)
+	add_inspector_plugin(_json_plugin)
 	SignalUtil.connect_safely(ProjectSettings.settings_changed, _on_project_settings_changed)
 
 
 func _exit_tree():
+	remove_inspector_plugin(_json_plugin)
 	SignalUtil.disconnect_safely(ProjectSettings.settings_changed, _on_project_settings_changed)
 	for module_name: String in _modules:
 		var module: Dictionary = _modules[module_name]
