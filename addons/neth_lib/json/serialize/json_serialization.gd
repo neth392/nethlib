@@ -45,18 +45,40 @@ func _ready() -> void:
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_FLOAT64_ARRAY))
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_STRING_ARRAY))
 	
-	# Add other default serializers
+	
+	# TYPE_ARRAY
 	add_serializer(load("res://addons/neth_lib/json/serialize/default/array_json_serializer.gd").new())
+	# TYPE_DICTIONARY
 	add_serializer(load("res://addons/neth_lib/json/serialize/default/dictionary_json_serializer.gd").new())
+	# TYPE_COLOR
 	add_serializer(load("res://addons/neth_lib/json/serialize/default/color_json_serializer.gd").new())
-	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector2_json_serializer.gd").new())
+	# TYPE_VECTOR2
+	var vector2: JSONSerializer = load("res://addons/neth_lib/json/serialize/default/vector2_json_serializer.gd").new()
+	add_serializer(vector2)
+	# TYPE_TRANSFORM2D
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/transform2d_json_serializer.gd").new(vector2))
+	# TYPE_VECTOR2i
 	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector2i_json_serializer.gd").new())
+	# TYPE_VECTOR3i
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector3i_json_serializer.gd").new())
+	# TYPE_VECTOR4
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector4_json_serializer.gd").new())
+	# TYPE_VECTOR4i
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector4i_json_serializer.gd").new())
+	
+	# TYPE_VECTOR3
 	var vector3: JSONSerializer = load("res://addons/neth_lib/json/serialize/default/vector3_json_serializer.gd").new()
 	add_serializer(vector3)
-	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector3i_json_serializer.gd").new())
-	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector4_json_serializer.gd").new())
-	add_serializer(load("res://addons/neth_lib/json/serialize/default/vector4i_json_serializer.gd").new())
-	add_serializer(load("res://addons/neth_lib/json/serialize/default/basis_json_serializer.gd").new(vector3))
+	
+	# TYPE_BASIS
+	var basis: JSONSerializer = load("res://addons/neth_lib/json/serialize/default/basis_json_serializer.gd").new(vector3)
+	add_serializer(basis)
+	
+	# TYPE_TRANSFORM3D
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/transform3d_json_serializer.gd").new(vector3, basis))
+	
+	# TYPE_AABB
+	add_serializer(load("res://addons/neth_lib/json/serialize/default/aabb_json_serializer.gd").new(vector3))
 	
 	ProjectSettings.settings_changed.connect(_on_project_setting_changed)
 

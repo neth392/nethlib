@@ -13,7 +13,7 @@ func _get_id() -> Variant:
 
 func _serialize(instance: Variant) -> Variant:
 	assert(instance is Basis, "instance not of type Basis")
-	assert(_vector3serializer != null, "no serializer for TYPE_VECTOR3")
+	assert(_vector3serializer != null, "_vector3serializer is null")
 	return {
 		"x": _vector3serializer._serialize(instance.x),
 		"y": _vector3serializer._serialize(instance.y),
@@ -26,7 +26,7 @@ func _deserialize(serialized: Variant) -> Variant:
 	assert(serialized["x"] is Dictionary, "x is not a Dictionary")
 	assert(serialized["y"] is Dictionary, "y is not a Dictionary")
 	assert(serialized["z"] is Dictionary, "z is not a Dictionary")
-	assert(_vector3serializer != null, "no serializer for TYPE_VECTOR3")
+	assert(_vector3serializer != null, "_vector3serializer is null")
 	
 	return Basis(
 		_vector3serializer._deserialize(serialized["x"]), 
