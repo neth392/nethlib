@@ -1,58 +1,16 @@
-## Abstract [JSONSerializer] implementation that is meant to be extended
-## for each specific object type that needs to be serialized/deserialized.[br]
-## In inheriting classes, it is crucial to use [code]super._init(...)[/code],
-## and inherit [method _get_properties]. Optionally [method _get_remaps] can be
-## implemented as well.
 class_name ObjectJSONSerializer extends JSONSerializer
 
 
-static var defaults: Dictionary = {}
-
-static func get_built_in_properties() -> void:
-	for _class: String in ClassDB.get_class_list():
-		ClassDB.class_get_property_list(_class)
-
-## How to handle properties from [member _properties] that are either
-## not found in serialized data or have a null value.
-enum IfMissing {
-	## Ignore that it is missing and continue on.
-	IGNORE,
-	## Set the property to null in the object.
-	SET_NULL,
-	## Push a warning.
-	WARN,
-	## Throw an error (dangerous).
-	ERROR,
-}
-
-## Returns an [Array] of [StringName]s for ALL of the [param object]'s properties.
-static func for_all_properties(object: Object) -> Array[StringName]:
-	var prop_names: Array[StringName] = []
-	for property: Dictionary in object.get_property_list():
-		prop_names.append(property.name as StringName)
-	return prop_names
-
-
-var _properties: Dictionary
-var _remaps: Dictionary
-
-
-func _init(_deserialize_mode: DeserializeMode = DeserializeMode.BOTH):
-	super._init(_deserialize_mode)
-	_properties = _get_properties()
-	if OS.is_debug_build():
-		for property_name in _properties:
-			assert(property_name is String || property_name is StringName, ("property_name (%s) " + \
-			"not of type String or StringName") % property_name)
-			assert(_properties[property_name] is IfMissing, ("value for property_name (%s) " + \
-			" not of type IfMissing") % property_name)
-	_remaps = _get_deserialization_remaps()
-	assert(!_properties.is_empty(), "_properties is empty")
+var _properties: Dictionary = {}
+var _remaps: Dictionary = {}
 
 
 func _serialize(instance: Variant) -> Variant:
-	assert(instance != null, "instance is null")
-	assert(instance is Object, "instance not of type object")
+	assert(instance == null || instance is Object, "instance not null or of type Object")
+	
+	if instance == null:
+		return null
+	
 	var object: Object = instance as Object
 	var serialized: Dictionary = {}
 	for property_name: StringName in _properties:
@@ -73,16 +31,22 @@ func _serialize(instance: Variant) -> Variant:
 
 
 func _deserialize(serialized: Variant) -> Variant:
+	assert(serialized == null || serialized is Dictionary, "instance not null or of type Dictionary")
+	if serialized == null:
+		return null
 	var instance: Object = _create_instance()
-	assert(instance != null, "_create_instance() returnd null")
-	return _deserialize_into(instance, serialized)
+	assert(instance != null, "_create_instance() returned null")
+	_deserialize_into(instance, serialized)
+	return instance
 
 
-func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
-	assert(instance != null, "instance is null")
-	assert(serialized != null, "serialized is null")
-	assert(instance is Object, "instance not of type Vector3")
-	assert(serialized is Dictionary, "serialized not of type Dictionary")
+func _deserialize_into(instance: Variant, serialized: Variant) -> void:
+	assert(instance != null, "instance is null; can't deserialize into a null instance")
+	assert(instance is Object, "instance not of type Object")
+	assert(serialized == null || serialized is Dictionary, "serialized not null or of type Dictionary")
+	
+	if serialized == null:
+		return
 	
 	# Sort object properties into a [Dictionary] for quick access
 	var object_properties: Dictionary = {}
@@ -163,22 +127,5 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> Variant:
 ## Must be overridden to return a new instance of the object that is used in
 ## [method _deserialize].
 func _create_instance() -> Object:
+	assert(false, "_create_instance() not overridden, therefore only _deserialize_into() can be used")
 	return null
-
-
-## Must be overridden to return an [Dictionary] of [StringName]s keys representing
-## the names of properties that are to be serialized & deserialized. Values
-## are [enum IfMissing], true if the value is required, false if optional.[br]
-## For performance reasons, it is important the [StringName]s are explicitly
-## defined as it speeds up the many [method Object.get] calls this serializer uses.
-func _get_properties() -> Dictionary:
-	return {}
-
-
-## Can be overridden to return a [Dictionary] in the format of 
-## {&"new_prop_stringname":&"old_prop_stringname"}.[br]
-## Remaps are essential when a property name in a script changes, as it'll
-## make [method _deserialize_into] aware that the new property name may not exist
-## and in that case it'll look for the remap value.
-func _get_deserialization_remaps() -> Dictionary:
-	return {}

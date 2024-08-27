@@ -1,19 +1,16 @@
 class_name GeneralTesting extends Node
 
-@export var test_script: GDScript
-@export_custom(PROPERTY_HINT_TYPE_STRING, &"Object") var type: String:
-	set(value):
-		type = value
+var node_path: NodePath = NodePath(^"SerializeThis/LabelSerializeThis/Label:text")
 
 
 func _ready() -> void:
-	# NOTE: Notes for me in json serialization
-	# To check if it is a Node or Resource:
-	# print(test_script.get_instance_base_type())
-	
-	# To instantiate a random built in class
-	# ClassDB.instantiate("Label")
-	
-	# Perhaps custom annotaions
-	for property in ClassDB.class_get_property_list(&"Label"):
+	TYPE_OBJECT
+	_handle(&"Label")
+
+func _handle(_class: StringName) -> void:
+	print(_class)
+	for property in ClassDB.class_get_property_list(_class, true):
 		print(property)
+	var parent: StringName = ClassDB.get_parent_class(_class)
+	if !parent.is_empty():
+		_handle(parent)

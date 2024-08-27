@@ -1,11 +1,9 @@
-class_name TestParent extends Node
+class_name TestParent extends Button
 
-@export var exported_prop: String = ""
-var not_exported_prop: String = ""
-var _internal_prop: String = ""
+@export var test_parent_prop: String = ""
 
-func _init(string_paramy: String, int_paramy: int) -> void:
-	pass
+func _init(test: String, test2: int) -> void:
+	print("init: test=%s, test2=%s" % [test, test2])
 
 
 func do_shit() -> void:

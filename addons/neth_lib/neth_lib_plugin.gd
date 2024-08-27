@@ -37,16 +37,19 @@ static var _modules: Dictionary = {
 }
 
 var _ignore_project_setting_change: bool = false
-var _json_plugin: JSONEditorInspectorPlugin = JSONEditorInspectorPlugin.new()
+var _bottom_panel: Control
 
 func _enter_tree():
 	_scan_modules(true)
-	add_inspector_plugin(_json_plugin)
+	var bottom_panel_scene: PackedScene = load("res://addons/neth_lib/json/ui/json_botton_panel.tscn") as PackedScene
+	_bottom_panel = bottom_panel_scene.instantiate() as Control
+	add_control_to_bottom_panel(_bottom_panel, "JSON")
 	SignalUtil.connect_safely(ProjectSettings.settings_changed, _on_project_settings_changed)
 
 
 func _exit_tree():
-	remove_inspector_plugin(_json_plugin)
+	get_editor_interface().get_selection()
+	remove_control_from_bottom_panel(_bottom_panel)
 	SignalUtil.disconnect_safely(ProjectSettings.settings_changed, _on_project_settings_changed)
 	for module_name: String in _modules:
 		var module: Dictionary = _modules[module_name]
