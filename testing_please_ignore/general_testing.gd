@@ -1,16 +1,12 @@
 class_name GeneralTesting extends Node
 
-var node_path: NodePath = NodePath(^"SerializeThis/LabelSerializeThis/Label:text")
-
+@export var sc: PackedScene
 
 func _ready() -> void:
-	TYPE_OBJECT
-	_handle(&"Label")
+	var node: Node
+	for prop in sc.instantiate().get_property_list():
+		print(prop)
+
 
 func _handle(_class: StringName) -> void:
-	print(_class)
-	for property in ClassDB.class_get_property_list(_class, true):
-		print(property)
-	var parent: StringName = ClassDB.get_parent_class(_class)
-	if !parent.is_empty():
-		_handle(parent)
+	get_property_list()

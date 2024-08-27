@@ -1,11 +1,13 @@
-[gd_scene load_steps=3 format=3 uid="uid://uk88qvvbb8df"]
+[gd_scene load_steps=4 format=3 uid="uid://uk88qvvbb8df"]
 
 [ext_resource type="Script" path="res://testing_please_ignore/general_testing.gd" id="1_eoet1"]
+[ext_resource type="PackedScene" uid="uid://co864s748tuxs" path="res://testing_please_ignore/test_parent.tscn" id="2_utxxj"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_76lja"]
 
 [node name="GeneralTesting" type="Node"]
 script = ExtResource("1_eoet1")
+sc = ExtResource("2_utxxj")
 metadata/nethlib_json = true
 
 [node name="SerializeThis" type="Node2D" parent="."]

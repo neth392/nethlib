@@ -1,8 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://cxbc0wopce1hj"]
-
-[ext_resource type="Script" path="res://addons/neth_lib/json/serialize/object/object_json_configuration.gd" id="1_jk5j1"]
-
-[node name="ObjectJSONConfiguration" type="Node"]
-script = ExtResource("1_jk5j1")
-await_to_serialize_ready = null
-path_to_serialize = null
