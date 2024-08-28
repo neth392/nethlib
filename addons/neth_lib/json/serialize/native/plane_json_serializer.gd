@@ -4,7 +4,7 @@ extends JSONSerializer
 var _vector3serializer: JSONSerializer
 
 func _init(vector3serializer: JSONSerializer) -> void:
-	vector3serializer = _vector3serializer
+	_vector3serializer = vector3serializer
 
 
 func _get_id() -> Variant:

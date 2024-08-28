@@ -3,8 +3,8 @@ extends JSONSerializer
 
 var _vector2iserializer: JSONSerializer
 
-func _init(vector2serializer: JSONSerializer) -> void:
-	_vector2iserializer = vector2serializer
+func _init(vector2iserializer: JSONSerializer) -> void:
+	_vector2iserializer = vector2iserializer
 
 
 func _get_id() -> Variant:

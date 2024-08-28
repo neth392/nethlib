@@ -27,8 +27,8 @@ static var _supported_types: Dictionary = {
 	TYPE_STRING_NAME: "TYPE_STRING_NAME",
 	TYPE_NODE_PATH: "TYPE_NODE_PATH",
 	TYPE_OBJECT: "TYPE_OBJECT", # TODO is this needed? move to
-	TYPE_DICTIONARY: "TYPE_DICTIONARY", # TODO figure out how to deal with objects
-	TYPE_ARRAY: "TYPE_ARRAY", # TODO figure out how to deal with objects
+	TYPE_DICTIONARY: "TYPE_DICTIONARY", # TODO figure out how to deal with objects in these
+	TYPE_ARRAY: "TYPE_ARRAY", # TODO figure out how to deal with objects in these
 	TYPE_PACKED_BYTE_ARRAY: "TYPE_PACKED_BYTE_ARRAY",
 	TYPE_PACKED_INT32_ARRAY: "TYPE_PACKED_INT32_ARRAY",
 	TYPE_PACKED_INT64_ARRAY: "TYPE_PACKED_INT64_ARRAY",
@@ -37,7 +37,7 @@ static var _supported_types: Dictionary = {
 	TYPE_PACKED_STRING_ARRAY: "TYPE_PACKED_STRING_ARRAY",
 	TYPE_PACKED_VECTOR2_ARRAY: "TYPE_PACKED_VECTOR2_ARRAY",
 	TYPE_PACKED_VECTOR3_ARRAY: "TYPE_PACKED_VECTOR3_ARRAY",
-	TYPE_PACKED_COLOR_ARRAY: "TYPE_PACKED_COLOR_ARRAY",
+	TYPE_PACKED_COLOR_ARRAY: "TYPE_PACKED_COLOR_ARRAY", # TODO
 	TYPE_PACKED_VECTOR4_ARRAY: "TYPE_PACKED_VECTOR4_ARRAY",
 }
 
@@ -88,65 +88,77 @@ func _ready() -> void:
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_FLOAT64_ARRAY))
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_STRING_ARRAY))
 	
-	
 	# TYPE_ARRAY
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/array_json_serializer.gd").new())
+	add_serializer(preload("./native/array_json_serializer.gd").new())
 	
 	# TYPE_DICTIONARY
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/dictionary_json_serializer.gd").new())
+	add_serializer(preload("./native/dictionary_json_serializer.gd").new())
 	
 	# TYPE_COLOR
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/color_json_serializer.gd").new())
+	var color: JSONSerializer = preload("./native/color_json_serializer.gd").new()
+	add_serializer(color)
+	
+	# TYPE_PACKED_COLOR_ARRAY
+	add_serializer(preload("./native/packed_color_array_json_serializer.gd").new(color))
 	
 	# TYPE_QUARTERNION
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/quarternion_json_serializer.gd").new())
+	add_serializer(preload("./native/quarternion_json_serializer.gd").new())
 	
 	# TYPE_VECTOR2
-	var vector2: JSONSerializer = load("res://addons/neth_lib/json/serialize/native/vector2_json_serializer.gd").new()
+	var vector2: JSONSerializer = preload("./native/vector2_json_serializer.gd").new()
 	add_serializer(vector2)
 	
+	# TYPE_PACKED_VECTOR2_ARRAY
+	add_serializer(preload("./native/packed_vector2_array_json_serializer.gd").new(vector2))
+	
 	# TYPE_RECT2
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/rect2_json_serializer.gd").new(vector2))
+	add_serializer(preload("./native/rect2_json_serializer.gd").new(vector2))
 	
 	# TYPE_TRANSFORM2D
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/transform2d_json_serializer.gd").new(vector2))
+	add_serializer(preload("./native/transform2d_json_serializer.gd").new(vector2))
 	
 	# TYPE_VECTOR2i
-	var vector2i: JSONSerializer = load("res://addons/neth_lib/json/serialize/native/vector2i_json_serializer.gd").new()
+	var vector2i: JSONSerializer = preload("./native/vector2i_json_serializer.gd").new()
 	add_serializer(vector2i)
 	
 	# TYPE_RECT2i
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/rect2i_json_serializer.gd").new(vector2i))
+	add_serializer(preload("./native/rect2i_json_serializer.gd").new(vector2i))
 	
 	# TYPE_VECTOR3i
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/vector3i_json_serializer.gd").new())
-	
-	# TYPE_VECTOR4
-	var vector4: JSONSerializer = load("res://addons/neth_lib/json/serialize/native/vector4_json_serializer.gd").new()
-	add_serializer(vector4)
-	
-	# TYPE_PROJECTION
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/projection_json_serializer.gd").new(vector4))
-	
-	# TYPE_VECTOR4i
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/vector4i_json_serializer.gd").new())
+	add_serializer(preload("./native/vector3i_json_serializer.gd").new())
 	
 	# TYPE_VECTOR3
-	var vector3: JSONSerializer = load("res://addons/neth_lib/json/serialize/native/vector3_json_serializer.gd").new()
+	var vector3: JSONSerializer = preload("./native/vector3_json_serializer.gd").new()
 	add_serializer(vector3)
 	
+	# TYPE_PACKED_VECTOR3_ARRAY
+	add_serializer(preload("./native/packed_vector3_array_json_serializer.gd").new(vector3))
+	
 	# TYPE_PLANE
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/plane_json_serializer.gd").new(vector3))
+	add_serializer(preload("./native/plane_json_serializer.gd").new(vector3))
 	
 	# TYPE_BASIS
-	var basis: JSONSerializer = load("res://addons/neth_lib/json/serialize/native/basis_json_serializer.gd").new(vector3)
+	var basis: JSONSerializer = preload("./native/basis_json_serializer.gd").new(vector3)
 	add_serializer(basis)
 	
 	# TYPE_TRANSFORM3D
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/transform3d_json_serializer.gd").new(vector3, basis))
+	add_serializer(preload("./native/transform3d_json_serializer.gd").new(vector3, basis))
 	
 	# TYPE_AABB
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/aabb_json_serializer.gd").new(vector3))
+	add_serializer(preload("./native/aabb_json_serializer.gd").new(vector3))
+	
+	# TYPE_VECTOR4i
+	add_serializer(preload("./native/vector4i_json_serializer.gd").new())
+	
+	# TYPE_VECTOR4
+	var vector4: JSONSerializer = preload("./native/vector4_json_serializer.gd").new()
+	add_serializer(vector4)
+	
+	# TYPE_PACKED_VECTOR4_ARRAY
+	add_serializer(preload("./native/packed_vector4_array_json_serializer.gd").new(vector4))
+	
+	# TYPE_PROJECTION
+	add_serializer(preload("./native/projection_json_serializer.gd").new(vector4))
 	
 	ProjectSettings.settings_changed.connect(_on_project_setting_changed)
 
