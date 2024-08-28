@@ -1,21 +1,13 @@
 class_name GeneralTesting extends Node
 
-@export var sc: PackedScene
+@onready var test: Node = $TestParent
 
 func _ready() -> void:
-	
-	var plane: Plane = Plane(Vector3(1, 2, 3), 4)
-	plane.x = 5
-	print(plane.normal)
-	
-	var path: NodePath = NodePath("SerializeThis/Label")
-	print("BEFORE: " + str(path))
-	var serialized: String = JSONSerialization.stringify(path)
-	print("SERIALIZED: " + serialized)
-	var deserialized: NodePath = JSONSerialization.parse(serialized) as NodePath
-	print("AFTER: " + str(deserialized))
-	print("EQUALS: " + str(path == deserialized))
+	for property in test.get_property_list():
+		print(property)
+		print(has_flag(property.usage, PROPERTY_USAGE_DEFAULT))
+		print(" ")
 
-
-func _handle(_class: StringName) -> void:
-	get_property_list()
+# Function to check if a specific flag is present in the total value
+func has_flag(total_value: int, flag: int) -> bool:
+	return (total_value & flag) != 0

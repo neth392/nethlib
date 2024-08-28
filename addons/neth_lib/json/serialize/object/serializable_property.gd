@@ -1,12 +1,12 @@
 class_name SerializableProperty extends Resource
 
-## The key of the property in the JSON file.
+## The key of the property in the JSON file. Should NOT be changed as it will
+## break existing save files. 
 @export var json_key: StringName
 
 
-
 func _set_property(object: Object, value: Variant) -> void:
-	# TODO assert overridden
+	assert(false, "_set_property not implemented")
 	pass
 
 

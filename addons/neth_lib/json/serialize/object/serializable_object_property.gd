@@ -1,0 +1,3 @@
+class_name SerializableObjectProperty extends SerializableProperty
+
+@export var config: ObjectJSONConfiguration

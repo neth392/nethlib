@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://cxyqbocj5qjvp"]
 
-[ext_resource type="Script" path="res://addons/neth_lib/json/ui/json_botton_panel.gd" id="1_46xil"]
+[ext_resource type="Script" path="res://addons/neth_lib/json/ui/json_bottom_panel.gd" id="1_46xil"]
 
 [node name="JSONBottomPanel" type="Control"]
 layout_mode = 3

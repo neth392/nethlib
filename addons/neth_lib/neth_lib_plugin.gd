@@ -19,11 +19,6 @@ static var _modules: Dictionary = {
 		"dependencies": [],
 		"enabled": false,
 	},
-	"JSONSerialization": {
-		"path": "json/serialize/json_serialization.tscn",
-		"dependencies": [],
-		"enabled": false,
-	},
 	"JSONFileManager": {
 		"path": "json/json_file_manager.tscn",
 		"dependencies": ["JSONSerialization"],
@@ -48,7 +43,6 @@ func _enter_tree():
 
 
 func _exit_tree():
-	get_editor_interface().get_selection()
 	remove_control_from_bottom_panel(_bottom_panel)
 	SignalUtil.disconnect_safely(ProjectSettings.settings_changed, _on_project_settings_changed)
 	for module_name: String in _modules:

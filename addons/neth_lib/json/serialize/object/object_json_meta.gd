@@ -1,3 +1,5 @@
+## Utility class for fetching & retrieving [ObjectJSONConfiguration]s from
+## objects.
 class_name ObjectJSONMeta extends Object
 
 const KEY: StringName = &"nethlib_json"

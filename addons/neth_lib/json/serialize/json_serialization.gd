@@ -147,8 +147,12 @@ func unwrap_value(wrapped_value: Dictionary) -> Variant:
 
 ## Retunrs true if [param variant] is supported by a [JSONSerializer], false if not.
 func is_serializiable(variant: Variant) -> bool:
-	var id: Variant = derive_serializer_id(variant)
-	return _serializers.has(id)
+	return is_type_serializable(typeof(variant))
+
+
+## Returns true if the [param type] is supported by a [JSONSerializer], false if not.
+func is_type_serializable(type: Variant.Type) -> bool:
+	return _serializers.has(type)
 
 
 ## Adds the [param serializer].
@@ -164,37 +168,9 @@ func remove_serializer(serializer: JSONSerializer) -> bool:
 	return _serializers.erase(serializer.id)
 
 
-## Derives the serializer ID from [param variant].
-func derive_serializer_id(variant: Variant) -> Variant:
-	if variant is Object:
-		var script: Script = variant.get_script() as Script
-		
-		# 1. Use the resource path of the script
-		if script != null && !script.resource_path.is_empty():
-			return script.resource_path
-		
-		# 2. Use the class name
-		var _class: String = variant.get_class()
-		if !_class.is_empty():
-			return _class
-	
-	# 3. Use the type as string version (otherwise its serialized as a float)
-	return str(typeof(variant))
-
-
-## Returns the [JSONSerializer] for use with serializing the [param variant]. If no
-## serilaizer is found, in debug mode an assertion is called resulting in an error, and
-## in release mode an error will be thrown from trying to retrieve a non-existent key
-## from the internal [member _serializers] dictionary.
-func get_serializer(variant: Variant) -> JSONSerializer:
-	assert(is_serializiable(variant), "variant (%s) not supported by any JSONSerializer")
-	var id: Variant = derive_serializer_id(variant)
-	return get_serializer_by_id(id)
-
-
 ## Returns the [JSONSerializer] with the [param id], or null if one does not exist.
-func get_serializer_by_id(id: Variant) -> JSONSerializer:
-	return _serializers.get(id)
+func get_serializer_for_type(type: Variant.Type) -> JSONSerializer:
+	return _serializers.get(type)
 
 
 ## Returns the [JSONSerializer] for use with deserializing the [param wrapped_value].
@@ -218,7 +194,7 @@ func serialize(variant: Variant) -> Dictionary:
 	# str(variant) needed as some types such as RID will not work w/o it
 	assert(is_serializiable(variant), "variant (%s) not supported by any JSONSerializer" % str(variant))
 	
-	var serializer: JSONSerializer = get_serializer(variant)
+	var serializer: JSONSerializer = get_serializer_for_type(typeof(variant))
 	var serialized: Variant = serializer._serialize(variant)
 	
 	return wrap_value(serializer, serialized)
@@ -238,7 +214,7 @@ func deserialize_into(instance: Variant, wrapped_value: Dictionary) -> void:
 	assert(instance != null, "instance is null, can't deserialize into a null instance")
 	assert(wrapped_value != null, "wrapped_value is null")
 	
-	var serializer: JSONSerializer = get_serializer(instance)
+	var serializer: JSONSerializer = get_serializer_for_type(typeof(instance))
 	
 	# In debug, ensure serializers match up from instance type & wrapped type
 	if OS.is_debug_build():

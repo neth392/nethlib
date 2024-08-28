@@ -1,4 +1,4 @@
-class_name ObjectJSONSerializer extends JSONSerializer
+class_name OLDObjectJSONSerializer extends JSONSerializer
 
 
 var _properties: Dictionary = {}

@@ -4,10 +4,6 @@ class_name GetterSetterSerializableProperty extends Resource
 @export var setter: StringName
 @export var getter: StringName
 
-func _validate_property(property: Dictionary) -> void:
-	pass
-
-
 func _set_property(object: Object, value: Variant) -> void:
 	object.call(setter, value)
 

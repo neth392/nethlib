@@ -7,6 +7,7 @@ var id: StringName:
 	set(value):
 		assert(false, "id can not be set, instead override _get_id()")
 
+
 func _get_id() -> String:
 	assert(false, "_get_id() not overridden")
 	return ""
@@ -17,7 +18,13 @@ func _instantiate(parameters: Array) -> Object:
 	return null
 
 
+func get_serializable_properties() -> Array[SerializableProperty]:
+	var properties: Array[SerializableProperty] = []
+	for property: Dictionary in _get_object_property_list():
+		pass
+
+
 ## Returns the same as [method Object._get_property_list] but for
 ## the object this [SerializableObject] represents.
-func _get_serializable_property_list() -> Array[Dictionary]:
+func _get_object_property_list() -> Array[Dictionary]:
 	return []

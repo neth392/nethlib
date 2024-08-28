@@ -7,7 +7,6 @@
 
 [node name="GeneralTesting" type="Node"]
 script = ExtResource("1_eoet1")
-sc = ExtResource("2_utxxj")
 metadata/nethlib_json = true
 
 [node name="SerializeThis" type="Node2D" parent="."]
@@ -21,4 +20,7 @@ metadata/_edit_use_anchors_ = true
 [node name="Sprite2D" type="Sprite2D" parent="SerializeThis"]
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+root_path = NodePath("../TestParent")
 replication_config = SubResource("SceneReplicationConfig_76lja")
+
+[node name="TestParent" parent="." instance=ExtResource("2_utxxj")]

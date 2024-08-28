@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://cxbc0wopce1hj"]
-
-[ext_resource type="Script" path="res://addons/neth_lib/json/serialize/object/node_json_configuration.gd" id="1_ulpkg"]
-
-[node name="ObjectJSONConfiguration" type="Node"]
-script = ExtResource("1_ulpkg")
