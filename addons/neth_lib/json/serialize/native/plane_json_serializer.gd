@@ -8,25 +8,25 @@ func _init(vector3serializer: JSONSerializer) -> void:
 
 
 func _get_id() -> Variant:
-	return TYPE_AABB
+	return TYPE_PLANE
 
 
 func _serialize(instance: Variant) -> Variant:
-	assert(instance is AABB, "instance not of type AABB")
+	assert(instance is Plane, "instance not of type Plane")
 	assert(_vector3serializer != null, "_vector3serializer is null")
 	return {
-		"p": _vector3serializer._serialize(instance.position),
-		"e": _vector3serializer._serialize(instance.end),
+		"n": _vector3serializer._serialize(instance.normal),
+		"d": instance.d,
 	}
 
 
 func _deserialize(serialized: Variant) -> Variant:
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
-	assert(serialized["p"] is Dictionary, "p is not a Dictionary")
-	assert(serialized["e"] is Dictionary, "e is not a Dictionary")
+	assert(serialized["n"] is Dictionary, "n is not a Dictionary")
+	assert(serialized["d"] is float, "d is not a Dictionary")
 	assert(_vector3serializer != null, "_vector3serializer is null")
 	
-	var aabb: AABB = AABB()
-	aabb.position = _vector3serializer._deserialize(serialized["p"])
-	aabb.end = _vector3serializer._deserialize(serialized["e"])
-	return aabb
+	return Plane(
+		_vector3serializer._deserialize(serialized["n"]),
+		serialized["d"]
+	)

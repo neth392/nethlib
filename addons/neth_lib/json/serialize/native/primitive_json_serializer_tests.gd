@@ -62,9 +62,7 @@ var type_examples: Dictionary = {
 	TYPE_COLOR: Color.NAVAJO_WHITE,  # Example for COLOR type with RGBA values
 	TYPE_STRING_NAME: StringName("example_name"),  # Example for STRING_NAME type
 	TYPE_NODE_PATH: NodePath("/root/ExampleNode"),  # Example for NODE_PATH type
-	TYPE_OBJECT: Object.new(),  # Example for OBJECT type, a generic new Object
-	TYPE_CALLABLE: Callable(Object.new(), "method_name"),  # Example for CALLABLE type
-	TYPE_SIGNAL: Signal(),  # Example for SIGNAL type
+	#TYPE_OBJECT: Object.new(),  # Example for OBJECT type, a generic new Object
 	TYPE_DICTIONARY: {"key": "value", "number": 42},  # Example for DICTIONARY type with mixed key-value pairs
 	TYPE_ARRAY: [1, "two", 3.0],  # Example for ARRAY type with mixed types
 	TYPE_PACKED_BYTE_ARRAY: PackedByteArray([0x00, 0xFF, 0x7F]),  # Example for PACKED_BYTE_ARRAY type

@@ -11,24 +11,24 @@ static var _supported_types: Dictionary = {
 	TYPE_STRING: "TYPE_STRING",
 	TYPE_VECTOR2: "TYPE_VECTOR2",
 	TYPE_VECTOR2I: "TYPE_VECTOR2I",
-	TYPE_RECT2: "TYPE_RECT2",  # TODO implement
-	TYPE_RECT2I: "TYPE_RECT2I",  # TODO implement
+	TYPE_RECT2: "TYPE_RECT2",
+	TYPE_RECT2I: "TYPE_RECT2I",
 	TYPE_VECTOR3: "TYPE_VECTOR3",
 	TYPE_VECTOR3I: "TYPE_VECTOR3I",
 	TYPE_TRANSFORM2D: "TYPE_TRANSFORM2D",
 	TYPE_VECTOR4: "TYPE_VECTOR4",
 	TYPE_VECTOR4I: "TYPE_VECTOR4I",
-	TYPE_PLANE: "TYPE_PLANE",  # TODO implement
-	TYPE_QUATERNION: "TYPE_QUATERNION", # TODO implement
+	TYPE_PLANE: "TYPE_PLANE",
+	TYPE_QUATERNION: "TYPE_QUATERNION",
 	TYPE_AABB: "TYPE_AABB",
 	TYPE_BASIS: "TYPE_BASIS",
 	TYPE_TRANSFORM3D: "TYPE_TRANSFORM3D",
-	TYPE_PROJECTION: "TYPE_PROJECTION", # TODO implement
+	TYPE_PROJECTION: "TYPE_PROJECTION",
 	TYPE_STRING_NAME: "TYPE_STRING_NAME",
 	TYPE_NODE_PATH: "TYPE_NODE_PATH",
-	TYPE_OBJECT: "TYPE_OBJECT",
-	TYPE_DICTIONARY: "TYPE_DICTIONARY",
-	TYPE_ARRAY: "TYPE_ARRAY",
+	TYPE_OBJECT: "TYPE_OBJECT", # TODO is this needed? move to
+	TYPE_DICTIONARY: "TYPE_DICTIONARY", # TODO figure out how to deal with objects
+	TYPE_ARRAY: "TYPE_ARRAY", # TODO figure out how to deal with objects
 	TYPE_PACKED_BYTE_ARRAY: "TYPE_PACKED_BYTE_ARRAY",
 	TYPE_PACKED_INT32_ARRAY: "TYPE_PACKED_INT32_ARRAY",
 	TYPE_PACKED_INT64_ARRAY: "TYPE_PACKED_INT64_ARRAY",
@@ -81,6 +81,7 @@ func _ready() -> void:
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_FLOAT))
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_STRING))
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_STRING_NAME))
+	add_serializer(PrimitiveJSONSerializer.new(TYPE_NODE_PATH))
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_INT32_ARRAY))
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_INT64_ARRAY))
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_FLOAT32_ARRAY))
@@ -90,27 +91,52 @@ func _ready() -> void:
 	
 	# TYPE_ARRAY
 	add_serializer(load("res://addons/neth_lib/json/serialize/native/array_json_serializer.gd").new())
+	
 	# TYPE_DICTIONARY
 	add_serializer(load("res://addons/neth_lib/json/serialize/native/dictionary_json_serializer.gd").new())
+	
 	# TYPE_COLOR
 	add_serializer(load("res://addons/neth_lib/json/serialize/native/color_json_serializer.gd").new())
+	
+	# TYPE_QUARTERNION
+	add_serializer(load("res://addons/neth_lib/json/serialize/native/quarternion_json_serializer.gd").new())
+	
 	# TYPE_VECTOR2
 	var vector2: JSONSerializer = load("res://addons/neth_lib/json/serialize/native/vector2_json_serializer.gd").new()
 	add_serializer(vector2)
+	
+	# TYPE_RECT2
+	add_serializer(load("res://addons/neth_lib/json/serialize/native/rect2_json_serializer.gd").new(vector2))
+	
 	# TYPE_TRANSFORM2D
 	add_serializer(load("res://addons/neth_lib/json/serialize/native/transform2d_json_serializer.gd").new(vector2))
+	
 	# TYPE_VECTOR2i
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/vector2i_json_serializer.gd").new())
+	var vector2i: JSONSerializer = load("res://addons/neth_lib/json/serialize/native/vector2i_json_serializer.gd").new()
+	add_serializer(vector2i)
+	
+	# TYPE_RECT2i
+	add_serializer(load("res://addons/neth_lib/json/serialize/native/rect2i_json_serializer.gd").new(vector2i))
+	
 	# TYPE_VECTOR3i
 	add_serializer(load("res://addons/neth_lib/json/serialize/native/vector3i_json_serializer.gd").new())
+	
 	# TYPE_VECTOR4
-	add_serializer(load("res://addons/neth_lib/json/serialize/native/vector4_json_serializer.gd").new())
+	var vector4: JSONSerializer = load("res://addons/neth_lib/json/serialize/native/vector4_json_serializer.gd").new()
+	add_serializer(vector4)
+	
+	# TYPE_PROJECTION
+	add_serializer(load("res://addons/neth_lib/json/serialize/native/projection_json_serializer.gd").new(vector4))
+	
 	# TYPE_VECTOR4i
 	add_serializer(load("res://addons/neth_lib/json/serialize/native/vector4i_json_serializer.gd").new())
 	
 	# TYPE_VECTOR3
 	var vector3: JSONSerializer = load("res://addons/neth_lib/json/serialize/native/vector3_json_serializer.gd").new()
 	add_serializer(vector3)
+	
+	# TYPE_PLANE
+	add_serializer(load("res://addons/neth_lib/json/serialize/native/plane_json_serializer.gd").new(vector3))
 	
 	# TYPE_BASIS
 	var basis: JSONSerializer = load("res://addons/neth_lib/json/serialize/native/basis_json_serializer.gd").new(vector3)
@@ -267,6 +293,8 @@ func stringify(variant: Variant) -> String:
 
 ## Helper function that calls [method JSON.parse] with [param wrapped_json_string], then
 ## sends the resulting [Variant] to [method deserialize], returning that value.
+## [br][param wrapped_json_string] is what is returned by [method serialize], and
+## [method stringify].
 func parse(wrapped_json_string: String) -> Variant:
 	var parsed: Variant = _parse(wrapped_json_string)
 	return deserialize(parsed as Dictionary)
@@ -274,6 +302,8 @@ func parse(wrapped_json_string: String) -> Variant:
 
 ## Helper function to call [method JSON.parse_string] with [param wrapped_json_string], then
 ## sends the resulting [Variant] and [param instance] to [method deserialize_into].
+## [br][param wrapped_json_string] is what is returned by [method serialize], and
+## [method stringify].
 func parse_into(instance: Variant, wrapped_json_string: String) -> void:
 	var parsed: Variant = _parse(wrapped_json_string)
 	deserialize_into(instance, parsed as Dictionary)
