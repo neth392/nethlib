@@ -3,53 +3,50 @@ class_name NethLibPlugin extends EditorPlugin
 
 const SETTING_PREFIX = "nethlib/modules/"
 
-static var _modules: Dictionary = {
-	"PlatformManager": {
-		"path": "platform/platform_manager.tscn",
-		"dependencies": [],
-		"enabled": false,
-	},
-	"AudioStreamer": {
-		"path": "audio/audio_streamer.tscn",
-		"dependencies": [],
-		"enabled": false,
-	},
-	"AudioBusHelper": {
-		"path": "audio/audio_bus_helper.tscn",
-		"dependencies": [],
-		"enabled": false,
-	},
-	"JSONFileManager": {
-		"path": "json/json_file_manager.tscn",
-		"dependencies": ["JSONSerialization"],
-		"enabled": false,
-	},
-	"ExecutionTimeTest": {
-		"path": "util/execution_time_test.tscn",
-		"dependencies": [],
-		"enabled": false,
-	},
-}
+# AND JSON
+#static var _modules: Dictionary = {
+	#"PlatformManager": {
+		#"path": "platform/platform_manager.tscn",
+		#"dependencies": [],
+		#"enabled": false,
+	#},
+	#"AudioStreamer": {
+		#"path": "audio/audio_streamer.tscn",
+		#"dependencies": [],
+		#"enabled": false,
+	#},
+	#"AudioBusHelper": {
+		#"path": "audio/audio_bus_helper.tscn",
+		#"dependencies": [],
+		#"enabled": false,
+	#},
+	#"ExecutionTimeTest": {
+		#"path": "util/execution_time_test.tscn",
+		#"dependencies": [],
+		#"enabled": false,
+	#},
+#}
+
+var _modules: Array[NethlibModule] = [
+	preload("./json/nethlib_json_module.gd").new(),
+	preload("./platform/nethlib_platform_manager_module.gd").new(),
+	preload("./audio/nethlib_audio_streamer_module.gd").new(),
+	preload("./audio/nethlib_audio_bus_helper_module.gd").new(),
+	preload("./util/nethlib_execution_time_test_module.gd").new(),
+]
 
 var _ignore_project_setting_change: bool = false
-var _bottom_panel: Control
 
 func _enter_tree():
-	_scan_modules(true)
-	var bottom_panel_scene: PackedScene = load("res://addons/neth_lib/json/ui/json_botton_panel.tscn") as PackedScene
-	_bottom_panel = bottom_panel_scene.instantiate() as Control
-	add_control_to_bottom_panel(_bottom_panel, "JSON")
+	_scan_modules(false)
 	SignalUtil.connect_safely(ProjectSettings.settings_changed, _on_project_settings_changed)
 
 
 func _exit_tree():
-	remove_control_from_bottom_panel(_bottom_panel)
 	SignalUtil.disconnect_safely(ProjectSettings.settings_changed, _on_project_settings_changed)
-	for module_name: String in _modules:
-		var module: Dictionary = _modules[module_name]
-		if _modules[module_name]["enabled"]:
-			remove_autoload_singleton(module_name)
-		module.enabled = false
+	for module: NethlibModule in _modules:
+		if module.is_enabled():
+			module.disable(self, false)
 
 
 func _get_plugin_name() -> String:
@@ -59,77 +56,45 @@ func _get_plugin_name() -> String:
 func _on_project_settings_changed() -> void:
 	if _ignore_project_setting_change:
 		return
-	_scan_modules(false)
+	_scan_modules(true)
 
 
-func _scan_modules(disable_print: bool) -> void:
-	for module_name: String in _modules:
-		var setting_path: String = _format_module_path(module_name)
-		var module: Dictionary = _modules[module_name]
+func _scan_modules(print_to_console) -> void:
+	for module: NethlibModule in _modules:
 		# Doesn't exist, create the setting
-		if !ProjectSettings.has_setting(setting_path):
-			_set_setting(setting_path, module)
-			if module.enabled:
-				_enable_module(module_name, module, false)
-			else:
-				_disable_module(module_name, module, false)
+		if !ProjectSettings.has_setting(module.setting_path):
+			_set_setting(module, true)
+			module.enable(self, print_to_console)
 			continue
 		
-		var setting_enabled: bool = ProjectSettings.get_setting(setting_path)
+		var setting_enabled: bool = ProjectSettings.get_setting(module.setting_path)
 		
 		# Is enabled but dependencies arent; remove
 		if setting_enabled && !_dependencies_enabled(module):
-			_set_setting(setting_path, module)
-			_disable_module(module_name, module, false)
+			_set_setting(module, false)
+			module.disable(self, false)
 			push_warning("NethLib: Module %s can't be enabled as it depends on disabled module(s) %s" \
-			% [module_name, module.dependencies])
+			% [module.name, module.dependencies])
 			continue
 		
-		if setting_enabled != module.enabled:
+		if setting_enabled != module.is_enabled():
 			if setting_enabled:
-				_enable_module(module_name, module, !disable_print && true)
+				module.enable(self, print_to_console)
 			else:
-				_disable_module(module_name, module, !disable_print && true)
+				module.disable(self, print_to_console)
 
 
-func _dependencies_enabled(module: Dictionary) -> bool:
+func _dependencies_enabled(module: NethlibModule) -> bool:
 	for dependency: String in module.dependencies:
-		if !_modules[dependency].enabled:
-			return false
+		for other_module: NethlibModule in _modules:
+			if other_module.name == dependency && !other_module.is_enabled():
+				return false
 	return true
 
 
-func _enable_module(module_name: String, module: Dictionary, print_to_console: bool) -> void:
-	module.enabled = true
-	if !_has_module_singleton(module_name):
-		_ignore_project_setting_change = true
-		add_autoload_singleton(module_name, module.path)
-		_ignore_project_setting_change = false
-	if print_to_console:
-		push_warning("NethLib: Enabled module %s" % module_name)
-
-
-func _disable_module(module_name: String, module: Dictionary, print_to_console: bool) -> void:
-	module.enabled = false
-	if _has_module_singleton(module_name):
-		_ignore_project_setting_change = true
-		remove_autoload_singleton(module_name)
-		_ignore_project_setting_change = false
-	if print_to_console:
-		push_warning("NethLib: Disabled module %s" % module_name)
-
-
-func _set_setting(path: String, module: Dictionary) -> void:
+func _set_setting(module: NethlibModule, enabled: bool) -> void:
 	_ignore_project_setting_change = true
-	ProjectSettings.set_setting(path, module.enabled)
-	ProjectSettings.set_as_basic(path, true)
-	ProjectSettings.set_initial_value(path, module.enabled)
+	ProjectSettings.set_initial_value(module.setting_path, true)
+	ProjectSettings.set_as_basic(module.setting_path, true)
+	ProjectSettings.set_setting(module.setting_path, enabled)
 	_ignore_project_setting_change = false
-
-
-func _has_module_singleton(module_name: String) -> bool:
-	return ProjectSettings.has_setting("autoload/" + module_name)
-
-
-func _format_module_path(module_name: String) -> String:
-	return SETTING_PREFIX + module_name

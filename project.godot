@@ -15,11 +15,10 @@ config/features=PackedStringArray("4.3", "Forward Plus")
 
 [autoload]
 
+JSONSerialization="*res://addons/neth_lib/json/serialize/json_serialization.tscn"
 PlatformManager="*res://addons/neth_lib/platform/platform_manager.tscn"
 AudioStreamer="*res://addons/neth_lib/audio/audio_streamer.tscn"
 AudioBusHelper="*res://addons/neth_lib/audio/audio_bus_helper.tscn"
-JSONSerialization="*res://addons/neth_lib/json/serialize/json_serialization.tscn"
-JSONFileManager="*res://addons/neth_lib/json/json_file_manager.tscn"
 ExecutionTimeTest="*res://addons/neth_lib/util/execution_time_test.tscn"
 
 [debug]
@@ -32,9 +31,8 @@ enabled=PackedStringArray("res://addons/gut/plugin.cfg", "res://addons/neth_lib/
 
 [nethlib]
 
+modules/JSON=true
 modules/PlatformManager=true
 modules/AudioStreamer=true
 modules/AudioBusHelper=true
 modules/ExecutionTimeTest=true
-modules/JSONFileManager=true
-modules/JSONSerialization=true
