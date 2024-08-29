@@ -117,13 +117,6 @@ func _ready() -> void:
 	
 	# TYPE_PROJECTION
 	add_serializer(preload("./native/projection_json_serializer.gd").new(vector4))
-	
-	ProjectSettings.settings_changed.connect(_on_project_setting_changed)
-
-
-func _on_project_setting_changed() -> void:
-	# TODO serialize_all_types project setting maybe?
-	pass
 
 
 ## Constructs & returns a new JSON-parsable [Dictionary] containing a "i" key

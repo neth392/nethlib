@@ -3,41 +3,21 @@ class_name NethLibPlugin extends EditorPlugin
 
 const SETTING_PREFIX = "nethlib/modules/"
 
-# AND JSON
-#static var _modules: Dictionary = {
-	#"PlatformManager": {
-		#"path": "platform/platform_manager.tscn",
-		#"dependencies": [],
-		#"enabled": false,
-	#},
-	#"AudioStreamer": {
-		#"path": "audio/audio_streamer.tscn",
-		#"dependencies": [],
-		#"enabled": false,
-	#},
-	#"AudioBusHelper": {
-		#"path": "audio/audio_bus_helper.tscn",
-		#"dependencies": [],
-		#"enabled": false,
-	#},
-	#"ExecutionTimeTest": {
-		#"path": "util/execution_time_test.tscn",
-		#"dependencies": [],
-		#"enabled": false,
-	#},
-#}
-
-var _modules: Array[NethlibModule] = [
-	preload("./json/nethlib_json_module.gd").new(),
-	preload("./platform/nethlib_platform_manager_module.gd").new(),
-	preload("./audio/nethlib_audio_streamer_module.gd").new(),
-	preload("./audio/nethlib_audio_bus_helper_module.gd").new(),
-	preload("./util/nethlib_execution_time_test_module.gd").new(),
+var _modules_scripts: Array[GDScript] = [
+	preload("./json/nethlib_json_module.gd"),
+	preload("./platform/nethlib_platform_manager_module.gd"),
+	preload("./audio/nethlib_audio_streamer_module.gd"),
+	preload("./audio/nethlib_audio_bus_helper_module.gd"),
+	preload("./util/nethlib_execution_time_test_module.gd"),
 ]
+
+var _modules: Array[NethlibModule] = []
 
 var _ignore_project_setting_change: bool = false
 
 func _enter_tree():
+	for module_script: GDScript in _modules_scripts:
+		_modules.append(module_script.new())
 	_scan_modules(false)
 	SignalUtil.connect_safely(ProjectSettings.settings_changed, _on_project_settings_changed)
 
@@ -47,6 +27,7 @@ func _exit_tree():
 	for module: NethlibModule in _modules:
 		if module.is_enabled():
 			module.disable(self, false)
+	_modules.clear()
 
 
 func _get_plugin_name() -> String:

@@ -1,3 +1,4 @@
+@tool
 class_name NethlibModule extends Resource
 
 const SETTING_PREFIX = "nethlib/modules/"

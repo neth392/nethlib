@@ -1,3 +1,4 @@
+@tool
 extends NethlibModule
 
 func _get_name() -> String:
