@@ -12,9 +12,9 @@ const OUTPUT_COLOR_ERROR = Color.SALMON
 @onready var add_from_name_button: Button = %AddFromNameButton
 @onready var warning_texture_rect: TextureRect = %WarningTextureRect
 
-
 var selected_object: Object:
 	set(value):
+		var previous_object: Object = selected_object
 		selected_object = value
 		update()
 
@@ -36,13 +36,16 @@ func _ready() -> void:
 
 
 func update() -> void:
-	pass
+	# Retrigger line edit text change to update warnings on object change
+	_on_property_name_line_edit_text_changed(property_name_line_edit.text)
 
 
+# Handles SelectorButton.pressed
 func _on_selector_button_pressed() -> void:
 	EditorInterface.popup_property_selector(selected_object, _on_property_selected)
 
 
+# Handles property being selected in the EditorInterface.popup_property_selector
 func _on_property_selected(property_path: NodePath) -> void:
 	if property_path.is_empty():
 		return
@@ -50,6 +53,7 @@ func _on_property_selected(property_path: NodePath) -> void:
 	_on_property_entered(property_name, false)
 
 
+# Handles changes in the line edit manual property entry, and warnings
 func _on_property_name_line_edit_text_changed(new_text: String) -> void:
 	if new_text.is_empty():
 		warning_texture_rect.hide()
@@ -72,10 +76,13 @@ func _on_property_name_line_edit_text_changed(new_text: String) -> void:
 	add_from_name_button.disabled = true
 
 
+# Relays AddFromNameButton.pressed to _on_property_entered
 func _on_add_from_name_pressed() -> void:
 	_on_property_entered(property_name_line_edit.text, true)
 
 
+# Handles PropertyNameLineEdit.submit, AddFromNameButton.pressed & is called from 
+# the callback of _on_property_selected which is triggered by the property_selector
 func _on_property_entered(property_name: String, clear_line_edit: bool) -> void:
 	# TODO ensure property doesnt already exist in configuration
 	
