@@ -1,7 +1,7 @@
 extends NethlibModule
 
 func _get_name() -> String:
-	return "ExecutionTimeTest"
+	return "execution_time_test"
 
 
 func _enabled(plugin: NethLibPlugin) -> void:

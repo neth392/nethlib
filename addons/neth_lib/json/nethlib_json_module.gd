@@ -4,7 +4,7 @@ var bottom_panel_scene: PackedScene = preload("./ui/json_bottom_panel.tscn") as 
 var bottom_panel: Control
 
 func _get_name() -> String:
-	return "JSON"
+	return "json"
 
 
 func _enabled(plugin: NethLibPlugin) -> void:

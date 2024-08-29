@@ -1,7 +1,7 @@
 extends NethlibModule
 
 func _get_name() -> String:
-	return "AudioStreamer"
+	return "audio_streamer"
 
 
 func _enabled(plugin: NethLibPlugin) -> void:

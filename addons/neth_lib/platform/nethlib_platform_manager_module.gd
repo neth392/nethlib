@@ -1,7 +1,7 @@
 extends NethlibModule
 
 func _get_name() -> String:
-	return "PlatformManager"
+	return "platform_manager"
 
 
 func _enabled(plugin: NethLibPlugin) -> void:

@@ -1,8 +1,0 @@
-[gd_resource type="Resource" script_class="ScriptedSerializableObject" load_steps=3 format=3 uid="uid://5dl3aapinoff"]
-
-[ext_resource type="Script" path="res://addons/neth_lib/json/serialize/object/scripted_serializable_object.gd" id="1_lnxay"]
-[ext_resource type="Script" path="res://addons/neth_lib/json/serialize/object/parse/serializable_object.gd" id="1_qrocp"]
-
-[resource]
-script = ExtResource("1_lnxay")
-gd_script = ExtResource("1_qrocp")

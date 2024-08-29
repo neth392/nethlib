@@ -94,7 +94,7 @@ func _dependencies_enabled(module: NethlibModule) -> bool:
 
 func _set_setting(module: NethlibModule, enabled: bool) -> void:
 	_ignore_project_setting_change = true
+	ProjectSettings.set_setting(module.setting_path, enabled)
 	ProjectSettings.set_initial_value(module.setting_path, true)
 	ProjectSettings.set_as_basic(module.setting_path, true)
-	ProjectSettings.set_setting(module.setting_path, enabled)
 	_ignore_project_setting_change = false

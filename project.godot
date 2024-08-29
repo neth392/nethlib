@@ -28,11 +28,3 @@ gdscript/warnings/untyped_declaration=2
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg", "res://addons/neth_lib/plugin.cfg")
-
-[nethlib]
-
-modules/JSON=true
-modules/PlatformManager=true
-modules/AudioStreamer=true
-modules/AudioBusHelper=true
-modules/ExecutionTimeTest=true
