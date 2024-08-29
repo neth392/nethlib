@@ -32,7 +32,7 @@ func _ready() -> void:
 	selector_button.pressed.connect(_on_selector_button_pressed)
 	add_from_name_button.pressed.connect(_on_add_from_name_pressed)
 	property_name_line_edit.text_changed.connect(_on_property_name_line_edit_text_changed)
-	property_name_line_edit.text_submitted.connect(_on_property_entered)
+	property_name_line_edit.text_submitted.connect(_on_property_entered.bind(false))
 
 
 func update() -> void:
@@ -88,13 +88,11 @@ func _on_property_entered(property_name: String, clear_line_edit: bool) -> void:
 	
 	# Property doesn't exist
 	if !exists:
-		print_output("Property \"%s\" not found" % [property_name, selected_object.name],
-		OUTPUT_COLOR_ERROR)
+		print_output("Property \"%s\" not found" % property_name, OUTPUT_COLOR_ERROR)
+		return
 	
 	if clear_line_edit:
 		property_name_line_edit.clear()
-		# Disable button & fix tooltip text via this method TODO: Is this needed?
-		#_on_property_name_line_edit_text_changed("")
 	
 	# TODO add property
 	print_output("Property \"%s\" added." % property_name, OUTPUT_COLOR_OK)
