@@ -1,2 +1,0 @@
-json/serialize is actively being worked on; will be a complete built in node & object JSON serialization solution
-json/"everything else" is not & will probably be deleted for something else

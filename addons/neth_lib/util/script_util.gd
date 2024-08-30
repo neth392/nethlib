@@ -3,7 +3,8 @@ class_name ScriptUtil extends Object
 
 
 ## Returns the number of times the method with the name [param method_name]
-## appears in the [param script]'s [method Script.get_script_method_list].
+## appears in the [param script]'s [method Script.get_script_method_list]. Useful
+## for determining if a method is inherited or not.
 static func get_method_count(script: Script, method_name: String):
 	var count: int = 0
 	for method: Dictionary in script.get_script_method_list():
