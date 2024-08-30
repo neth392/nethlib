@@ -22,10 +22,8 @@ var keep_text: bool = false
 ## [member JSONSerializer.id]:[JSONSerializer]
 var _serializers: Dictionary = {}
 
-## [Variant]:[Variant] as to where the key is the previous [member JSONSerializer.id],
-## and the value is the new [member JSONSerializer.id].
-var _deserialization_remaps: Dictionary = {}
-
+## [JSONObjectIdentifier]:[ObjectJSONConfiguration]
+var _default_object_configs: Dictionary = {}
 
 func _ready() -> void:
 	# Add types confirmed to be working with PrimitiveJSONSerializer
@@ -117,6 +115,26 @@ func _ready() -> void:
 	
 	# TYPE_PROJECTION
 	add_serializer(preload("./native/projection_json_serializer.gd").new(vector4))
+
+
+## Sets the [param config] as the default [ObjectJSONConfiguration] for any objects/properties
+## which match the [JSONObjectIdentifier] but do not have a config.
+## To create a [JSONObjectIdentifier] for any type of object, see the static methods in that class.
+func set_default_object_config(id: JSONObjectIdentifier, config: ObjectJSONConfiguration) -> void:
+	_default_object_configs[id] = config
+
+
+## Removes the default [ObjectJSONConfiguration] for the [param id].
+## To create a [JSONObjectIdentifier] for any type of object, see the static methods in that class.
+func remove_default_object_config(id: JSONObjectIdentifier) -> void:
+	_default_object_configs.erase(id)
+
+
+## Returns the default [ObjectJSONConfiguration] for the [param id], or null if one
+## does not exist.
+## To create a [JSONObjectIdentifier] for any type of object, see the static methods in that class.
+func get_default_object_config(id: JSONObjectIdentifier) -> ObjectJSONConfiguration:
+	return _default_object_configs.get(id, null)
 
 
 ## Constructs & returns a new JSON-parsable [Dictionary] containing a "i" key

@@ -12,6 +12,10 @@ enum IfMissing {
 ## break existing save files. 
 @export var json_key: StringName
 
+## The name of the property in the [Object].
+@export var name: StringName
+
+## If this property should be serialized or not.
 @export var enabled: bool = true
 
 ## What to do if this property is missing from a object during serialization.

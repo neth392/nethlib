@@ -1,35 +1,65 @@
-class_name OLDObjectJSONSerializer extends JSONSerializer
+@tool
+class_name ObjectJSONSerializer extends JSONSerializer
 
-
-var _properties: Dictionary = {}
-var _remaps: Dictionary = {}
+func _get_id() -> Variant:
+	return TYPE_OBJECT
 
 
 func _serialize(instance: Variant) -> Variant:
-	assert(instance == null || instance is Object, "instance not null or of type Object")
-	
-	if instance == null:
-		return null
+	assert(instance is Object, "instance not of type Object")
 	
 	var object: Object = instance as Object
+	
+	# Getthe config from the object's meta
+	var config: ObjectJSONConfiguration = ObjectJSONMeta.get_config(object)
+	
+	if config == null:
+		# Use the default config if there is no config in the meta
+		config = JSONSerialization.get_default_object_config(object)
+		assert(config != null, "no  ObjectJSONConfiguration for object (%s)" % object)
+	
 	var serialized: Dictionary = {}
-	for property_name: StringName in _properties:
-		assert(property_name in object, "property (%s) not found in object (%s)" \
-		% [property_name, object])
-		
-		var value: Variant = object.get(property_name)
-		
-		# Check if the value is null
-		if value == null:
-			serialized[property_name] = null
+	
+	# Iterate the properies
+	for property: JSONProperty in config.properties:
+		# Skip disabled properties
+		if !property.enabled:
 			continue
 		
+		if property.name not in object:
+			# TODO handle missing properties
+			continue
+		
+		var value: Variant = object.get(property.name)
+		
+		assert(!serialized.has(property.json_key), "duplicate json_keys (%s) for object (%s)" \
+		% [property.json_key, value])
+		
+		# Check if there is an override for the property's ObjectJSONConfiguration
+		var override_config: bool = property is JSONObjectProperty \
+		and typeof(value) == TYPE_OBJECT \
+		and property.config != null
+		
+		# To store the overridden config
+		var original_config: ObjectJSONConfiguration
+		
+		if override_config:
+			# Override the config
+			original_config = ObjectJSONMeta.get_config(value)
+			ObjectJSONMeta.set_config(value, property.config)
+		
+		# Serialize the value
 		var serialized_value: Variant = JSONSerialization.serialize(value)
-		serialized[property_name] = serialized_value
+		serialized[property.json_key] = serialized_value
+		
+		# Remove the override if it was overridden
+		if override_config:
+			ObjectJSONMeta.set_config(value, original_config)
 	
 	return serialized
 
 
+## TODO fix this method
 func _deserialize(serialized: Variant) -> Variant:
 	assert(serialized == null || serialized is Dictionary, "instance not null or of type Dictionary")
 	if serialized == null:
@@ -40,6 +70,7 @@ func _deserialize(serialized: Variant) -> Variant:
 	return instance
 
 
+## TODO fix this method
 func _deserialize_into(instance: Variant, serialized: Variant) -> void:
 	assert(instance != null, "instance is null; can't deserialize into a null instance")
 	assert(instance is Object, "instance not of type Object")
