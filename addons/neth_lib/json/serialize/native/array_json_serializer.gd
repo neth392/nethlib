@@ -24,13 +24,13 @@ func _serialize(instance: Variant) -> Variant:
 	return serialized
 
 
-func _deserialize(property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
 	var array: Array = []
-	_deserialize_into(array, serialized)
+	_deserialize_into(owner, property, array, serialized)
 	return array
 
 
-func _deserialize_into(instance: Variant, serialized: Variant) -> void:
+func _deserialize_into(owner: Object, property: Dictionary, instance: Variant, serialized: Variant) -> void:
 	assert(instance is Array, "instance not of type Array")
 	assert(serialized is Array, "serialized not of type Array")
 	

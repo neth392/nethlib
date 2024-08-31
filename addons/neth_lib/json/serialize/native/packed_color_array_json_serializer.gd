@@ -21,7 +21,7 @@ func _serialize(instance: Variant) -> Variant:
 	return serialized
 
 
-func _deserialize(property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
 	assert(serialized is Array, "serialized not of type Array")
 	assert(_color_serializer != null, "_color_serializer is null")
 	

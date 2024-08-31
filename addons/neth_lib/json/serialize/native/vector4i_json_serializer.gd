@@ -15,7 +15,7 @@ func _serialize(instance: Variant) -> Variant:
 	}
 
 
-func _deserialize(property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	assert(serialized["w"] is float, "w is not a float")
 	assert(serialized["x"] is float, "x is not a float")

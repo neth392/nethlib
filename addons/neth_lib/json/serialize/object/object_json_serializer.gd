@@ -60,20 +60,21 @@ func _serialize(instance: Variant) -> Variant:
 
 
 ## TODO fix this method
-func _deserialize(property: Dictionary, serialized: Variant) -> Variant:
-	assert(serialized == null || serialized is Dictionary, "instance not null or of type Dictionary")
+func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+	assert(serialized is Dictionary, "serialized (%s) not of type Dictionary" % serialized)
 	assert(!property.is_empty(), ("property is empty for serialized (%s), cant deserialize " +\
 	"an object without a property") % serialized)
-	if serialized == null:
-		return null
-	var instance: Object = _create_instance()
+	
+	var id: JSONObjectIdentifier = JSONObjectIdentifier.resolve_for_property(property)
+	
+	
 	assert(instance != null, "_create_instance() returned null")
 	_deserialize_into(instance, serialized)
 	return instance
 
 
 ## TODO fix this method
-func _deserialize_into(instance: Variant, serialized: Variant) -> void:
+func _deserialize_into(owner: Object, property: Dictionary, instance: Variant, serialized: Variant) -> void:
 	assert(instance != null, "instance is null; can't deserialize into a null instance")
 	assert(instance is Object, "instance not of type Object")
 	assert(serialized == null || serialized is Dictionary, "serialized not null or of type Dictionary")

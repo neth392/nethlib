@@ -27,13 +27,13 @@ func _serialize(instance: Variant) -> Variant:
 	return serialized
 
 
-func _deserialize(property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
 	var dictionary: Variant = {}
-	_deserialize_into(dictionary, serialized)
+	_deserialize_into(owner, property, dictionary, serialized)
 	return dictionary
 
 
-func _deserialize_into(instance: Variant, serialized: Variant) -> void:
+func _deserialize_into(owner: Object, property: Dictionary, instance: Variant, serialized: Variant) -> void:
 	assert(instance is Dictionary, "instance not of type Dictionary")
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	

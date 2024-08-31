@@ -18,5 +18,5 @@ func _serialize(instance: Variant) -> Variant:
 	return instance
 
 
-func _deserialize(property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
 	return null if serialized == null else type_convert(serialized, primitive_type)
