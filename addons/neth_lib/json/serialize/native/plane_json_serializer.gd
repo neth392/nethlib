@@ -27,6 +27,6 @@ func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> V
 	assert(_vector3serializer != null, "_vector3serializer is null")
 	
 	return Plane(
-		_vector3serializer._deserialize(serialized["n"]),
+		_vector3serializer._deserialize(owner, property, serialized["n"]),
 		serialized["d"]
 	)

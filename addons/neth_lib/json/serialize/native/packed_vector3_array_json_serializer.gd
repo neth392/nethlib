@@ -27,6 +27,6 @@ func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> V
 	
 	var array: PackedVector3Array = PackedVector3Array()
 	for serialized_vector3 in serialized:
-		array.append(_vector3serializer._deserialize(serialized_vector3))
+		array.append(_vector3serializer._deserialize(owner, property, serialized_vector3))
 	
 	return array

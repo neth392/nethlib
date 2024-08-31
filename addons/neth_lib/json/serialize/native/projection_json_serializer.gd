@@ -31,8 +31,8 @@ func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> V
 	assert(_vector4serializer != null, "_vector4serializer is null")
 	
 	return Projection(
-		_vector4serializer._deserialize(serialized["x"]),
-		_vector4serializer._deserialize(serialized["y"]),
-		_vector4serializer._deserialize(serialized["z"]),
-		_vector4serializer._deserialize(serialized["w"]),
+		_vector4serializer._deserialize(owner, property, serialized["x"]),
+		_vector4serializer._deserialize(owner, property, serialized["y"]),
+		_vector4serializer._deserialize(owner, property, serialized["z"]),
+		_vector4serializer._deserialize(owner, property, serialized["w"]),
 	)

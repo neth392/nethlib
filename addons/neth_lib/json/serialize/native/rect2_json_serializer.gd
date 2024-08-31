@@ -27,6 +27,6 @@ func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> V
 	assert(_vector2serializer != null, "_vector2serializer is null")
 	
 	var rect2: Rect2 = Rect2()
-	rect2.position = _vector2serializer._deserialize(serialized["p"])
-	rect2.end = _vector2serializer._deserialize(serialized["e"])
+	rect2.position = _vector2serializer._deserialize(owner, property, serialized["p"])
+	rect2.end = _vector2serializer._deserialize(owner, property, serialized["e"])
 	return rect2

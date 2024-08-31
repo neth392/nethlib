@@ -31,6 +31,6 @@ func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> V
 	assert(_basis_json_serializer != null, "_basis_json_serializer is null")
 	
 	return Transform3D(
-		_basis_json_serializer._deserialize(serialized["b"]), 
-		_vector3serializer._deserialize(serialized["o"]), 
+		_basis_json_serializer._deserialize(owner, property, serialized["b"]), 
+		_vector3serializer._deserialize(owner, property, serialized["o"]), 
 	)

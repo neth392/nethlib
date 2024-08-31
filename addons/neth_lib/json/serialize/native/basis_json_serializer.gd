@@ -29,7 +29,7 @@ func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> V
 	assert(_vector3serializer != null, "_vector3serializer is null")
 	
 	return Basis(
-		_vector3serializer._deserialize(serialized["x"]), 
-		_vector3serializer._deserialize(serialized["y"]), 
-		_vector3serializer._deserialize(serialized["z"])
+		_vector3serializer._deserialize(owner, property, serialized["x"]), 
+		_vector3serializer._deserialize(owner, property, serialized["y"]), 
+		_vector3serializer._deserialize(owner, property, serialized["z"])
 	)

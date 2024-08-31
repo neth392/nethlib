@@ -27,6 +27,6 @@ func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> V
 	
 	var array: PackedColorArray = PackedColorArray()
 	for serialized_color in serialized:
-		array.append(_color_serializer._deserialize(serialized_color))
+		array.append(_color_serializer._deserialize(owner, property, serialized_color))
 	
 	return array

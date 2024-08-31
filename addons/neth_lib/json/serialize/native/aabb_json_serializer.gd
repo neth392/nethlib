@@ -27,6 +27,6 @@ func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> V
 	assert(_vector3serializer != null, "_vector3serializer is null")
 	
 	var aabb: AABB = AABB()
-	aabb.position = _vector3serializer._deserialize(serialized["p"])
-	aabb.end = _vector3serializer._deserialize(serialized["e"])
+	aabb.position = _vector3serializer._deserialize(owner, property, serialized["p"])
+	aabb.end = _vector3serializer._deserialize(owner, property, serialized["e"])
 	return aabb
