@@ -28,13 +28,17 @@ func _serialize(instance: Variant) -> Variant:
 
 ## Deserializes the [param serialized] by constructing a new instance of the
 ## supported type. The newly created type is then returned.
-func _deserialize(serialized: Variant) -> Variant:
+## [method property] is the property of the object being deserialized, keys & values are 
+## the same as the [Dictionary]s returned in [method Object.get_property_list].
+func _deserialize(property: Dictionary, serialized: Variant) -> Variant:
 	assert(false, "_deserialize not implemented for serializer id (%s)" % id)
 	return null
 
 
 ## Deserializes [i]into[/i] the specified [param instance] from the [param serialized].
-func _deserialize_into(instance: Variant, serialized: Variant) -> void:
+## [method property] is the property of the object being deserialized, keys & values are 
+## the same as the [Dictionary]s returned in [method Object.get_property_list].
+func _deserialize_into(property: Dictionary, instance: Variant, serialized: Variant) -> void:
 	assert(false, "_deserialize_into not implemented for serializer id (%s)" % id)
 
 

@@ -24,7 +24,7 @@ func _serialize(instance: Variant) -> Variant:
 	return serialized
 
 
-func _deserialize(serialized: Variant) -> Variant:
+func _deserialize(property: Dictionary, serialized: Variant) -> Variant:
 	var array: Array = []
 	_deserialize_into(array, serialized)
 	return array

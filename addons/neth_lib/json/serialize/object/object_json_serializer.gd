@@ -60,8 +60,10 @@ func _serialize(instance: Variant) -> Variant:
 
 
 ## TODO fix this method
-func _deserialize(serialized: Variant) -> Variant:
+func _deserialize(property: Dictionary, serialized: Variant) -> Variant:
 	assert(serialized == null || serialized is Dictionary, "instance not null or of type Dictionary")
+	assert(!property.is_empty(), ("property is empty for serialized (%s), cant deserialize " +\
+	"an object without a property") % serialized)
 	if serialized == null:
 		return null
 	var instance: Object = _create_instance()
@@ -153,10 +155,3 @@ func _deserialize_into(instance: Variant, serialized: Variant) -> void:
 		instance.set(property_name, deserialized)
 	
 	return instance
-
-
-## Must be overridden to return a new instance of the object that is used in
-## [method _deserialize].
-func _create_instance() -> Object:
-	assert(false, "_create_instance() not overridden, therefore only _deserialize_into() can be used")
-	return null
