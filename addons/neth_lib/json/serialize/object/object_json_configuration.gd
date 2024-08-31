@@ -4,7 +4,8 @@ class_name ObjectJSONConfiguration extends Resource
 ## The [JSONProperty]s that are to be serialized. Properties with [member JSONProperty.enabled]
 ## as false are ignored. The order of this array is important as it determines in which order
 ## properties are serialized in.
-@export var properties: Array[JSONProperty] = []
+## [br]Format: [member JSONProperty.json_key]:[JSONProperty]
+@export var properties: Dictionary = {}
 
 
 ## The [JSONObjectInstantiator] used anytime a property of this type is being deserialized

@@ -10,7 +10,7 @@ func _serialize(instance: Variant) -> Variant:
 	
 	var object: Object = instance as Object
 	
-	# Getthe config from the object's meta
+	# Get the config from the object's meta
 	var config: ObjectJSONConfiguration = ObjectJSONMeta.get_config(object)
 	
 	if config == null:

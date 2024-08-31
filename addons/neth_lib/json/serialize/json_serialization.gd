@@ -212,16 +212,23 @@ func serialize(variant: Variant) -> Dictionary:
 
 
 ## Deserializes the [param wrapped_value] and creates & returns a new instance of the type.
-func deserialize(wrapped_value: Dictionary) -> Variant:
+## [param object_owner] is the owner of the [param wrapped_value], can be null if there is
+## no owner. And [param property] is the property whose value is being deserialized,
+## can be empty if there is no property. TODO Explain more
+func deserialize(wrapped_value: Dictionary, object_owner: Object = null, property: Dictionary = {}) -> Variant:
 	assert(wrapped_value != null, "wrapped_value is null, must be a Dictionary")
 	
 	var serializer: JSONSerializer = get_deserializer(wrapped_value)
 	var unwrapped_value: Variant = unwrap_value(wrapped_value)
-	return serializer._deserialize(unwrapped_value)
+	return serializer._deserialize(object_owner, property, unwrapped_value)
 
 
 ## Deserializes the [param wrapped_value] into the specified [param instance].
-func deserialize_into(instance: Variant, wrapped_value: Dictionary) -> void:
+## [param object_owner] is the owner of the [param wrapped_value], can be null if there is
+## no owner. And [param property] is the property whose value is being deserialized,
+## can be empty if there is no property. TODO Explain more
+func deserialize_into(wrapped_value: Dictionary, instance: Variant, object_owner: Object = null,
+property: Dictionary = {}) -> void:
 	assert(instance != null, "instance is null, can't deserialize into a null instance")
 	assert(wrapped_value != null, "wrapped_value is null")
 	
@@ -235,7 +242,7 @@ func deserialize_into(instance: Variant, wrapped_value: Dictionary) -> void:
 		 wrapped_serializer, wrapped_value])
 	
 	var unwrapped_value: Variant = unwrap_value(wrapped_value)
-	serializer._deserialize_into(instance, unwrapped_value)
+	serializer._deserialize_into(object_owner, property, instance, unwrapped_value)
 
 
 ## Helper function that calls [method serialize] with the [param variant],
