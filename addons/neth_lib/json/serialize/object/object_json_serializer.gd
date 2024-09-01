@@ -61,12 +61,28 @@ func _serialize(instance: Variant) -> Variant:
 
 ## TODO fix this method
 func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+	assert(owner != null && !property.is_empty(), "owner is null or property is empty, no way to " + \
+	"resolve an ObjectJSONConfiguration for serialized (%s)" % serialized)
 	assert(serialized is Dictionary, "serialized (%s) not of type Dictionary" % serialized)
-	assert(!property.is_empty(), ("property is empty for serialized (%s), cant deserialize " +\
-	"an object without a property") % serialized)
 	
-	var id: JSONObjectIdentifier = JSONObjectIdentifier.resolve_for_property(property)
 	
+	var type_id: 
+	
+	var config: ObjectJSONConfiguration
+	# Prioritize owner config
+	if owner != null:
+		var owner_config: ObjectJSONConfiguration = ObjectJSONMeta.get_config(owner)
+		if owner_config != null:
+			owner_config.properties
+	
+	# Resolve the default config from property if not empty
+	if config == null && !property.is_empty():
+		var id: JSONObjectIdentifier = JSONObjectIdentifier.resolve_for_property(property)
+		
+		pass
+	
+	assert(config != null, ("ObjectJSONConfiguration could not be found in owner's meta, and no default " + \
+	"property for serialized (%s)") % serialized)
 	
 	assert(instance != null, "_create_instance() returned null")
 	_deserialize_into(instance, serialized)
@@ -156,3 +172,7 @@ func _deserialize_into(owner: Object, property: Dictionary, instance: Variant, s
 		instance.set(property_name, deserialized)
 	
 	return instance
+
+
+func _deserialize_into_w_config(object: Object, config: ObjectJSONConfiguration, serialized: Dictionary) -> void:
+	pass

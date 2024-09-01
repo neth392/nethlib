@@ -12,6 +12,9 @@ func _get_name() -> String:
 func _enabled(plugin: NethLibPlugin) -> void:
 	plugin.add_autoload_singleton("JSONSerialization", "json/serialize/json_serialization.tscn")
 	_bottom_panel = _bottom_panel_scene.instantiate() as JSONBottomPanel
+	# Add and remove it so that the _bottom_panel is in a ready state
+	plugin.add_control_to_bottom_panel(_bottom_panel, "JSON")
+	plugin.remove_control_from_bottom_panel(_bottom_panel)
 	# Call to update if a node is selected at start
 	_on_selection_changed(plugin)
 	EditorInterface.get_selection().selection_changed.connect(_on_selection_changed.bind(plugin))

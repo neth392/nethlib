@@ -29,7 +29,7 @@ func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> V
 	assert(_vector2serializer != null, "_vector2serializer is null")
 	
 	var transform2d: Transform2D = Transform2D()
-	transform2d.origin = _vector2serializer._deserialize(serialized["o"])
-	transform2d.x = _vector2serializer._deserialize(serialized["x"])
-	transform2d.y = _vector2serializer._deserialize(serialized["y"])
+	transform2d.origin = _vector2serializer._deserialize(owner, property, serialized["o"])
+	transform2d.x = _vector2serializer._deserialize(owner, property, serialized["x"])
+	transform2d.y = _vector2serializer._deserialize(owner, property, serialized["y"])
 	return transform2d
