@@ -11,7 +11,7 @@ func _get_id() -> Variant:
 	return TYPE_PACKED_VECTOR4_ARRAY
 
 
-func _serialize(instance: Variant) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is PackedVector4Array, "instance not of type PackedVector4Array")
 	assert(_vector4serializer != null, "_vector4serializer is null")
 	var serialized: Array[Dictionary] = []
@@ -21,7 +21,7 @@ func _serialize(instance: Variant) -> Variant:
 	return serialized
 
 
-func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: ObjectJSONConfiguration) -> Variant:
 	assert(serialized is Array, "serialized not of type Array")
 	assert(_vector4serializer != null, "_vector4serializer is null")
 	

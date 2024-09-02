@@ -24,96 +24,13 @@ var _serializers: Dictionary = {}
 ## [JSONObjectIdentifier]:[ObjectJSONConfiguration]
 var _default_object_configs: Dictionary = {}
 
-func _ready() -> void:
-	# Add types confirmed to be working with PrimitiveJSONSerializer
-	# see default/primitive_json_serializer_tests.gd for code used to test this
-	# Some were omitted as they made no sense; such as Basis which worked but
-	# Vector3 didnt, and a Basis is comprised of 3 Vector3s ??? Don't want to risk that
-	# getting all fucky wucky in a release build.
-	add_serializer(PrimitiveJSONSerializer.new(TYPE_NIL))
-	add_serializer(PrimitiveJSONSerializer.new(TYPE_BOOL))
-	add_serializer(PrimitiveJSONSerializer.new(TYPE_INT))
-	add_serializer(PrimitiveJSONSerializer.new(TYPE_FLOAT))
-	add_serializer(PrimitiveJSONSerializer.new(TYPE_STRING))
-	add_serializer(PrimitiveJSONSerializer.new(TYPE_STRING_NAME))
-	add_serializer(PrimitiveJSONSerializer.new(TYPE_NODE_PATH))
-	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_INT32_ARRAY))
-	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_INT64_ARRAY))
-	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_FLOAT32_ARRAY))
-	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_FLOAT64_ARRAY))
-	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_STRING_ARRAY))
-	
-	# TYPE_ARRAY
-	add_serializer(preload("./native/array_json_serializer.gd").new())
-	
-	# TYPE_DICTIONARY
-	add_serializer(preload("./native/dictionary_json_serializer.gd").new())
-	
-	# TYPE_COLOR
-	var color: JSONSerializer = preload("./native/color_json_serializer.gd").new()
-	add_serializer(color)
-	
-	# TYPE_PACKED_COLOR_ARRAY
-	add_serializer(preload("./native/packed_color_array_json_serializer.gd").new(color))
-	
-	# TYPE_QUARTERNION
-	add_serializer(preload("./native/quarternion_json_serializer.gd").new())
-	
-	# TYPE_VECTOR2
-	var vector2: JSONSerializer = preload("./native/vector2_json_serializer.gd").new()
-	add_serializer(vector2)
-	
-	# TYPE_PACKED_VECTOR2_ARRAY
-	add_serializer(preload("./native/packed_vector2_array_json_serializer.gd").new(vector2))
-	
-	# TYPE_RECT2
-	add_serializer(preload("./native/rect2_json_serializer.gd").new(vector2))
-	
-	# TYPE_TRANSFORM2D
-	add_serializer(preload("./native/transform2d_json_serializer.gd").new(vector2))
-	
-	# TYPE_VECTOR2i
-	var vector2i: JSONSerializer = preload("./native/vector2i_json_serializer.gd").new()
-	add_serializer(vector2i)
-	
-	# TYPE_RECT2i
-	add_serializer(preload("./native/rect2i_json_serializer.gd").new(vector2i))
-	
-	# TYPE_VECTOR3i
-	add_serializer(preload("./native/vector3i_json_serializer.gd").new())
-	
-	# TYPE_VECTOR3
-	var vector3: JSONSerializer = preload("./native/vector3_json_serializer.gd").new()
-	add_serializer(vector3)
-	
-	# TYPE_PACKED_VECTOR3_ARRAY
-	add_serializer(preload("./native/packed_vector3_array_json_serializer.gd").new(vector3))
-	
-	# TYPE_PLANE
-	add_serializer(preload("./native/plane_json_serializer.gd").new(vector3))
-	
-	# TYPE_BASIS
-	var basis: JSONSerializer = preload("./native/basis_json_serializer.gd").new(vector3)
-	add_serializer(basis)
-	
-	# TYPE_TRANSFORM3D
-	add_serializer(preload("./native/transform3d_json_serializer.gd").new(vector3, basis))
-	
-	# TYPE_AABB
-	add_serializer(preload("./native/aabb_json_serializer.gd").new(vector3))
-	
-	# TYPE_VECTOR4i
-	add_serializer(preload("./native/vector4i_json_serializer.gd").new())
-	
-	# TYPE_VECTOR4
-	var vector4: JSONSerializer = preload("./native/vector4_json_serializer.gd").new()
-	add_serializer(vector4)
-	
-	# TYPE_PACKED_VECTOR4_ARRAY
-	add_serializer(preload("./native/packed_vector4_array_json_serializer.gd").new(vector4))
-	
-	# TYPE_PROJECTION
-	add_serializer(preload("./native/projection_json_serializer.gd").new(vector4))
+# Internal cache of native serializers used by others to prevent unnecessary dictionary lookups
+var _color: JSONSerializer
+var _vector2: JSONSerializer
+var _vector2i: JSONSerializer
+var _vector3: JSONSerializer
+var _basis: JSONSerializer
+var _vector4: JSONSerializer
 
 
 ## Sets the [param config] as the default [ObjectJSONConfiguration] for any objects/properties
@@ -209,7 +126,7 @@ func serialize(variant: Variant) -> Dictionary:
 	assert(is_serializiable(variant), "variant (%s) not supported by any JSONSerializer" % str(variant))
 	
 	var serializer: JSONSerializer = get_serializer_for_type(typeof(variant))
-	var serialized: Variant = serializer._serialize(variant)
+	var serialized: Variant = serializer._serialize(variant, self)
 	
 	return wrap_value(serializer, serialized)
 
@@ -218,12 +135,13 @@ func serialize(variant: Variant) -> Dictionary:
 ## [param object_owner] is the owner of the [param wrapped_value], can be null if there is
 ## no owner. And [param property] is the property whose value is being deserialized,
 ## can be empty if there is no property. TODO Explain more
-func deserialize(wrapped_value: Dictionary, object_owner: Object = null, property: Dictionary = {}) -> Variant:
+func deserialize(wrapped_value: Dictionary, object_config: ObjectJSONConfiguration = null) -> Variant:
 	assert(wrapped_value != null, "wrapped_value is null, must be a Dictionary")
 	
 	var serializer: JSONSerializer = get_deserializer(wrapped_value)
 	var unwrapped_value: Variant = unwrap_value(wrapped_value)
-	return serializer._deserialize(object_owner, property, unwrapped_value)
+	# TODO fix for objects
+	return serializer._deserialize(unwrapped_value, self, object_config)
 
 
 ## Deserializes the [param wrapped_value] into the specified [param instance].

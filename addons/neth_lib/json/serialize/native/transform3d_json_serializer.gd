@@ -13,7 +13,7 @@ func _get_id() -> Variant:
 	return TYPE_TRANSFORM3D
 
 
-func _serialize(instance: Variant) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is Transform3D, "instance not of type Transform3D")
 	assert(_vector3serializer != null, "_vector3serializer is null")
 	assert(_basis_json_serializer != null, "_basis_json_serializer is null")
@@ -23,7 +23,7 @@ func _serialize(instance: Variant) -> Variant:
 	}
 
 
-func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: ObjectJSONConfiguration) -> Variant:
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	assert(serialized["b"] is Dictionary, "b is not a Dictionary")
 	assert(serialized["o"] is Dictionary, "o is not a Dictionary")

@@ -5,7 +5,7 @@ func _get_id() -> Variant:
 	return TYPE_QUATERNION
 
 
-func _serialize(instance: Variant) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is Quaternion, "instance not of type Quaternion")
 	return {
 		"x": instance.x,
@@ -15,7 +15,7 @@ func _serialize(instance: Variant) -> Variant:
 	}
 
 
-func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: ObjectJSONConfiguration) -> Variant:
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	assert(serialized["x"] is float, "x is not a float")
 	assert(serialized["y"] is float, "y is not a float")

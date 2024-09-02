@@ -5,7 +5,7 @@ func _get_id() -> Variant:
 	return TYPE_VECTOR4
 
 
-func _serialize(instance: Variant) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is Vector4, "instance not of type Vector4")
 	return {
 		"w": instance.w,
@@ -15,7 +15,7 @@ func _serialize(instance: Variant) -> Variant:
 	}
 
 
-func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: ObjectJSONConfiguration) -> Variant:
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	assert(serialized["w"] is float, "w is not a float")
 	assert(serialized["x"] is float, "x is not a float")

@@ -14,9 +14,9 @@ func _get_id() -> Variant:
 	return primitive_type
 
 
-func _serialize(instance: Variant) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	return instance
 
 
-func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: ObjectJSONConfiguration) -> Variant:
 	return null if serialized == null else type_convert(serialized, primitive_type)

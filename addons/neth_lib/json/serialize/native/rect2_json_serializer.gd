@@ -1,32 +1,28 @@
 extends JSONSerializer
 
-
-var _vector2serializer: JSONSerializer
-
-func _init(vector2serializer: JSONSerializer) -> void:
-	_vector2serializer = vector2serializer
-
-
 func _get_id() -> Variant:
 	return TYPE_RECT2
 
 
-func _serialize(instance: Variant) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is Rect2, "instance not of type Rect2")
-	assert(_vector2serializer != null, "_vector2serializer is null")
+	assert(impl != null, "impl is null")
+	assert(impl._vector2 != null, "impl._vector2 is null")
 	return {
-		"p": _vector2serializer._serialize(instance.position),
-		"e": _vector2serializer._serialize(instance.end),
+		"p": impl._vector2._serialize(instance.position, impl),
+		"e": impl._vector2._serialize(instance.end, impl),
 	}
 
 
-func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl, json_key: StringName,
+owner: Object, property: Dictionary) -> Variant:
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	assert(serialized["p"] is Dictionary, "p is not a Dictionary")
 	assert(serialized["e"] is Dictionary, "e is not a Dictionary")
-	assert(_vector2serializer != null, "_vector2serializer is null")
+	assert(impl != null, "impl is null")
+	assert(impl._vector2 != null, "impl._vector2 is null")
 	
 	var rect2: Rect2 = Rect2()
-	rect2.position = _vector2serializer._deserialize(owner, property, serialized["p"])
-	rect2.end = _vector2serializer._deserialize(owner, property, serialized["e"])
+	rect2.position = impl._vector2._deserialize(serialized["p"], impl, json_key, owner, property)
+	rect2.end = impl._vector2._deserialize(serialized["e"], impl, json_key, owner, property)
 	return rect2

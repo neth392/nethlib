@@ -5,7 +5,7 @@ func _get_id() -> Variant:
 	return TYPE_DICTIONARY
 
 
-func _serialize(instance: Variant) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is Dictionary, "instance not of type Dictionary")
 	
 	if instance.is_empty():
@@ -27,13 +27,14 @@ func _serialize(instance: Variant) -> Variant:
 	return serialized
 
 
-func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl, json_key: StringName,
+owner: Object, property: Dictionary) -> Variant:
 	var dictionary: Variant = {}
 	_deserialize_into(owner, property, dictionary, serialized)
 	return dictionary
 
 
-func _deserialize_into(owner: Object, property: Dictionary, instance: Variant, serialized: Variant) -> void:
+func _deserialize_into(serialized: Variant, instance: Variant, impl: JSONSerializationImpl, json_key: StringName, owner: Object, property: Dictionary) -> void:
 	assert(instance is Dictionary, "instance not of type Dictionary")
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	

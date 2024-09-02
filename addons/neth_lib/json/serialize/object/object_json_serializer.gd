@@ -5,7 +5,7 @@ func _get_id() -> Variant:
 	return TYPE_OBJECT
 
 
-func _serialize(instance: Variant) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is Object, "instance not of type Object")
 	
 	var object: Object = instance as Object
@@ -60,7 +60,7 @@ func _serialize(instance: Variant) -> Variant:
 
 
 ## TODO fix this method
-func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: ObjectJSONConfiguration) -> Variant:
 	assert(owner != null && !property.is_empty(), "owner is null or property is empty, no way to " + \
 	"resolve an ObjectJSONConfiguration for serialized (%s)" % serialized)
 	assert(serialized is Dictionary, "serialized (%s) not of type Dictionary" % serialized)
@@ -90,7 +90,7 @@ func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> V
 
 
 ## TODO fix this method
-func _deserialize_into(owner: Object, property: Dictionary, instance: Variant, serialized: Variant) -> void:
+func _deserialize_into(serialized: Variant, instance: Variant, impl: JSONSerializationImpl, json_key: StringName, owner: Object, property: Dictionary) -> void:
 	assert(instance != null, "instance is null; can't deserialize into a null instance")
 	assert(instance is Object, "instance not of type Object")
 	assert(serialized == null || serialized is Dictionary, "serialized not null or of type Dictionary")

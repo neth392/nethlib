@@ -21,26 +21,27 @@ func _get_id() -> Variant:
 
 ## Parses [param variant] into a [Variant] which must be able to be
 ## deserialized by [method _deserialize_into].
-func _serialize(instance: Variant) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(false, "_serialize not implemented for serializer id (%s)" % id)
 	return {}
 
 
 ## Deserializes the [param serialized] by constructing a new instance of the
 ## supported type. The newly created type is then returned.
-## [param owner] is the owner of the [param property], null if there is no owner.
-## [param property] is the property of the object being deserialized, keys & values are 
-## the same as the [Dictionary]s returned in [method Object.get_property_list].
-func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+## [param impl] is the JSONSerialization implementation being used.
+## [param object_config] is the [ObjectJSONConfiguration] of the object being deserialized, 
+## only used in deserializers concerning objects such as arrays, dictionaries, & objects themselves.
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: ObjectJSONConfiguration) -> Variant:
 	assert(false, "_deserialize not implemented for serializer id (%s)" % id)
 	return null
 
 
 ## Deserializes [i]into[/i] the specified [param instance] from the [param serialized].
-## [param owner] is the owner of the [param property], null if there is no owner.
-## [param property] is the property of the object being deserialized, keys & values are 
-## the same as the [Dictionary]s returned in [method Object.get_property_list].
-func _deserialize_into(owner: Object, property: Dictionary, instance: Variant, serialized: Variant) -> void:
+## [param impl] is the JSONSerialization implementation being used.
+## [param object_config] is the [ObjectJSONConfiguration] of the object being deserialized, 
+## only used in deserializers concerning objects such as arrays, dictionaries, & objects themselves.
+func _deserialize_into(serialized: Variant, instance: Variant, impl: JSONSerializationImpl, 
+object_config: ObjectJSONConfiguration) -> void:
 	assert(false, "_deserialize_into not implemented for serializer id (%s)" % id)
 
 

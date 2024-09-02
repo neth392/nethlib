@@ -11,7 +11,7 @@ func _get_id() -> Variant:
 	return TYPE_PLANE
 
 
-func _serialize(instance: Variant) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is Plane, "instance not of type Plane")
 	assert(_vector3serializer != null, "_vector3serializer is null")
 	return {
@@ -20,7 +20,7 @@ func _serialize(instance: Variant) -> Variant:
 	}
 
 
-func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: ObjectJSONConfiguration) -> Variant:
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	assert(serialized["n"] is Dictionary, "n is not a Dictionary")
 	assert(serialized["d"] is float, "d is not a Dictionary")

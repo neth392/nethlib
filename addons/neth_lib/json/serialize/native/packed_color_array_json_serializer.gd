@@ -1,32 +1,29 @@
 extends JSONSerializer
 
 
-var _color_serializer: JSONSerializer
-
-func _init(color_serializer: JSONSerializer) -> void:
-	_color_serializer = color_serializer
-
-
 func _get_id() -> Variant:
 	return TYPE_PACKED_COLOR_ARRAY
 
 
-func _serialize(instance: Variant) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is PackedColorArray, "instance not of type PackedColorArray")
-	assert(_color_serializer != null, "_color_serializer is null")
+	assert(impl != null, "impl is null")
+	assert(impl._color != null, "impl._color is null")
 	var serialized: Array[Dictionary] = []
 	var array: PackedColorArray = instance as PackedColorArray
 	for color: Color in array:
-		serialized.append(_color_serializer._serialize(color))
+		serialized.append(impl._color._serialize(color, impl))
 	return serialized
 
 
-func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl, json_key: StringName, 
+owner: Object, property: Dictionary) -> Variant:
 	assert(serialized is Array, "serialized not of type Array")
-	assert(_color_serializer != null, "_color_serializer is null")
+	assert(impl != null, "impl is null")
+	assert(impl._color != null, "impl._color is null")
 	
 	var array: PackedColorArray = PackedColorArray()
 	for serialized_color in serialized:
-		array.append(_color_serializer._deserialize(owner, property, serialized_color))
+		array.append(impl._color._deserialize(serialized_color, impl, json_key, owner, property))
 	
 	return array

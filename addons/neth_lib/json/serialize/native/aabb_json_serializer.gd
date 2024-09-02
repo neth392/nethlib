@@ -11,22 +11,22 @@ func _get_id() -> Variant:
 	return TYPE_AABB
 
 
-func _serialize(instance: Variant) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is AABB, "instance not of type AABB")
 	assert(_vector3serializer != null, "_vector3serializer is null")
 	return {
-		"p": _vector3serializer._serialize(instance.position),
-		"e": _vector3serializer._serialize(instance.end),
+		"p": _vector3serializer._serialize(instance.position, impl),
+		"e": _vector3serializer._serialize(instance.end, impl),
 	}
 
 
-func _deserialize(owner: Object, property: Dictionary, serialized: Variant) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: ObjectJSONConfiguration) -> Variant:
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	assert(serialized["p"] is Dictionary, "p is not a Dictionary")
 	assert(serialized["e"] is Dictionary, "e is not a Dictionary")
 	assert(_vector3serializer != null, "_vector3serializer is null")
 	
 	var aabb: AABB = AABB()
-	aabb.position = _vector3serializer._deserialize(owner, property, serialized["p"])
-	aabb.end = _vector3serializer._deserialize(owner, property, serialized["e"])
+	aabb.position = _vector3serializer._deserialize(serialized["p"], impl, object_config)
+	aabb.end = _vector3serializer._deserialize(serialized["e"], impl, object_config)
 	return aabb
