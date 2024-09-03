@@ -1,11 +1,11 @@
-extends JSONSerializer
+extends NonObjectJSONSerializer
 
 
 func _get_id() -> Variant:
 	return TYPE_COLOR
 
 
-func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
+func __serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is Color, "instance not of type Color")
 	return {
 		"r": instance.r,
@@ -22,7 +22,7 @@ func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	}
 
 
-func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: ObjectJSONConfiguration) -> Variant:
+func __deserialize(serialized: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	assert(serialized["r"] is float, "r is not a float")
 	assert(serialized["g"] is float, "b is not a float")

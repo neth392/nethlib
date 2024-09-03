@@ -1,32 +1,28 @@
-extends JSONSerializer
-
-
-var _vector3serializer: JSONSerializer
-
-func _init(vector3serializer: JSONSerializer) -> void:
-	_vector3serializer = vector3serializer
+extends NonObjectJSONSerializer
 
 
 func _get_id() -> Variant:
 	return TYPE_AABB
 
 
-func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
+func __serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is AABB, "instance not of type AABB")
-	assert(_vector3serializer != null, "_vector3serializer is null")
+	assert(impl != null, "impl is null")
+	assert(impl._vector3 != null, "impl._vector3 is null")
 	return {
-		"p": _vector3serializer._serialize(instance.position, impl),
-		"e": _vector3serializer._serialize(instance.end, impl),
+		"p": impl._vector3.__serialize(instance.position, impl),
+		"e": impl._vector3.__serialize(instance.end, impl),
 	}
 
 
-func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: ObjectJSONConfiguration) -> Variant:
+func __deserialize(serialized: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	assert(serialized["p"] is Dictionary, "p is not a Dictionary")
 	assert(serialized["e"] is Dictionary, "e is not a Dictionary")
-	assert(_vector3serializer != null, "_vector3serializer is null")
+	assert(impl != null, "impl is null")
+	assert(impl._vector3 != null, "impl._vector3 is null")
 	
 	var aabb: AABB = AABB()
-	aabb.position = _vector3serializer._deserialize(serialized["p"], impl, object_config)
-	aabb.end = _vector3serializer._deserialize(serialized["e"], impl, object_config)
+	aabb.position = impl._vector3.__deserialize(serialized["p"], impl)
+	aabb.end = impl._vector3.__deserialize(serialized["e"], impl)
 	return aabb

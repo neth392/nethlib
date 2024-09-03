@@ -12,7 +12,7 @@ class_name JSONObjectInstantiator extends Resource
 ## property of the object being deserialized, keys & values are the same as the
 ## [Dictionary]s returned in [method Object.get_property_list]. [param serialized]
 ## is the serialized version of the object, it can be used to check for existing
-## json keys (defined in the bottom JSON panel which represents [ObjectJSONConfiguration])
+## json keys (defined in the bottom JSON panel which represents [JSONObjectConfiguration])
 func _instantiate(property: Dictionary, serialized: Dictionary) -> Object:
 	assert(false, "_instantiate not overridden")
 	return null

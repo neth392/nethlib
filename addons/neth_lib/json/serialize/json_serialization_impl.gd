@@ -1,5 +1,5 @@
 ## Conducts serialization & deserialization of all types. Stores [JSONSerializer]s and
-## [ObjectJSONConfiguration]s.
+## [JSONObjectConfiguration]s.
 @tool
 class_name JSONSerializationImpl extends Node
 
@@ -21,40 +21,86 @@ var keep_text: bool = false
 ## [member JSONSerializer.id]:[JSONSerializer]
 var _serializers: Dictionary = {}
 
-## [JSONObjectIdentifier]:[ObjectJSONConfiguration]
+## [JSONObjectIdentifier]:[JSONObjectConfiguration]
 var _default_object_configs: Dictionary = {}
 
 # Internal cache of native serializers used by others to prevent unnecessary dictionary lookups
-var _color: JSONSerializer
-var _vector2: JSONSerializer
-var _vector2i: JSONSerializer
-var _vector3: JSONSerializer
-var _basis: JSONSerializer
-var _vector4: JSONSerializer
+var _color: NonObjectJSONSerializer
+var _vector2: NonObjectJSONSerializer
+var _vector2i: NonObjectJSONSerializer
+var _vector3: NonObjectJSONSerializer
+var _basis: NonObjectJSONSerializer
+var _vector4: NonObjectJSONSerializer
+var _object: JSONSerializer
 
 
-## Sets the [param config] as the default [ObjectJSONConfiguration] for any objects/properties
+## Sets the [param config] as the default [JSONObjectConfiguration] for any objects/properties
 ## which match the [JSONObjectIdentifier] but do not have a config.
 ## To create a [JSONObjectIdentifier] for any type of object, see the static methods in that class.
-func set_default_object_config(id: JSONObjectIdentifier, config: ObjectJSONConfiguration) -> void:
+func set_default_object_config(id: JSONObjectIdentifier, config: JSONObjectConfiguration) -> void:
 	assert(id != null, "id is null")
 	assert(config != null, "config is null")
 	_default_object_configs[id] = config
 
 
-## Removes the default [ObjectJSONConfiguration] for the [param id].
+## Removes the default [JSONObjectConfiguration] for the [param id].
 ## To create a [JSONObjectIdentifier] for any type of object, see the static methods in that class.
 func remove_default_object_config(id: JSONObjectIdentifier) -> void:
 	assert(id != null, "id is null")
 	_default_object_configs.erase(id)
 
 
-## Returns the default [ObjectJSONConfiguration] for the [param id], or null if one
+## Returns the default [JSONObjectConfiguration] for the [param id], or null if one
 ## does not exist.
 ## To create a [JSONObjectIdentifier] for any type of object, see the static methods in that class.
-func get_default_object_config(id: JSONObjectIdentifier) -> ObjectJSONConfiguration:
+func get_default_object_config(id: JSONObjectIdentifier) -> JSONObjectConfiguration:
 	assert(id != null, "id is null")
 	return _default_object_configs.get(id, null)
+
+
+## Returns the [JSONObjectConfiguration] for the [param object], or null if one can
+## not be found. The order of the search is as follows:
+## [br]1. If [param object] is not null, searches for the config in the object's metadata.
+## [br]2. If [param object_owner] is not null & [param json_key] is not empty, it searches the owner's
+## metadata for an [JSONObjectConfiguration], and if found the [param json_key] is search for a
+## [JSONObjectConfiguration] which is returned if it can be found.
+## [br]3. If [param object] is not null, searches for a default config in this [JSONSerializationImpl]
+## based on its resolved [JSONObjectIdentifier].
+## [br]4. If [param property] is not empty, searches for a default config based on the configured
+## type (accounting for typed arrays).
+func get_object_configs(object: Object = null, object_owner: Object = null, 
+property: Dictionary = {}, json_key: StringName = &"") -> Array[JSONObjectConfiguration]:
+	var configs: Array[JSONObjectConfiguration] = []
+	# 1. Check in the object instance itself
+	if object != null:
+		var config: JSONObjectConfiguration = JSONObjectMeta.get_config(object)
+		if config != null:
+			return [config]
+	
+	# 2. Check the owner's configuration
+	if object_owner != null && !json_key.is_empty():
+		var owner_config: JSONObjectConfiguration = JSONObjectMeta.get_config(object_owner)
+		if owner_config != null:
+			configs = owner_config.get_configs_for_property(json_key)
+			if !configs.is_empty():
+				return configs
+	
+	# 3. Check for default config for object
+	if object != null:
+		var id: JSONObjectIdentifier = JSONObjectIdentifier.from_object(object)
+		var config: JSONObjectConfiguration = get_default_object_config(id)
+		if config != null:
+			return [config]
+	
+	# 4. Check for default config for property
+	if !property.is_empty():
+		var id: JSONObjectIdentifier = JSONObjectIdentifier.from_property(property)
+		config = get_default_object_config(id)
+		if config != null:
+			return config
+	
+	# No config can be found
+	return null
 
 
 ## Constructs & returns a new JSON-parsable [Dictionary] containing a "i" key
@@ -120,13 +166,20 @@ func get_deserializer(wrapped_value: Dictionary) -> JSONSerializer:
 
 ## Serializes the [param variant] into a wrapped [Dictionary] (see [method wrap_value]) 
 ## that can be safely stored via JSON & deserialized via [method deserialize_into] (excluding
-## native types)
-func serialize(variant: Variant) -> Dictionary:
+## native types).
+## If the type is an [Object] or statically typed [Array], [param object_configs] should have
+## a size of one
+func serialize(variant: Variant, object_configs: Array[JSONObjectConfiguration] = []) -> Dictionary:
 	# str(variant) needed as some types such as RID will not work w/o it
 	assert(is_serializiable(variant), "variant (%s) not supported by any JSONSerializer" % str(variant))
 	
 	var serializer: JSONSerializer = get_serializer_for_type(typeof(variant))
-	var serialized: Variant = serializer._serialize(variant, self)
+	if typeof(variant) == TYPE_OBJECT && (object_configs.is_empty() || object_configs[0] == null):
+		object_configs[0] = get_object_config(variant)
+		assert(object_configs[0] != null, ("variant (%s) is of TYPE_OBJECT and no object_config " + \
+		"was specified or could be found") % variant)
+	
+	var serialized: Variant = serializer._serialize(variant, self, object_configs)
 	
 	return wrap_value(serializer, serialized)
 
@@ -135,12 +188,15 @@ func serialize(variant: Variant) -> Dictionary:
 ## [param object_owner] is the owner of the [param wrapped_value], can be null if there is
 ## no owner. And [param property] is the property whose value is being deserialized,
 ## can be empty if there is no property. TODO Explain more
-func deserialize(wrapped_value: Dictionary, object_config: ObjectJSONConfiguration = null) -> Variant:
+func deserialize(wrapped_value: Dictionary, object_config: JSONObjectConfiguration = null) -> Variant:
 	assert(wrapped_value != null, "wrapped_value is null, must be a Dictionary")
 	
 	var serializer: JSONSerializer = get_deserializer(wrapped_value)
 	var unwrapped_value: Variant = unwrap_value(wrapped_value)
-	# TODO fix for objects
+	
+	assert(serializer.id != _object.id || object_config != null, ("wrapped_value (%s) is an object " + \
+	"and object_config is null") % wrapped_value)
+	
 	return serializer._deserialize(unwrapped_value, self, object_config)
 
 
@@ -148,8 +204,8 @@ func deserialize(wrapped_value: Dictionary, object_config: ObjectJSONConfigurati
 ## [param object_owner] is the owner of the [param wrapped_value], can be null if there is
 ## no owner. And [param property] is the property whose value is being deserialized,
 ## can be empty if there is no property. TODO Explain more
-func deserialize_into(wrapped_value: Dictionary, instance: Variant, object_owner: Object = null,
-property: Dictionary = {}) -> void:
+func deserialize_into(wrapped_value: Dictionary, instance: Variant, 
+object_config: JSONObjectConfiguration = null) -> void:
 	assert(instance != null, "instance is null, can't deserialize into a null instance")
 	assert(wrapped_value != null, "wrapped_value is null")
 	

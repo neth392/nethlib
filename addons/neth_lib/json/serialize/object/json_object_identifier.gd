@@ -1,5 +1,6 @@
 ## A wrapper of a simple [member id] which represents information specific to
-## an object's type.
+## an object's type. Will only work with an [Object]s direct type, not any parent/ancestor
+## or inherited types.
 class_name JSONObjectIdentifier extends Resource
 
 ## Constructs a new [JSONObjectIdentifier] from the [param object]. First
@@ -17,16 +18,25 @@ static func from_object(object: Object) -> JSONObjectIdentifier:
 	return null
 
 
-## Constructs a new [JSONObjectIdentifier] from the [param property]. 
+## Constructs a new [JSONObjectIdentifier] from the [param property]. The property
+## must be of TYPE_OBJECT or TYPE_ARRAY, and must have a static type defined.
 static func from_property(property: Dictionary) -> JSONObjectIdentifier:
 	assert(!property.is_empty(), "property is empty")
-	assert(property.has("type"), "property dictionary missing \"type\" key")
-	assert(property.type == TYPE_OBJECT, "property.type must be TYPE_OBJECT to resolve the ID")
-	assert(!property.class_name.is_empty(), "property.class_name is empty; non-statically typed properties not supported")
+	assert(property.has("type"), "property dictionary missing \"type\" key for property (%s)" % property)
+	assert(property.type == TYPE_OBJECT || property.type == TYPE_ARRAY, 
+	"property.type must be TYPE_OBJECT or TYPE_ARRAY to resolve the ID for property (%s)" % property)
 	
-	# TODO
-	
-	return JSONObjectIdentifier.new(property.class_name)
+	if property.type == TYPE_OBJECT:
+		assert(!property.class_name.is_empty(), ("property.class_name is empty for property (%s); " + \
+		"non-statically typed properties not supported") % property)
+		return JSONObjectIdentifier.new(property.class_name)
+	else:
+		assert(property.hint == PROPERTY_HINT_TYPE_STRING, ("array property (%s) hint is not" + \
+		"PROPERTY_HINT_TYPE_STRING, cant resolve the type" % property))
+		var _class_name: String = property.hint_string.split(":")[0]
+		assert(!_class_name.is_empty(), "array property (%s) hint_string does not contain a type" \
+		% property)
+		return JSONObjectIdentifier.new(_class_name)
 
 
 ## Constructs a new [JSONObjectIdentifier] from any class name (built in or custom class)
@@ -48,5 +58,10 @@ static func from_script_path(script_path: String) -> JSONObjectIdentifier:
 
 var id: StringName
 
+
 func _init(_id: StringName) -> void:
 	id = id
+
+
+func _to_string() -> String:
+	return "JSONObjectIdentifier(id=%s)" % id

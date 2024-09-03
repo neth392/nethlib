@@ -1,7 +1,8 @@
 class_name GeneralTesting extends Node
 
-@onready var test: Variant
+@export var test: Array[int]
 
 func _ready() -> void:
-	var new: JSONSerializationImpl = JSONSerialization.new()
-	print(new == JSONSerialization)
+	for prop in get_property_list():
+		PROPERTY_HINT_ARRAY_TYPE
+		print(prop)
