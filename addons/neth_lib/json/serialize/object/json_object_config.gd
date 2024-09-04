@@ -1,6 +1,13 @@
 ## A configuration containing specifications on how to serialize & deserialize an
 ## arbitrary [Object]. Can be reused across objects of multiple types.
-class_name JSONObjectConfiguration extends Resource
+## Must be registered to the [JSONSerializationImpl] instance (accessible via
+## global/autload class [JSONSerialization]).
+@tool
+class_name JSONObjectConfig extends Resource
+
+## The ID of this [JSONObjectConfig], stored in the serialized data to detect
+## how to deserialize an instance of an object.
+@export var id: StringName
 
 ## The [JSONProperty]s that are to be serialized. Properties with [member JSONProperty.enabled]
 ## as false are ignored. The order of this array is important as it determines in which order
@@ -8,10 +15,22 @@ class_name JSONObjectConfiguration extends Resource
 ## [br]Format: [member JSONProperty.json_key]:[JSONProperty]
 @export var _properties: Dictionary = {}
 
-
-## The [JSONObjectInstantiator] used anytime a property of this type is being deserialized
+## The [JSONInstantiator] used anytime a property of this type is being deserialized
 ## but the property's assigned value is null. See that class's docs for more info.
-@export var instantiator: JSONObjectInstantiator = SmartJSONObjectInstantiator.new()
+@export_storage var instantiator: JSONInstantiator = JSONSmartInstantiator.new()
+
+## A visual property to show you if this config is properly registered in the 
+## [JSONObjectConfigRegistry] or not.
+var registered: bool:
+	get():
+		return JSONSerialization.is_config_registered(self)
+	set(value):
+		assert(false, "registered is READ ONLY")
+
+
+func _validate_property(property: Dictionary) -> void:
+	if property.name == "registered":
+		property.usage = PROPERTY_USAGE_READ_ONLY | PROPERTY_USAGE_EDITOR
 
 
 ## Returns true if a [JSONProperty] with the [param json_key] exists, false if not.
@@ -38,10 +57,10 @@ func remove_property(json_key: StringName) -> bool:
 	return _properties.erase(json_key)
 
 
-## Returns the [JSONObjectConfiguration]s for the property with key [param json_key].
+## Returns the [JSONObjectConfig]s for the property with key [param json_key].
 ## If the property does not exist, is not a [JSONObjectProperty], or is not a
 ## [JSONDictionaryProperty], an empty array is returned.
-func get_configs_for_property(json_key: StringName) -> Array[JSONObjectConfiguration]:
+func get_configs_for_property(json_key: StringName) -> Array[JSONObjectConfig]:
 	var property: JSONProperty = _properties.get(json_key, null)
 	if property is JSONObjectProperty:
 		return [property.config]

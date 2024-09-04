@@ -5,17 +5,17 @@ class_name NonObjectJSONSerializer extends JSONSerializer
 
 
 func _serialize(instance: Variant, impl: JSONSerializationImpl, 
-object_configs: Array[JSONObjectConfiguration]) -> Variant:
+object_configs: Array[JSONObjectConfig]) -> Variant:
 	return __serialize(instance, impl)
 
 
 func _deserialize(serialized: Variant, impl: JSONSerializationImpl, 
-object_configs: Array[JSONObjectConfiguration]) -> Variant:
+object_configs: Array[JSONObjectConfig]) -> Variant:
 	return __deserialize(serialized, impl)
 
 
 func _deserialize_into(serialized: Variant, instance: Variant, impl: JSONSerializationImpl, 
-object_configs: Array[JSONObjectConfiguration]) -> void:
+object_configs: Array[JSONObjectConfig]) -> void:
 	__deserialize_into(serialized, instance, impl)
 
 

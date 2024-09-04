@@ -45,21 +45,16 @@ static func from_class_name(_class_name: StringName) -> JSONObjectIdentifier:
 	return JSONObjectIdentifier.new(_class_name)
 
 
-static func from_script(script: Script) -> JSONObjectIdentifier:
-	assert(script != null, "script is null")
-	# TODO
-	return null
-
-
 static func from_script_path(script_path: String) -> JSONObjectIdentifier:
 	assert(!script_path.is_empty(), "script_path is empty")
 	# TODO
 	return null
 
-var id: StringName
+## The class which this represents
+@export_custom(PROPERTY_HINT_TYPE_STRING, &"Object") var id: StringName
 
 
-func _init(_id: StringName) -> void:
+func _init(_id: StringName = &"") -> void:
 	id = id
 
 

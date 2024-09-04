@@ -4,7 +4,7 @@
 class_name JSONDictionaryProperty extends JSONProperty
 
 ## The configuration for a [Dictionary]'s keys if they are [Object]s.
-@export var key_config: JSONObjectConfiguration
+@export var key_config: JSONObjectConfig
 
 ## The configuration for a [Dictionary]'s values if they are [Object]s.
-@export var value_config: JSONObjectConfiguration
+@export var value_config: JSONObjectConfig

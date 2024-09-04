@@ -6,7 +6,7 @@ func _get_id() -> Variant:
 
 
 func _serialize(instance: Variant, impl: JSONSerializationImpl, 
-object_config: JSONObjectConfiguration) -> Variant:
+object_config: JSONObjectConfig) -> Variant:
 	assert(instance is Array, "instance not of type Array")
 	
 	if instance.is_empty():
@@ -26,14 +26,14 @@ object_config: JSONObjectConfiguration) -> Variant:
 
 
 func _deserialize(serialized: Variant, impl: JSONSerializationImpl, 
-object_config: JSONObjectConfiguration) -> Variant:
+object_config: JSONObjectConfig) -> Variant:
 	var array: Array = []
 	_deserialize_into(serialized, array, impl, object_config)
 	return array
 
 
 func _deserialize_into(serialized: Variant, instance: Variant, impl: JSONSerializationImpl, 
-object_config: JSONObjectConfiguration) -> void:
+object_config: JSONObjectConfig) -> void:
 	assert(instance is Array, "instance not of type Array")
 	assert(serialized is Array, "serialized not of type Array")
 	

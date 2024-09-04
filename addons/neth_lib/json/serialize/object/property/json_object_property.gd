@@ -3,4 +3,4 @@
 ## [br]Requires its own [member config] to speficy how to serialize & deserialize the property.
 class_name JSONObjectProperty extends JSONProperty
 
-@export var config: JSONObjectConfiguration
+@export var config: JSONObjectConfig

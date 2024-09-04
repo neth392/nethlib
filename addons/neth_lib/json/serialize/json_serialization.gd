@@ -6,7 +6,6 @@ extends JSONSerializationImpl
 ## Constructs a new [JSONSerializationImpl] instance with support for reading errors.
 ## The returned node should NOT be added to the tree.
 func new() -> JSONSerializationImpl:
-	
 	var instance: JSONSerializationImpl = JSONSerializationImpl.new()
 	instance._serializers = _serializers.duplicate(false)
 	instance._default_object_configs = _default_object_configs.duplicate(false)
@@ -20,6 +19,7 @@ func new() -> JSONSerializationImpl:
 	instance._vector3 = _vector3
 	instance._basis = _basis
 	instance._vector4 = _vector4
+	instance._object = _object
 	return instance
 
 
@@ -86,30 +86,30 @@ func _ready() -> void:
 	add_serializer(_vector3)
 	
 	# TYPE_PACKED_VECTOR3_ARRAY
-	add_serializer(preload("./native/packed_vector3_array_json_serializer.gd").new(vector3))
+	add_serializer(preload("./native/packed_vector3_array_json_serializer.gd").new())
 	
 	# TYPE_PLANE
-	add_serializer(preload("./native/plane_json_serializer.gd").new(vector3))
+	add_serializer(preload("./native/plane_json_serializer.gd").new())
 	
 	# TYPE_BASIS
 	_basis = preload("./native/basis_json_serializer.gd").new()
-	add_serializer(basis)
+	add_serializer(_basis)
 	
 	# TYPE_TRANSFORM3D
-	add_serializer(preload("./native/transform3d_json_serializer.gd").new(vector3, basis))
+	add_serializer(preload("./native/transform3d_json_serializer.gd").new())
 	
 	# TYPE_AABB
-	add_serializer(preload("./native/aabb_json_serializer.gd").new(vector3))
+	add_serializer(preload("./native/aabb_json_serializer.gd").new())
 	
 	# TYPE_VECTOR4i
 	add_serializer(preload("./native/vector4i_json_serializer.gd").new())
 	
 	# TYPE_VECTOR4
 	_vector4 = preload("./native/vector4_json_serializer.gd").new()
-	add_serializer(vector4)
+	add_serializer(_vector4)
 	
 	# TYPE_PACKED_VECTOR4_ARRAY
-	add_serializer(preload("./native/packed_vector4_array_json_serializer.gd").new(vector4))
+	add_serializer(preload("./native/packed_vector4_array_json_serializer.gd").new())
 	
 	# TYPE_PROJECTION
-	add_serializer(preload("./native/projection_json_serializer.gd").new(vector4))
+	add_serializer(preload("./native/projection_json_serializer.gd").new())

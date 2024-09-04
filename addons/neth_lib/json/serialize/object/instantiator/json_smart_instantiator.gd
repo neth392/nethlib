@@ -2,11 +2,19 @@
 ## to resolve if the object is a scripted object or native. If it is a script,
 ## it will load the script & create a new instance (constructor must have ZERO params).
 ## If it is a native object, a new instance is created via [method ClassDB.instantiate].
-## [br]NOTE: DOES NOT WORK PROPERLY WITH [PackedScene]s. Use [SceneJSONObjectInstantiator] 
+## [br]NOTE: DOES NOT WORK PROPERLY WITH [PackedScene]s. Use [JSONSceneInstantiator] 
 ## for that.
-## [br]WARNING: If the static type defined is a parent type, this will not work. Use
-## a custom [JSONObjectInstantiator] implementation in that case.
-class_name SmartJSONObjectInstantiator extends JSONObjectInstantiator
+## [br]WARNING: If a property's static type is defined is a parent type, this will not work. Use
+## another [JSONInstantiator] implementation in that case.
+class_name JSONSmartInstantiator extends JSONInstantiator
+
+
+# TODO typed array support
+# TODO implement _can_instantiate
+
+
+func _can_instantiate(property: Dictionary, serialized: Dictionary) -> bool:
+	return false
 
 
 func _instantiate(property: Dictionary, serialized: Dictionary) -> Object:

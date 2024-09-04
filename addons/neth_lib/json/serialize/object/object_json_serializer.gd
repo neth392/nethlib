@@ -6,7 +6,7 @@ func _get_id() -> Variant:
 
 
 func _serialize(instance: Variant, impl: JSONSerializationImpl, 
-object_config: JSONObjectConfiguration) -> Variant:
+object_config: JSONObjectConfig) -> Variant:
 	assert(instance is Object, "instance not of type Object")
 	assert(object_config != null, "object_config is null for instance(%s)" % insstance)
 	
@@ -43,7 +43,7 @@ object_config: JSONObjectConfiguration) -> Variant:
 			continue
 		
 		if value is Object:
-			var prop_config: JSONObjectConfiguration
+			var prop_config: JSONObjectConfig
 		
 		# Serialize the value
 		var serialized_value: Variant = JSONSerialization.serialize(value)
@@ -57,18 +57,18 @@ object_config: JSONObjectConfiguration) -> Variant:
 
 
 ## TODO fix this method
-func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: JSONObjectConfiguration) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: JSONObjectConfig) -> Variant:
 	assert(owner != null && !property.is_empty(), "owner is null or property is empty, no way to " + \
-	"resolve an JSONObjectConfiguration for serialized (%s)" % serialized)
+	"resolve an JSONObjectConfig for serialized (%s)" % serialized)
 	assert(serialized is Dictionary, "serialized (%s) not of type Dictionary" % serialized)
 	
 	
 	var type_id: 
 	
-	var config: JSONObjectConfiguration
+	var config: JSONObjectConfig
 	# Prioritize owner config
 	if owner != null:
-		var owner_config: JSONObjectConfiguration = JSONObjectMeta.get_config(owner)
+		var owner_config: JSONObjectConfig = JSONObjectMeta.get_config(owner)
 		if owner_config != null:
 			owner_config.properties
 	
@@ -78,7 +78,7 @@ func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_confi
 		
 		pass
 	
-	assert(config != null, ("JSONObjectConfiguration could not be found in owner's meta, and no default " + \
+	assert(config != null, ("JSONObjectConfig could not be found in owner's meta, and no default " + \
 	"property for serialized (%s)") % serialized)
 	
 	assert(instance != null, "_create_instance() returned null")
@@ -171,5 +171,5 @@ func _deserialize_into(serialized: Variant, instance: Variant, impl: JSONSeriali
 	return instance
 
 
-func _deserialize_into_w_config(object: Object, config: JSONObjectConfiguration, serialized: Dictionary) -> void:
+func _deserialize_into_w_config(object: Object, config: JSONObjectConfig, serialized: Dictionary) -> void:
 	pass
