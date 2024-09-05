@@ -41,28 +41,28 @@ var _vector4: NonObjectJSONSerializer
 var _object: JSONSerializer
 
 
-## Sets the [param config] as the default [JSONObjectConfig] for any objects/properties
-## which match the [JSONObjectIdentifier] but do not have a config.
-## To create a [JSONObjectIdentifier] for any type of object, see the static methods in that class.
-func set_default_object_config(id: JSONObjectIdentifier, config: JSONObjectConfig) -> void:
-	assert(id != null, "id is null")
-	assert(config != null, "config is null")
-	_default_object_configs[id] = config
-
-
-## Removes the default [JSONObjectConfig] for the [param id].
-## To create a [JSONObjectIdentifier] for any type of object, see the static methods in that class.
-func remove_default_object_config(id: JSONObjectIdentifier) -> void:
-	assert(id != null, "id is null")
-	_default_object_configs.erase(id)
-
-
-## Returns the default [JSONObjectConfig] for the [param id], or null if one
-## does not exist.
-## To create a [JSONObjectIdentifier] for any type of object, see the static methods in that class.
-func get_default_object_config(id: JSONObjectIdentifier) -> JSONObjectConfig:
-	assert(id != null, "id is null")
-	return _default_object_configs.get(id, null)
+### Sets the [param config] as the default [JSONObjectConfig] for any objects/properties
+### which match the [JSONObjectIdentifier] but do not have a config.
+### To create a [JSONObjectIdentifier] for any type of object, see the static methods in that class.
+#func set_default_object_config(id: JSONObjectIdentifier, config: JSONObjectConfig) -> void:
+	#assert(id != null, "id is null")
+	#assert(config != null, "config is null")
+	#_default_object_configs[id] = config
+#
+#
+### Removes the default [JSONObjectConfig] for the [param id].
+### To create a [JSONObjectIdentifier] for any type of object, see the static methods in that class.
+#func remove_default_object_config(id: JSONObjectIdentifier) -> void:
+	#assert(id != null, "id is null")
+	#_default_object_configs.erase(id)
+#
+#
+### Returns the default [JSONObjectConfig] for the [param id], or null if one
+### does not exist.
+### To create a [JSONObjectIdentifier] for any type of object, see the static methods in that class.
+#func get_default_object_config(id: JSONObjectIdentifier) -> JSONObjectConfig:
+	#assert(id != null, "id is null")
+	#return _default_object_configs.get(id, null)
 
 
 ## Returns true if the [param config] is successfully registered, false if not.
@@ -156,7 +156,7 @@ func is_serializiable(variant: Variant) -> bool:
 
 ## Returns true if the [param type] is supported by a [JSONSerializer], false if not.
 func is_type_serializable(type: Variant.Type) -> bool:
-	return _serializers.has(type)
+	return _serializers.has(str(type))
 
 
 ## Adds the [param serializer].
@@ -224,7 +224,9 @@ func deserialize(wrapped_value: Dictionary, object_config: JSONObjectConfig = nu
 	assert(serializer.id != _object.id || object_config != null, ("wrapped_value (%s) is an object " + \
 	"and object_config is null") % wrapped_value)
 	
-	return serializer._deserialize(unwrapped_value, self, object_config)
+	# TODO Fix
+	return null
+	# return serializer._deserialize(unwrapped_value, self, object_config)
 
 
 ## Deserializes the [param wrapped_value] into the specified [param instance].
@@ -246,7 +248,8 @@ object_config: JSONObjectConfig = null) -> void:
 		 wrapped_serializer, wrapped_value])
 	
 	var unwrapped_value: Variant = unwrap_value(wrapped_value)
-	serializer._deserialize_into(object_owner, property, instance, unwrapped_value)
+	# TODO fix
+	#serializer._deserialize_into(object_owner, property, instance, unwrapped_value)
 
 
 ## Helper function that calls [method serialize] with the [param variant],

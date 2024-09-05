@@ -4,4 +4,3 @@
 
 [node name="JSONSerialization" type="Node"]
 script = ExtResource("1_mlbr7")
-serialize_all_types = null

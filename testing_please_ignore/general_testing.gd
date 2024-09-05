@@ -1,8 +1,6 @@
 class_name GeneralTesting extends Node
 
-@export var test: Array[int]
+@export var sss: GDScript
 
 func _ready() -> void:
-	for prop in get_property_list():
-		PROPERTY_HINT_ARRAY_TYPE
-		print(prop)
+	print(sss.get_instance_base_type())

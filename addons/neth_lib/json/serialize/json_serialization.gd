@@ -43,10 +43,12 @@ func _ready() -> void:
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_STRING_ARRAY))
 	
 	# TYPE_ARRAY
-	add_serializer(preload("./native/array_json_serializer.gd").new())
+	# TODO: FIX
+	#add_serializer(preload("./native/array_json_serializer.gd").new())
 	
 	# TYPE_DICTIONARY
-	add_serializer(preload("./native/dictionary_json_serializer.gd").new())
+	# TODO: FIX
+	#add_serializer(preload("./native/dictionary_json_serializer.gd").new())
 	
 	# TYPE_COLOR
 	_color = preload("./native/color_json_serializer.gd").new()
