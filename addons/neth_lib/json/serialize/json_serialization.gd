@@ -192,14 +192,12 @@ func _reload_registry() -> void:
 	var registry: JSONObjectConfigRegistry = null
 	# File exists
 	if FileAccess.file_exists(_registry_path):
-		print("EXISTS: " + _registry_path)
 		registry = ResourceLoader.load(_registry_path) as JSONObjectConfigRegistry
 		# Push warning if it couldn't be loaded
 		if registry == null:
 			push_warning(("JSONObjectConfigRegistry @ path %s could not be loaded or " + \
 			"is not of type JSONObjectConfigRegistry") % _registry_path)
 	else:
-		print("DOESNT EXIST: ", _registry_path)
 		# File doesn't exist, push warning
 		push_warning(("No JSONObjectConfigRegistry file found @ path %s. Ensure project " + \
 		"setting nethlib/modules/json_object_config_registry points to a correct file.") \
