@@ -3,8 +3,6 @@
 @tool
 class_name JSONSerializationImpl extends Node
 
-@export var serialize_all_types: bool = true
-
 ## Parameter used in [method JSON.stringify]
 ## TODO add to project settings
 var indent: String = ""
@@ -23,7 +21,9 @@ var _serializers: Dictionary = {}
 
 ## The user's [JSONObjectConfigRegistry] to allow adding [JSONObjectConfig]s via
 ## the inspector.
-var object_config_registry: JSONObjectConfigRegistry
+var object_config_registry: JSONObjectConfigRegistry = JSONObjectConfigRegistry.new():
+	set(value):
+		object_config_registry = value if value != null else JSONObjectConfigRegistry.new()
 
 # Internal cache of native serializers used by others to prevent unnecessary dictionary lookups
 var _color: JSONSerializer
@@ -79,7 +79,7 @@ func remove_serializer(serializer: JSONSerializer) -> bool:
 
 ## Returns the [JSONSerializer] with the [param id], or null if one does not exist.
 func get_serializer_for_type(type: Variant.Type) -> JSONSerializer:
-	return _serializers.get(type)
+	return _serializers.get(str(type))
 
 
 ## Returns the [JSONSerializer] for use with deserializing the [param wrapped_value].

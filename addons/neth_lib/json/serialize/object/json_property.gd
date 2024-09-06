@@ -69,15 +69,16 @@ func _validate_property(property: Dictionary) -> void:
 		if !ClassDB.class_exists(_editor_class_name):
 			# Handle custom classes
 			var script_path: String = ScriptUtil.get_script_path_from_class_name(_editor_class_name)
-			var script: Script = load(script_path) as Script
-			# Script was loaded
-			if script != null:
-				for script_property: Dictionary in script.get_script_property_list():
-					# Ignore TYPE_NIL properties (not real properties) and non-serializable ones
-					if script_property.type != TYPE_NIL \
-					and JSONSerialization.is_type_serializable(script_property.type):
-						hints.append(script_property.name)
-				base_type = script.get_instance_base_type()
+			if FileAccess.file_exists(script_path):
+				var script: Script = load(script_path) as Script
+				# Script was loaded
+				if script != null:
+					for script_property: Dictionary in script.get_script_property_list():
+						# Ignore TYPE_NIL properties (not real properties) and non-serializable ones
+						if script_property.type != TYPE_NIL \
+						and JSONSerialization.is_type_serializable(script_property.type):
+							hints.append(script_property.name)
+					base_type = script.get_instance_base_type()
 		
 		# Handle native/base class
 		if ClassDB.class_exists(base_type):

@@ -7,5 +7,4 @@ var test_parent_4: Object
 
 
 func do_shit() -> void:
-	PROPERTY_USAGE_ALWAYS_DUPLICATE
 	pass

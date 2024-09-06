@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="JSONObjectConfigRegistry" load_steps=3 format=3 uid="uid://ckj2s1bqi10pq"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/json/serialize/object/json_object_config.gd" id="1_856hw"]
+[ext_resource type="Script" path="res://addons/neth_lib/json/serialize/json_object_config_registry.gd" id="2_q0br4"]
+
+[resource]
+script = ExtResource("2_q0br4")
+_configs = Array[ExtResource("1_856hw")]([])
