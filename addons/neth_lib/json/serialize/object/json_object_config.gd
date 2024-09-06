@@ -1,23 +1,14 @@
-## A configuration containing specifications on how to serialize & deserialize an
-## arbitrary [Object]. Can be reused across objects of multiple types.
-## Must be registered to the [JSONSerializationImpl] instance (accessible via
-## global/autload class [JSONSerialization]).
+## A configuration containing specifications on how to serialize & deserialize a
+## specific type of [Object]. Must be registered to the project's [JSONObjectConfigRegistry]
+## to be used.
 @tool
 class_name JSONObjectConfig extends Resource
-
-## Emitted when [member id] is changed.
-signal id_changed(prev_id: StringName)
 
 ## The ID of this [JSONObjectConfig], stored in the serialized data to detect
 ## how to deserialize an instance of an object.
 ## [br]WARNING: Changing this property can break existing save data. Set it once
 ## and keep it the same.
-@export var id: StringName:
-	set(value):
-		var prev_value: StringName = id
-		id = value
-		if id != prev_value:
-			id_changed.emit(prev_value)
+@export var id: StringName
 
 ## The class this config is meant to parse.
 @export_custom(PROPERTY_HINT_TYPE_STRING, &"Object") var for_class: String:
@@ -39,25 +30,31 @@ signal id_changed(prev_id: StringName)
 	set(value):
 		if value == null: # Null script
 			set_for_class_by_script = null
-			for_class = &""
+			for_class = ""
 		elif value != null && value.get_global_name().is_empty(): # Script w/ no name
 			push_warning("Can't use this script; no class_name defined for script: %s" % value.resource_path)
 			set_for_class_by_script = null
-			for_class = &""
+			for_class = ""
 		else: # Not null, script w/ name
 			set_for_class_by_script = value
+			for_class = set_for_class_by_script.get_global_name()
 		_editor_update()
 		notify_property_list_changed()
 
 ## The [JSONInstantiator] used anytime an object of this type is being deserialized
 ## but the property's assigned value is null and thus an instance needs to be created.
 ## See that class's docs for more info.
-@export var instantiator: JSONInstantiator = JSONSmartInstantiator.new()
+@export var instantiator: JSONInstantiator
 
 ## Can be set so that the [member properties] of another config are included
 ## when serializing/deserializing. Useful when creating configs for objects within
 ## the same class hierarchy.
-@export var extend_other_config: JSONObjectConfig 
+@export var extend_other_config: JSONObjectConfig:
+	set(value):
+		if extend_other_config != null && extend_other_config.extend_other_config == self:
+			push_warning("Can't set extend_other_config to %s as it causes a circular reference" % value)
+			return
+		extend_other_config = value
 
 ## The [JSONProperty]s that are to be serialized. Properties with [member JSONProperty.enabled]
 ## as false are ignored. The order of this array is important as it determines in which order
@@ -73,9 +70,7 @@ signal id_changed(prev_id: StringName)
 ## [JSONObjectConfigRegistry] or not.
 var registered: bool:
 	get():
-		return false
-		# TODO fix
-		#return JSONSerialization.is_config_registered(self)
+		return JSONSerialization.object_config_registry.has_config(self)
 	set(value):
 		assert(false, "registered is READ ONLY")
 
@@ -106,3 +101,7 @@ func get_properties_extended() -> Array[JSONProperty]:
 	if extend_other_config != null:
 		extended.append_array(extend_other_config.get_properties_extended())
 	return extended
+
+
+func _to_string() -> String:
+	return "JSONObjectConfig(id=%s,for_class=%s)" % [id, for_class]

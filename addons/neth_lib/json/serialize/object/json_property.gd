@@ -34,7 +34,7 @@ enum IfMissing {
 @export var if_missing_in_object_serialize: IfMissing = IfMissing.WARN_DEBUG
 
 ## How to handle properties missing from serialized data when deserialzing an Object.
-@export var if_missing_in_data: IfMissing
+@export var if_missing_in_data: IfMissing = IfMissing.IGNORE
 
 ## How to handle properties that exist in serialized data but are missing from
 ## the [Object] being deserialized.
@@ -61,21 +61,16 @@ func _validate_property(property: Dictionary) -> void:
 		# Handle custom class
 		if !ClassDB.class_exists(_editor_class_name):
 			# Handle custom classes
-			for _class: Dictionary in ProjectSettings.get_global_class_list():
-				if _class.class != _editor_class_name:
-					continue
-				if _class.path.get_extension() != "gd":
-					continue
-				# Try to load the script
-				var script: Script = load(_class.path)
-				# Script was loaded
-				if script != null:
-					for script_property: Dictionary in script.get_script_property_list():
-						# Ignore TYPE_NIL properties (not real properties) and non-serializable ones
-						if script_property.type != TYPE_NIL \
-						and JSONSerialization.is_type_serializable(script_property.type):
-							hints.append(script_property.name)
-					base_type = script.get_instance_base_type()
+			var script_path: String = ScriptUtil.get_script_path_from_class_name(_editor_class_name)
+			var script: Script = load(script_path) as Script
+			# Script was loaded
+			if script != null:
+				for script_property: Dictionary in script.get_script_property_list():
+					# Ignore TYPE_NIL properties (not real properties) and non-serializable ones
+					if script_property.type != TYPE_NIL \
+					and JSONSerialization.is_type_serializable(script_property.type):
+						hints.append(script_property.name)
+				base_type = script.get_instance_base_type()
 		
 		# Handle native/base class
 		if ClassDB.class_exists(base_type):

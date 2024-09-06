@@ -1,11 +1,11 @@
-extends NonObjectJSONSerializer
+extends JSONSerializer
 
 
 func _get_id() -> Variant:
 	return TYPE_VECTOR4I
 
 
-func __serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is Vector4i, "instance not of type Vector4i")
 	return {
 		"w": instance.w,
@@ -15,7 +15,7 @@ func __serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	}
 
 
-func __deserialize(serialized: Variant, impl: JSONSerializationImpl) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(serialized is Dictionary, "serialized not of type Dictionary")
 	assert(serialized["w"] is float, "w is not a float")
 	assert(serialized["x"] is float, "x is not a float")

@@ -8,7 +8,6 @@ extends JSONSerializationImpl
 func new() -> JSONSerializationImpl:
 	var instance: JSONSerializationImpl = JSONSerializationImpl.new()
 	instance._serializers = _serializers.duplicate(false)
-	instance._default_object_configs = _default_object_configs.duplicate(false)
 	instance.indent = indent
 	instance.sort_keys = sort_keys
 	instance.full_precision = full_precision

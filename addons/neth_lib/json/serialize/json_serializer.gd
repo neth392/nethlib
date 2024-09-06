@@ -22,10 +22,7 @@ func _get_id() -> Variant:
 ## Parses [param variant] into a [Variant] which must be able to be
 ## deserialized by [method _deserialize_into].
 ## [param impl] is the JSONSerialization implementation being used.
-## [param object_config] is the [JSONObjectConfig] of the object being serialized, 
-## only used in deserializers concerning objects such as arrays, dictionaries, & objects themselves.
-func _serialize(instance: Variant, impl: JSONSerializationImpl, 
-object_configs: Array[JSONObjectConfig]) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(false, "_serialize not implemented for serializer id (%s)" % id)
 	return {}
 
@@ -33,20 +30,14 @@ object_configs: Array[JSONObjectConfig]) -> Variant:
 ## Deserializes the [param serialized] by constructing a new instance of the
 ## supported type. The newly created type is then returned.
 ## [param impl] is the JSONSerialization implementation being used.
-## [param object_config]s is the [JSONObjectConfig] of the object being deserialized, 
-## only used in deserializers concerning objects such as arrays, dictionaries, & objects themselves.
-func _deserialize(serialized: Variant, impl: JSONSerializationImpl, 
-object_configs: Array[JSONObjectConfig]) -> Variant:
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(false, "_deserialize not implemented for serializer id (%s)" % id)
 	return null
 
 
 ## Deserializes [i]into[/i] the specified [param instance] from the [param serialized].
 ## [param impl] is the JSONSerialization implementation being used.
-## [param object_config] is the [JSONObjectConfig] of the object being deserialized, 
-## only used in deserializers concerning objects such as arrays, dictionaries, & objects themselves.
-func _deserialize_into(serialized: Variant, instance: Variant, impl: JSONSerializationImpl, 
-object_configs: Array[JSONObjectConfig]) -> void:
+func _deserialize_into(serialized: Variant, instance: Variant, impl: JSONSerializationImpl) -> void:
 	assert(false, "_deserialize_into not implemented for serializer id (%s)" % id)
 
 

@@ -5,92 +5,85 @@ func _get_id() -> Variant:
 	return TYPE_OBJECT
 
 
-func _serialize(instance: Variant, impl: JSONSerializationImpl, 
-object_config: JSONObjectConfig) -> Variant:
+func _serialize(instance: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(instance is Object, "instance not of type Object")
-	assert(object_config != null, "object_config is null for instance(%s)" % insstance)
 	
 	var object: Object = instance as Object
+	
+	# Determine the class
+	var object_class: StringName = ObjectUtil.get_class_name(object)
+	assert(!object_class.is_empty(), "object (%s) does not have a class defined" % object_class)
+	
+	# Get the config by class
+	var config: JSONObjectConfig = impl.object_config_registry.get_config_by_class(object_class)
+	assert(config != null, "no JSONObjectConfig found for object_class %s" % object_class)
 	
 	var serialized: Dictionary = {}
 	
 	# Iterate the properies
-	for property: JSONProperty in object_config._properties:
+	for property: JSONProperty in config.get_properties_extended():
 		# Skip disabled properties
 		if !property.enabled:
 			continue
 		
 		# Ensure no duplicates
 		assert(!serialized.has(property.json_key), "duplicate json_keys (%s) for object (%s)" \
-		% [property.json_key, value])
+		% [property.json_key, object])
 		
 		# Check if property exists in the object
 		if property.name not in object:
-			match property.if_missing_serialize:
+			match property.if_missing_in_object_serialize:
 				JSONProperty.IfMissing.WARN_DEBUG:
 					push_warning("property (%s) missing in object (%s)" % [property, object])
 				JSONProperty.IfMissing.ERROR_DEBUG:
 					assert(false, "property (%s) missing in object (%s)" % [property, object])
 			continue
 		
-		
 		var value: Variant = object.get(property.name)
-		
-		if value == null:
-			assert(property.allow_null, ("property (%s)'s value is null in object (%s) " + \
-			"and property.allow_null is false") % [property, object])
-			serialized[property.json_key] = null
-			continue
-		
-		if value is Object:
-			var prop_config: JSONObjectConfig
-		
-		# Serialize the value
-		var serialized_value: Variant = JSONSerialization.serialize(value)
+		var serialized_value: Variant = impl.serialize(value)
 		serialized[property.json_key] = serialized_value
-		
-		# Remove the override if it was overridden
-		if override_config:
-			JSONObjectMeta.set_config(value, original_config)
 	
-	return serialized
+	# Wrap value with an extra dictionary to store which deserializer to use
+	return {
+		"i": config.id,
+		"v": serialized,
+	}
 
 
 ## TODO fix this method
-func _deserialize(serialized: Variant, impl: JSONSerializationImpl, object_config: JSONObjectConfig) -> Variant:
-	assert(owner != null && !property.is_empty(), "owner is null or property is empty, no way to " + \
-	"resolve an JSONObjectConfig for serialized (%s)" % serialized)
+func _deserialize(serialized: Variant, impl: JSONSerializationImpl) -> Variant:
 	assert(serialized is Dictionary, "serialized (%s) not of type Dictionary" % serialized)
+	assert(serialized.has("i"), "serialized (%s) missing 'i' key" % serialized)
 	
+	var config: JSONObjectConfig = _get_config(serialized, impl)
+	assert(config.instantiator != null, ("config (%s)'s instantiator is null, use " + \
+	"_deserialize_into() with an existing instance instead") % config)
+	assert(config.instantiator._can_instantiate(), ("cant instantiate config %s, use " + \
+	"_deserialize_into() with an existing instance instead") % config)
 	
-	var type_id: 
+	# Create instance
+	var instance: Object = config.instantiator._instantiate()
+	assert(instance != null, "config (%s)'s instantiator._instantiate() returned null" % config)
 	
-	var config: JSONObjectConfig
-	# Prioritize owner config
-	if owner != null:
-		var owner_config: JSONObjectConfig = JSONObjectMeta.get_config(owner)
-		if owner_config != null:
-			owner_config.properties
+	_deserialize_into_w_config(serialized, instance, impl, config)
 	
-	# Resolve the default config from property if not empty
-	if config == null && !property.is_empty():
-		var id: JSONObjectIdentifier = JSONObjectIdentifier.resolve_for_property(property)
-		
-		pass
-	
-	assert(config != null, ("JSONObjectConfig could not be found in owner's meta, and no default " + \
-	"property for serialized (%s)") % serialized)
-	
-	assert(instance != null, "_create_instance() returned null")
-	_deserialize_into(instance, serialized)
 	return instance
 
 
 ## TODO fix this method
-func _deserialize_into(serialized: Variant, instance: Variant, impl: JSONSerializationImpl, json_key: StringName, owner: Object, property: Dictionary) -> void:
+func _deserialize_into(serialized: Variant, instance: Variant, impl: JSONSerializationImpl) -> void:
 	assert(instance != null, "instance is null; can't deserialize into a null instance")
 	assert(instance is Object, "instance not of type Object")
-	assert(serialized == null || serialized is Dictionary, "serialized not null or of type Dictionary")
+	assert(serialized is Dictionary, "serialized not null or of type Dictionary")
+	assert(serialized.has("i"), "serialized (%s) missing 'i' key" % serialized)
+	
+	
+	# Determine config ID
+	var config_id: StringName = StringName(serialized.i)
+	assert(!config_id.is_empty(), "config_id empty for serialized (%s)" % serialized)
+	
+	# Determine config
+	var config: JSONObjectConfig = impl.object_config_registry.get_config_by_id(config_id)
 	
 	if serialized == null:
 		return
@@ -171,5 +164,28 @@ func _deserialize_into(serialized: Variant, instance: Variant, impl: JSONSeriali
 	return instance
 
 
-func _deserialize_into_w_config(object: Object, config: JSONObjectConfig, serialized: Dictionary) -> void:
+func _get_config(serialized: Dictionary, impl: JSONSerializationImpl) -> JSONObjectConfig:
+	# Determine config ID
+	var config_id: StringName = StringName(serialized.i)
+	assert(!config_id.is_empty(), "config_id empty for serialized (%s)" % serialized)
+	
+	# Determine config
+	var config: JSONObjectConfig = impl.object_config_registry.get_config_by_id(config_id)
+	assert(config != null, "no config with id (%s) found" % config_id)
+	
+	return config
+
+
+
+func _deserialize_into_w_config(serialized: Dictionary, instance: Variant, impl: JSONSerializationImpl,
+config: JSONObjectConfig) -> void:
+	assert(serialized.has("v"), "serialized (%s) missing 'v' key" % serialized)
+	
+	var serialized_value: Dictionary = serialized.get("v") as Dictionary
+	assert(serialized_value is Dictionary, "serialized[v] not of type Dictionary, serialized=%s" \
+	% serialized)
+	
+	for property: JSONProperty in config.get_properties_extended():
+		pass
+	
 	pass

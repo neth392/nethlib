@@ -9,11 +9,11 @@ class_name JSONSceneInstantiator extends JSONInstantiator
 		scene = value
 
 
-func _can_instantiate(property: Dictionary, serialized: Dictionary) -> bool:
+func _can_instantiate() -> bool:
 	return scene != null && scene.can_instantiate()
 
 
-func _instantiate(property: Dictionary, serialized: Dictionary) -> Object:
+func _instantiate() -> Object:
 	assert(scene != null, "scene is null (not set)")
 	assert(scene.can_instantiate(), "cant instantiate scene %s" % scene)
 	return scene.instantiate()

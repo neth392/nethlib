@@ -10,11 +10,11 @@ class_name JSONScriptInstantiator extends JSONInstantiator
 		gd_script = value
 
 
-func _can_instantiate(property: Dictionary, serialized: Dictionary) -> bool:
+func _can_instantiate() -> bool:
 	return gd_script != null && gd_script.can_instantiate()
 
 
-func _instantiate(property: Dictionary, serialized: Dictionary) -> Object:
+func _instantiate() -> Object:
 	assert(gd_script != null, "gd_script is null (not set)")
 	assert(gd_script.can_instantiate(), "cant instantiate gd_script %s" % gd_script)
-	return gd_script.instantiate()
+	return gd_script.new()
