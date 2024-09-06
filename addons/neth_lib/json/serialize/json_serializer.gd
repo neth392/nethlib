@@ -1,6 +1,7 @@
 ## A JSON Serializer for a specific type (or types in some cases)
 class_name JSONSerializer extends Resource
 
+
 ## The ID of this [JSONSerializer]
 var id: String:
 	get():
@@ -9,6 +10,16 @@ var id: String:
 		return str(id) # Convert to string
 	set(value):
 		assert(false, "override _get_id() to change the ID")
+
+
+var _can_deserialize_into: bool = ScriptUtil.get_method_count(get_script(), 
+"_deserialize_into") > 1
+
+
+## Returns true if [method _deserialize_into] has been overridden by a child class,
+## false if not. Override this for custom implementations.
+func can_deserialize_into(serialized: Variant, instance: Variant) -> bool:
+	return _can_deserialize_into
 
 
 ## Must be overridden to return the ID of this [JSONSerializer], to be stored in the JSON to determine

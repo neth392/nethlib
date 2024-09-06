@@ -49,6 +49,9 @@ func _ready() -> void:
 	# TODO: FIX
 	#add_serializer(preload("./native/dictionary_json_serializer.gd").new())
 	
+	# TYPE_OBJECT
+	add_serializer(preload("./object/object_json_serializer.gd").new())
+	
 	# TYPE_COLOR
 	_color = preload("./native/color_json_serializer.gd").new()
 	add_serializer(_color)
