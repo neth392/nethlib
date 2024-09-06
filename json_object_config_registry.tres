@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://addons/neth_lib/json/serialize/object/json_object_config.gd" id="1_e2xy6"]
 [ext_resource type="Resource" uid="uid://blffyy6ubcwo5" path="res://test_config.tres" id="2_e3awe"]
-[ext_resource type="Script" path="res://addons/neth_lib/json/serialize/json_object_config_registry.gd" id="2_jpn33"]
+[ext_resource type="Script" path="res://addons/neth_lib/json/serialize/object/json_object_config_registry.gd" id="2_jpn33"]
 
 [resource]
 script = ExtResource("2_jpn33")

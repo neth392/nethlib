@@ -45,6 +45,8 @@ enum IfMissing {
 ## from the JSONSerializer via [method JSONSerializer._deserialize]. Only supported for specific
 ## types, such as [Object], [Array], and [Dictionary] (as of now), if the type is not
 ## supported or the existing value is null, this property is ignored & deserialize is used.
+## [br]NOTE: For [Array]s & [Dictionary]s, if true the deserialized elements are appended to the
+## existing array/dictionary.
 @export var deserialize_into: bool = false
 
 ## For use only in the editor

@@ -103,7 +103,7 @@ func serialize(variant: Variant) -> Dictionary:
 	assert(is_serializiable(variant), "variant (%s) not supported by any JSONSerializer" % str(variant))
 	
 	var serializer: JSONSerializer = get_serializer_for_type(typeof(variant))
-	assert(serializer != null, "get_serializer_for_type(typeof(%s)) returned null" % variant)
+	assert(serializer != null, "get_serializer_for_type(typeof(%s)) returned null" % str(variant))
 	var serialized: Variant = serializer._serialize(variant, self)
 	
 	return wrap_value(serializer, serialized)

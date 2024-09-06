@@ -132,5 +132,5 @@ config: JSONObjectConfig) -> void:
 		if !did_deserialize:
 			var deserialized_property: Variant = impl.deserialize(serialized_property)
 			object.set(property.property_name, deserialized_property)
-	
-	pass
+			if property.property_name == "test_array":
+				print("DESERIALIZE: ", deserialized_property)

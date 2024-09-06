@@ -58,8 +58,7 @@ func _ready() -> void:
 	add_serializer(PrimitiveJSONSerializer.new(TYPE_PACKED_STRING_ARRAY))
 	
 	# TYPE_ARRAY
-	# TODO: FIX
-	#add_serializer(preload("./native/array_json_serializer.gd").new())
+	add_serializer(preload("./native/array_json_serializer.gd").new())
 	
 	# TYPE_DICTIONARY
 	# TODO: FIX

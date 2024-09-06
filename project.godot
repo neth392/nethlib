@@ -18,6 +18,8 @@ config/features=PackedStringArray("4.3", "Forward Plus")
 JSONSerialization="*res://addons/neth_lib/json/serialize/json_serialization.tscn"
 PlatformManager="*res://addons/neth_lib/platform/platform_manager.tscn"
 AudioStreamer="*res://addons/neth_lib/audio/audio_streamer.tscn"
+AudioBusHelper="*res://addons/neth_lib/audio/audio_bus_helper.tscn"
+ExecutionTimeTest="*res://addons/neth_lib/util/execution_time_test.tscn"
 
 [debug]
 
@@ -26,8 +28,3 @@ gdscript/warnings/untyped_declaration=2
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg", "res://addons/neth_lib/plugin.cfg")
-
-[nethlib]
-
-modules/audio_bus_helper=false
-modules/execution_time_test=false
