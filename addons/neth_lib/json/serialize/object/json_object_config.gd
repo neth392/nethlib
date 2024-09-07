@@ -10,7 +10,8 @@ class_name JSONObjectConfig extends Resource
 ## and keep it the same.
 @export var id: StringName
 
-## The class this config is meant to parse.
+## The class this config is meant to parse. If [member set_for_class_by_script] is used,
+## this property becomes read only & is derived from that script.
 @export_custom(PROPERTY_HINT_TYPE_STRING, &"Object") var for_class: String:
 	set(value):
 		if set_for_class_by_script != null && !set_for_class_by_script.get_global_name().is_empty():
@@ -24,7 +25,7 @@ class_name JSONObjectConfig extends Resource
 		return for_class
 
 
-## Sets [member for_class] based on the class_name of this script. Recommended as it
+## Sets [member for_class] based on the class_name of this script. Highly recommended as it
 ## preserves any name change in the script.
 @export var set_for_class_by_script: Script:
 	set(value):
@@ -38,7 +39,6 @@ class_name JSONObjectConfig extends Resource
 		else: # Not null, script w/ name
 			set_for_class_by_script = value
 			for_class = set_for_class_by_script.get_global_name()
-		_editor_update()
 		notify_property_list_changed()
 
 ## The [JSONInstantiator] used anytime an object of this type is being deserialized
@@ -91,6 +91,7 @@ func _editor_update() -> void:
 	for property: JSONProperty in properties:
 		if property != null:
 			property._editor_class_name = for_class
+			property._editor_script = set_for_class_by_script
 
 
 ## Returns a new [Array] of all [JSONProperty]s of this instance and [member extend_other_config]
@@ -101,6 +102,19 @@ func get_properties_extended() -> Array[JSONProperty]:
 	if extend_other_config != null:
 		extended.append_array(extend_other_config.get_properties_extended())
 	return extended
+
+
+## Returns the [Script] associated with the class this instance represents, or null
+## if one does not exist (for built in types). If [member set_for_class_by_script] is
+## not used, the script's path is resolved from [ProjectSetting]s and [method load]
+## is called to attempt to load the script.
+func get_class_script() -> Script:
+	if set_for_class_by_script != null:
+		return set_for_class_by_script
+	var script_path: String = ScriptUtil.get_script_path_from_class_name(for_class)
+	if script_path.is_empty():
+		return null
+	return load(script_path) as Script
 
 
 func _to_string() -> String:

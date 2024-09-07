@@ -46,8 +46,23 @@ enum IfMissing {
 ## types, such as [Object], [Array], and [Dictionary] (as of now), if the type is not
 ## supported or the existing value is null, this property is ignored & deserialize is used.
 ## [br]NOTE: For [Array]s & [Dictionary]s, if true the deserialized elements are appended to the
-## existing array/dictionary.
+## existing array/dictionary. It is [b]HIGHLY[/b] recommended to set this to true for typed arrays,
+## as the inner system to construct typed arrays will break if the array's type changes.
 @export var deserialize_into: bool = false
+
+
+var _editor_script: Script:
+	get():
+		if _editor_script != null:
+			return _editor_script
+		if _editor_class_name.is_empty() || ClassDB.class_exists(_editor_class_name):
+			return null
+		var script_path: String = ScriptUtil.get_script_path_from_class_name(_editor_class_name)
+		if script_path.is_empty():
+			return null
+		if FileAccess.file_exists(script_path):
+			return load(script_path) as Script
+		return null
 
 ## For use only in the editor
 var _editor_class_name: StringName:
@@ -68,19 +83,14 @@ func _validate_property(property: Dictionary) -> void:
 		var base_type: String = _editor_class_name
 		
 		# Handle custom class
-		if !ClassDB.class_exists(_editor_class_name):
-			# Handle custom classes
-			var script_path: String = ScriptUtil.get_script_path_from_class_name(_editor_class_name)
-			if FileAccess.file_exists(script_path):
-				var script: Script = load(script_path) as Script
-				# Script was loaded
-				if script != null:
-					for script_property: Dictionary in script.get_script_property_list():
-						# Ignore TYPE_NIL properties (not real properties) and non-serializable ones
-						if script_property.type != TYPE_NIL \
-						and JSONSerialization.is_type_serializable(script_property.type):
-							hints.append(script_property.name)
-					base_type = script.get_instance_base_type()
+		var script: Script = _editor_script
+		if script != null:
+			for script_property: Dictionary in script.get_script_property_list():
+				# Ignore TYPE_NIL properties (not real properties) and non-serializable ones
+				if script_property.type != TYPE_NIL \
+				and JSONSerialization.is_type_serializable(script_property.type):
+					hints.append(script_property.name)
+			base_type = script.get_instance_base_type()
 		
 		# Handle native/base class
 		if ClassDB.class_exists(base_type):

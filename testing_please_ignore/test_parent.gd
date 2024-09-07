@@ -2,7 +2,7 @@ class_name TestParent extends Button
 
 @export var test_parent_string: String = "parent_prop"
 var test_parent_int: int = 4
-var test_array: Array = []
+var test_array: Array[Array] = [[]]
 
 
 func do_shit() -> void:

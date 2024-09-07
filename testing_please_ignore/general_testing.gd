@@ -2,11 +2,9 @@ class_name GeneralTesting extends Node
 
 @export var scene: PackedScene
 
+var array_test: Array[Button] = []
+
 func _ready() -> void:
-	
-	for serializer: JSONSerializer in JSONSerialization._serializers.values():
-		print(serializer.id, ":", serializer.can_deserialize_into(null, null))
-	
 	# Serialize this bad boy
 	var test_parent: TestParent = scene.instantiate() as TestParent
 	# Change properties from default
@@ -21,7 +19,7 @@ func _ready() -> void:
 	test_parent_3.test_parent_string = "mem3"
 	test_parent_3.test_parent_int = 3
 	
-	test_parent.test_array = [test_parent_2, test_parent_3]
+	test_parent.test_array = [[test_parent_2, test_parent_3]]
 	
 	print("BEFORE JSON: ", test_parent)
 	
