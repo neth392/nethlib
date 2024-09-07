@@ -61,8 +61,7 @@ func _ready() -> void:
 	add_serializer(preload("./native/array_json_serializer.gd").new())
 	
 	# TYPE_DICTIONARY
-	# TODO: FIX
-	#add_serializer(preload("./native/dictionary_json_serializer.gd").new())
+	add_serializer(preload("./native/dictionary_json_serializer.gd").new())
 	
 	# TYPE_OBJECT
 	add_serializer(preload("./object/object_json_serializer.gd").new())
