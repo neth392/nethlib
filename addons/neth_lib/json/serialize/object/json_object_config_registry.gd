@@ -5,38 +5,34 @@
 @tool
 class_name JSONObjectConfigRegistry extends Resource
 
-## Configs to be registered to the global [JSONSerializationImpl]. ALL configs
-## need to be registered except for those in [member _default_configs] which
-## will be registered automatically.
-@export var _configs: Array[JSONObjectConfig]:
+static var _default_configs: Array[JSONObjectConfig] = [
+	preload("res://addons/neth_lib/json/serialize/object/defaults/json_section_config.tres"),
+]
+
+## User (your) configurations to be registered to the global [JSONSerializationImpl]. 
+## ALL configs need to be registered in order to deserialize objects. It is important
+## to not remove [JSONObjectConfig]s without sanitizing stored JSON data that was serialized
+## by those config(s), as the [member JSONObjectConfig.id] is stored in the JSON data
+## to determine how to deserialize it. So removing its conifg will cause errors.
+@export var _user_configs: Array[JSONObjectConfig]:
 	set(value):
-		_configs = value
-		# In game, populate dictionaries
+		_user_configs = value
 		if !Engine.is_editor_hint():
-			# Add to dictionaries
-			for config: JSONObjectConfig in _configs:
-				if config == null:
-					push_warning("_configs has a null element")
-					continue
-				if config.id.is_empty():
-					push_warning("config.id is empty for config %s" % config)
-				elif _configs_by_id.has(config.id):
-					push_warning("Duplicate config ids found: %s" % config.id)
-				else:
-					_configs_by_id[config.id] = config
-				
-				if config.for_class.is_empty():
-					push_warning("config.for_class is empty for config %s" % config)
-				elif _configs_by_class.has(StringName(config.for_class)):
-					push_warning("Duplicate configs for class: %s" % config.for_class)
-				else:
-					_configs_by_class[StringName(config.for_class)] = config
+			_populate_dictionaries(_user_configs, "_user_configs")
+			_configs.append_array(_user_configs)
+
+var _configs: Array[JSONObjectConfig] = []
 
 ## [member JSONObjectConfig.id]:[JSONObjectConfig]
 var _configs_by_id: Dictionary = {}
 
 ## [member JSONObjectConfig.for_class]:[JSONObjectConfig]
 var _configs_by_class: Dictionary = {}
+
+func _init() -> void:
+	if !Engine.is_editor_hint():
+		_populate_dictionaries(_default_configs, "_default_configs")
+		_configs.append_array(_default_configs)
 
 
 ## Returns true if the [param config] is registered, false if not.
@@ -54,7 +50,10 @@ func has_class(_class: StringName) -> bool:
 ## Returns true if a [JSONObjectConfig] with [member JSONObjectConfig.for_class] as [param _class]
 ## exists, false if not. For use in the editor only, at runtime use [method has_class].
 func editor_has_class(_class: StringName) -> bool:
-	for config: JSONObjectConfig in _configs:
+	for config: JSONObjectConfig in _default_configs:
+		if config.for_class == _class:
+			return true
+	for config: JSONObjectConfig in _user_configs:
 		if config.for_class == _class:
 			return true
 	return false
@@ -70,7 +69,11 @@ func has_id(id: StringName) -> bool:
 ## Returns true if a [JSONObjectConfig] with [member JSONObjectConfig.id] as [param id] exists,
 ## false if not. For use in the editor only, at runtime use [method has_id].
 func editor_has_id(id: StringName) -> bool:
-	for config: JSONObjectConfig in _configs:
+	assert(Engine.is_editor_hint(), "use has_id() at Runtime")
+	for config: JSONObjectConfig in _default_configs:
+		if config.id == id:
+			return true
+	for config: JSONObjectConfig in _user_configs:
 		if config.id == id:
 			return true
 	return false
@@ -90,8 +93,10 @@ func get_config_by_id(id: StringName) -> JSONObjectConfig:
 	return _configs_by_id.get(id, null)
 
 
-## Adds the [param config] during runtime, it is not saved unless this
-## resource is explicitly saved. Will throw an error if called in the editor.
+## Adds the [param config] during runtime, will not affect the underlying
+## [member _user_configs] or [member _default_configs], and will not be
+## saved to this resource (will need to be manually called each time the engine/game
+## starts up).
 func add_config(config: JSONObjectConfig) -> void:
 	assert(!Engine.is_editor_hint(), "add_config not avialable in editor")
 	assert(config != null, "config is null")
@@ -107,11 +112,57 @@ func add_config(config: JSONObjectConfig) -> void:
 	_configs_by_class[StringName(config.for_class)] = config
 
 
-## Removes [param config] during runtime, it is not saved unless this
-## resource is explicitly saved. Will throw an error if called in the editor.
+## Removes [param config] during runtime, will not affect the underlying
+## [member _user_configs] or [member _default_configs], and will not be
+## saved to this resource (will need to be manually called each time the engine/game
+## starts up).
 func remove_config(config: JSONObjectConfig) -> void:
 	assert(!Engine.is_editor_hint(), "remove_config not avialable in editor")
 	assert(config != null, "config is null")
 	_configs.erase(config)
 	_configs_by_id.erase(config.id)
 	_configs_by_class.erase(StringName(config.for_class))
+
+
+## A version of [method duplicate] designed to be used when instantiating new
+## [JSONSerializationImpl]s. Duplicates internal arrays/dictionaries but
+## keeps the objects in them the same instances.
+func copy() -> JSONObjectConfigRegistry:
+	assert(!Engine.is_editor_hint(), "copy() not supported in the Editor")
+	var registry: JSONObjectConfigRegistry = JSONObjectConfigRegistry.new()
+	registry._configs = _configs.duplicate(false)
+	registry._configs_by_id = _configs_by_id.duplicate(false)
+	registry._configs_by_class = _configs_by_class.duplicate(false)
+	return registry
+
+
+func _populate_dictionaries(array: Array[JSONObjectConfig], array_name: String) -> void:
+	assert(!Engine.is_editor_hint(), "_populate_dictionaries not supported in the Editor")
+	# Add to dictionaries
+	for config: JSONObjectConfig in array:
+		if config == null:
+			push_warning("%s has a null element" % array_name)
+			continue
+		
+		if config.id.is_empty():
+			push_warning("config.id is empty for config (%s) of array (%s), can't register it" \
+			% [config, array_name])
+			continue
+		
+		if _configs_by_id.has(config.id):
+			push_warning("Duplicate config ids found in array (%s): (%s), skipping config (%s)" \
+			% [array_name, config.id, config])
+			continue
+		
+		if config.for_class.is_empty():
+			push_warning("config.for_class is empty for config (%s) of array (%s), skipping config" \
+			% [config, array_name])
+			continue
+		
+		if _configs_by_class.has(StringName(config.for_class)):
+			push_warning("Duplicate configs for class: (%s) of array (%s), skipping config (%s)" \
+			% [config.for_class, array_name, config])
+			continue
+		
+		_configs_by_id[config.id] = config
+		_configs_by_class[StringName(config.for_class)] = config

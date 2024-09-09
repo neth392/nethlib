@@ -6,4 +6,4 @@
 
 [resource]
 script = ExtResource("2_jpn33")
-_configs = Array[ExtResource("1_e2xy6")]([ExtResource("2_e3awe")])
+_user_configs = Array[ExtResource("1_e2xy6")]([ExtResource("2_e3awe")])

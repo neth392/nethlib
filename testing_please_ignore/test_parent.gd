@@ -6,6 +6,10 @@ var test_array: Array[int] = []
 var test_dictionary: Dictionary = {}
 
 
+func _init(test: StringName = &"") -> void:
+	pass
+
+
 func do_shit() -> void:
 	Array()
 	pass

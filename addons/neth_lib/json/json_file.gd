@@ -18,13 +18,16 @@ func is_loaded() -> bool:
 
 
 ## Loads the JSON from the file.
-func load_from_file() -> void:
+## [br][param json_impl] is the [JSONSerializationImpl] to use, defaults to the global
+## autoloaded JSONSerialization.
+func load_from_file(json_impl: JSONSerializationImpl = JSONSerialization) -> void:
 	_loaded = true
 	## TODO
 
 
 ## Saves the data set by [method set_data] to the file path, overriting the existing
 ## file if one exists, or creating a new file if it does not exist.
-func save_to_file() -> void:
-	## TODO
+## [br][param json_impl] is the [JSONSerializationImpl] to use, defaults to the global
+## autoloaded JSONSerialization.
+func save_to_file(json_impl: JSONSerializationImpl = JSONSerialization) -> void:
 	pass

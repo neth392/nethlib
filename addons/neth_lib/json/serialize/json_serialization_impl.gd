@@ -4,17 +4,13 @@
 class_name JSONSerializationImpl extends Node
 
 ## Parameter used in [method JSON.stringify]
-## TODO add to project settings
-var indent: String = ""
+@export_storage var indent: String = ""
 ## Parameter used in [method JSON.stringify]
-## TODO add to project settings
-var sort_keys: bool = true
+@export_storage var sort_keys: bool = true
 ## Parameter used in [method JSON.stringify]
-## TODO add to project settings
-var full_precision: bool = false
+@export_storage var full_precision: bool = false
 ## Parameter used in [method JSON.parse]
-## TODO add to project settings
-var keep_text: bool = false
+@export_storage var keep_text: bool = false
 
 ## [member JSONSerializer.id]:[JSONSerializer]
 var _serializers: Dictionary = {}
@@ -32,8 +28,10 @@ var _vector2i: JSONSerializer
 var _vector3: JSONSerializer
 var _vector4: JSONSerializer
 var _basis: JSONSerializer
-var _object: JSONSerializer
 
+# Internal JSON object & errors
+var _json: JSON = JSON.new()
+var _error_message: String
 
 ## Constructs & returns a new JSON-parsable [Dictionary] containing a "i" key
 ## of [member JSONSerializer.id] from the [param serializer], and a
@@ -128,6 +126,7 @@ func deserialize_into(wrapped_value: Dictionary, instance: Variant) -> void:
 	
 	var serializer: JSONSerializer = get_serializer_for_type(typeof(instance))
 	assert(serializer != null, "get_serializer_for_type(typeof(%s)) returned null" % instance)
+	assert(serializer.can_deserialize_into(wrapped_value, instance), "")
 	
 	# In debug, ensure serializers match up from instance type & wrapped type
 	if OS.is_debug_build():
@@ -145,7 +144,7 @@ func deserialize_into(wrapped_value: Dictionary, instance: Variant) -> void:
 ## that value.
 func stringify(variant: Variant) -> String:
 	var serialized: Dictionary = serialize(variant)
-	return JSON.stringify(serialized, indent, sort_keys, full_precision)
+	return _json.stringify(serialized, indent, sort_keys, full_precision)
 
 
 ## Helper function that calls [method JSON.parse] with [param wrapped_json_string], then
@@ -168,9 +167,10 @@ func parse_into(instance: Variant, wrapped_json_string: String) -> void:
 
 ## Internal helper function for [method parse] and [method parse_into].
 func _parse(wrapped_json_string: String) -> Variant:
-	var json: JSON = JSON.new()
-	var error: Error = json.parse(wrapped_json_string, keep_text)
-	assert(error == OK, "JSON error: line=%s,message=%s" % [json.get_error_line(), json.get_error_message()])
-	assert(json.data is Dictionary, "json.parse() result (%s) not of type Dictionary for wrapped_json_string %s"\
-	 % [json.data, wrapped_json_string])
-	return json.data
+	# TODO fix
+	return null
+	#_json.parse(wrapped_json_string, keep_text)
+	#assert(error == OK, "JSON error: line=%s,message=%s" % [json.get_error_line(), json.get_error_message()])
+	#assert(json.data is Dictionary, "json.parse() result (%s) not of type Dictionary for wrapped_json_string %s"\
+	 #% [json.data, wrapped_json_string])
+	#return json.data

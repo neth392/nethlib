@@ -21,20 +21,19 @@ var _ignore_setting_change: bool = false
 ## Constructs a new [JSONSerializationImpl] instance with support for reading errors.
 ## The returned node should NOT be added to the tree.
 func new() -> JSONSerializationImpl:
-	# TODO fix this
 	var instance: JSONSerializationImpl = JSONSerializationImpl.new()
-	instance._serializers = _serializers.duplicate(false)
 	instance.indent = indent
 	instance.sort_keys = sort_keys
 	instance.full_precision = full_precision
 	instance.keep_text = keep_text
+	instance._serializers = _serializers.duplicate(false)
+	instance.object_config_registry = object_config_registry.copy()
 	instance._color = _color
 	instance._vector2 = _vector2
 	instance._vector2i = _vector2i
 	instance._vector3 = _vector3
-	instance._basis = _basis
 	instance._vector4 = _vector4
-	instance._object = _object
+	instance._basis = _basis
 	return instance
 
 

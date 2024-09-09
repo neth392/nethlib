@@ -1,11 +1,11 @@
 ## A section of a [JSONFile], identified by a key.
 class_name JSONSection extends Resource
 
-## The key of this section.
+## The key of this section, used as the key in the JSON data.
 @export var section_key: StringName
 
 ## The version of this JSON section. Useful for converting old saves.
-var version: Variant
+@export var version: String
 
 ## The data within this section.
 var _data: Dictionary = {}
@@ -66,8 +66,3 @@ func create_section(json_key: StringName) -> JSONSection:
 	var section: JSONSection = JSONSection.new(json_key)
 	set_value(json_key, section)
 	return section
-
-
-## Returns a JSON serializable [Variant] (a [Dictionary] via [method JSONSerialization.serialize)
-func serialize() -> Variant:
-	return JSONSerialization.serialize(_data)

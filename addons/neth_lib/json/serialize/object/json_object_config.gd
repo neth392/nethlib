@@ -7,8 +7,13 @@ class_name JSONObjectConfig extends Resource
 ## The ID of this [JSONObjectConfig], stored in the serialized data to detect
 ## how to deserialize an instance of an object.
 ## [br]WARNING: Changing this property can break existing save data. Set it once
-## and keep it the same.
-@export var id: StringName
+## and keep it the same. Can not be changed at runtime.
+@export var id: StringName:
+	set(value):
+		if !Engine.is_editor_hint() && _id_initialized:
+			assert(false, "can't change JSONObjectConfig.id at runtime")
+		id = value
+		_id_initialized = true
 
 ## The class this config is meant to parse. If [member set_for_class_by_script] is used,
 ## this property becomes read only & is derived from that script.
@@ -73,6 +78,9 @@ var registered: bool:
 		return JSONSerialization.object_config_registry.has_config(self)
 	set(value):
 		assert(false, "registered is READ ONLY")
+
+## Internal flag to prevent [member id] from changing at runtime.
+var _id_initialized: bool = false
 
 
 func _validate_property(property: Dictionary) -> void:
