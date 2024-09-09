@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dbd0hq6gkyy4c"]
+
+[ext_resource type="Script" path="res://addons/neth_lib/json/node/json_save_manager.gd" id="1_feoot"]
+
+[node name="JSONSaveManager" type="Node"]
+script = ExtResource("1_feoot")

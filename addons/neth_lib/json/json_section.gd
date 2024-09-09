@@ -32,10 +32,11 @@ func get_value(json_key: StringName, default_value: Variant = null) -> Variant:
 	return _data.get(json_key, default_value)
 
 
-## Sets the [param value] as the value of [param json_key], overriding any
-## existing value.
-func set_value(json_key: StringName, value: Variant) -> void:
-	_data[json_key] = value
+## Serializes [param value] and stores the serialized data as the value of [param json_key].
+func store(json_key: StringName, value: Variant, 
+json_impl: JSONSerializationImpl = JSONSerialization) -> void:
+	var serialized: Variant = json_impl.serialize(value)
+	_data[json_key] = serialized
 
 
 ## Erases the [param json_key] and its value from this section, returning
