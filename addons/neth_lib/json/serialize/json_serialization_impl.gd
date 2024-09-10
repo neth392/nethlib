@@ -39,25 +39,6 @@ func get_json() -> JSON:
 	return _json
 
 
-## Constructs & returns a new JSON-parsable [Dictionary] containing a "i" key
-## of [member JSONSerializer.id] from the [param serializer], and a
-## "v" of [param serialized]. Will only be truly JSON parsable if the [param serialized]
-## is natively supported by Godot's JSON.
-func wrap_value(serializer: JSONSerializer, serialized: Variant) -> Dictionary:
-	return {
-		"i": serializer.id,
-		"v": serialized,
-	}
-
-
-## Unwraps & returns the value from the [param wrapped_value] assuming it was created
-## via [method wrap_value].
-func unwrap_value(wrapped_value: Dictionary) -> Variant:
-	assert(wrapped_value != null, "wrapped_value is null")
-	assert(wrapped_value.has("v"), "wrapped_value (%s) does not have 'v' key" % wrapped_value)
-	return wrapped_value.v
-
-
 ## Retunrs true if [param variant] is supported by a [JSONSerializer], false if not.
 func is_serializiable(variant: Variant) -> bool:
 	return is_type_serializable(typeof(variant))
@@ -180,3 +161,22 @@ func _parse(wrapped_json_string: String) -> Variant:
 	#assert(json.data is Dictionary, "json.parse() result (%s) not of type Dictionary for wrapped_json_string %s"\
 	 #% [json.data, wrapped_json_string])
 	#return json.data
+
+
+## Constructs & returns a new JSON-parsable [Dictionary] containing a "i" key
+## of [member JSONSerializer.id] from the [param serializer], and a
+## "v" of [param serialized]. Will only be truly JSON parsable if the [param serialized]
+## is natively supported by Godot's JSON.
+func _wrap_value(serializer: JSONSerializer, serialized: Variant) -> Dictionary:
+	return {
+		"i": serializer.id,
+		"v": serialized,
+	}
+
+
+## Unwraps & returns the value from the [param wrapped_value] assuming it was created
+## via [method wrap_value].
+func _unwrap_value(wrapped_value: Dictionary) -> Variant:
+	assert(wrapped_value != null, "wrapped_value is null")
+	assert(wrapped_value.has("v"), "wrapped_value (%s) does not have 'v' key" % wrapped_value)
+	return wrapped_value.v

@@ -17,7 +17,6 @@ var _registry_path: String:
 var _registry_path_cache: String
 var _ignore_setting_change: bool = false
 
-
 ## Constructs a new [JSONSerializationImpl] instance with support for reading errors.
 ## The returned node should NOT be added to the tree.
 func new() -> JSONSerializationImpl:
