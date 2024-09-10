@@ -33,6 +33,12 @@ var _basis: JSONSerializer
 var _json: JSON = JSON.new()
 var _error_message: String
 
+
+## Returns the underlying [JSON] instance in use by this instance.
+func get_json() -> JSON:
+	return _json
+
+
 ## Constructs & returns a new JSON-parsable [Dictionary] containing a "i" key
 ## of [member JSONSerializer.id] from the [param serializer], and a
 ## "v" of [param serialized]. Will only be truly JSON parsable if the [param serialized]

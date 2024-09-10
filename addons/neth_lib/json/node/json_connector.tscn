@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://dvqiuanotofqy"]
-
-[ext_resource type="Script" path="res://addons/neth_lib/json/node/json_connector.gd" id="1_nfvkp"]
-
-[node name="JSONNotifier" type="Node"]
-script = ExtResource("1_nfvkp")
