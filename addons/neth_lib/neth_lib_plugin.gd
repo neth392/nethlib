@@ -4,7 +4,6 @@ class_name NethLibPlugin extends EditorPlugin
 const SETTING_PREFIX = "nethlib/modules/"
 
 var _modules_scripts: Array[GDScript] = [
-	preload("./json/nethlib_json_module.gd"),
 	preload("./platform/nethlib_platform_manager_module.gd"),
 	preload("./audio/nethlib_audio_streamer_module.gd"),
 	preload("./audio/nethlib_audio_bus_helper_module.gd"),

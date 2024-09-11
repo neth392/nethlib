@@ -11,11 +11,10 @@ config_version=5
 [application]
 
 config/name="nethlib"
-config/features=PackedStringArray("4.3", "Forward Plus")
+config/features=PackedStringArray("4.4", "Forward Plus")
 
 [autoload]
 
-JSONSerialization="*res://addons/neth_lib/json/serialize/json_serialization.tscn"
 PlatformManager="*res://addons/neth_lib/platform/platform_manager.tscn"
 AudioStreamer="*res://addons/neth_lib/audio/audio_streamer.tscn"
 AudioBusHelper="*res://addons/neth_lib/audio/audio_bus_helper.tscn"
