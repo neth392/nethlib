@@ -1,47 +1,23 @@
 class_name GeneralTesting extends Node
 
-@export var scene: PackedScene
-@export var test_script: GDScript
 
-var array_test: Array[Button] = []
+var test_dictionary: Dictionary[String, int] = {
+	"one": 1,
+	"two": 2,
+	"three": 3,
+}
+
 
 func _ready() -> void:
+	var obj: TestParent = load("res://testing_please_ignore/test_parent_res.tres")
 	
-	var serialize_into: Node
-	
-	JSONSerialization.deserialize_into()
-	
-	return
-	for i in 1:
-		var test_parent: TestParent = scene.instantiate() as TestParent
-		# Change properties from default
-		test_parent.test_parent_string = "changed and serialized!"
-		test_parent.test_parent_int = 56789
-		
-		var test_parent_2: TestParent = scene.instantiate() as TestParent
-		test_parent_2.test_parent_string = "mem2"
-		test_parent_2.test_parent_int = 2
-		
-		var test_parent_3: TestParent = scene.instantiate() as TestParent
-		test_parent_3.test_parent_string = "mem3"
-		test_parent_3.test_parent_int = 3
-		
-		test_parent.test_array = [3,9,2]
-		test_parent.test_dictionary = {
-			1: "hi!",
-			"object": test_parent_2,
-			Vector2(9,2): "my vector",
-		}
-		
-		#print("BEFORE JSON: ", test_parent)
-		
-		# To JSON we go! 
-		var json: String = JSONSerialization.stringify(test_parent)
-		#print("JSON:")
-		#print(json)
-		
-		# Back to an object (a new instance of it)
-		#var deserialized: TestParent = JSONSerialization.parse(json) as TestParent
-		#print("DESERIALIZED:", deserialized)
-	
-	ExecutionTimeTest.print_time_taken()
+	var json: String = JSON.stringify(JSON.from_native(obj, true, true))
+	print(JSON.from_native(obj))
+	print(obj)
+	var parsed: Variant = JSON.to_native(JSON.parse_string(json), true, true)
+	print(parsed)
+	print(typeof(parsed))
+	# Trying to assign value of type 'String' to a variable of type 'Vector2'.
+	obj = null
+	obj = parsed
+	print(obj)

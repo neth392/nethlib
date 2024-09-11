@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://co864s748tuxs"]
-
-[ext_resource type="Script" path="res://testing_please_ignore/test_parent.gd" id="1_1e6y3"]
-
-[node name="TestParent" type="Button"]
-script = ExtResource("1_1e6y3")

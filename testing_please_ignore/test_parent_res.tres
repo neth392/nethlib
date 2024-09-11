@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TestParent" load_steps=4 format=3 uid="uid://ca8x53s6qctn7"]
+
+[ext_resource type="Script" path="res://testing_please_ignore/test_parent.gd" id="1_nbsh0"]
+[ext_resource type="Script" path="res://testing_please_ignore/test_child.gd" id="2_y2mh8"]
+
+[sub_resource type="Resource" id="Resource_e2bu8"]
+script = ExtResource("2_y2mh8")
+test_child_prop = "Hi!"
+test_parent_string = "parent_prop"
+test_parent_int = 4
+test_array = Array[int]([])
+test_dictionary = Dictionary[int, String]({})
+
+[resource]
+script = ExtResource("1_nbsh0")
+test_parent_string = "stringy"
+test_parent_int = 69
+test_array = Array[int]([1, 2, 3, 4, 5])
+test_dictionary = Dictionary[int, String]({
+1: "one",
+2: "two",
+3: "three"
+})
+test_parent_sub = SubResource("Resource_e2bu8")
