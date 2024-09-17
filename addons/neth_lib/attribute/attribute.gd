@@ -170,7 +170,9 @@ signal spec_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEff
 ## signals to be notified of the additions.
 @export var defer_default_effects: bool = false
 
-## Array of all [AttributeEffect]s.
+## Array of all [AttributeEffect]s applied to this [Attribute] by default. When
+## applied they are NOT sorted by priority, but instead applied in their order in
+## this array.
 @export var _default_effects: Array[AttributeEffect] = []:
 	set(value):
 		_default_effects = value
@@ -199,7 +201,7 @@ var _has_specs: bool = false:
 
 ## Dictionary of in the format of [code]{[member AttributeEffect.id] : int}[/code] count of all 
 ## applied [AttributeEffectSpec]s with that effect.
-var _effect_counts: Dictionary = {}
+var _effect_counts: Dictionary[StringName, int] = {}
 
 ## The internal current value.
 ## [br]WARNING: Do not set this directly, it is automatically calculated.
@@ -217,7 +219,7 @@ var _locked: bool = false
 
 ## For use in [method __process] ONLY. Per testing, it is more efficient to use
 ## a global dictionary than create a new one every frame.
-var __process_to_remove: Dictionary = {}
+var __process_to_remove: Dictionary[int, AttributeEffectSpec] = {}
 
 var _history: AttributeHistory
 
@@ -261,7 +263,7 @@ func _ready() -> void:
 		if defer_default_effects:
 			add_effects.call_deferred(_default_effects)
 		else:
-			add_effects(_default_effects)
+			add_effects(_default_effects, false)
 
 
 func _exit_tree() -> void:
@@ -651,7 +653,7 @@ func add_effects(source: Node, effects: Array[AttributeEffect], sort_by_priority
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	var specs: Array[AttributeEffectSpec] = []
 	for effect: AttributeEffect in effects:
-		specs.append(effect.to_spec())
+		specs.append(effect.to_spec(source))
 	add_specs(specs)
 
 

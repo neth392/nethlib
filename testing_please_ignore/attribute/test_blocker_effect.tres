@@ -1,12 +1,12 @@
 [gd_resource type="Resource" script_class="AttributeEffect" load_steps=15 format=3 uid="uid://cq8hcbp5yw8cl"]
 
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/condition/container_tag_condition.gd" id="1_8nfam"]
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/attribute_effect_callback.gd" id="1_24grl"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/conditions/container_tag_condition.gd" id="1_8nfam"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect_callback.gd" id="1_24grl"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect.gd" id="1_ul6y1"]
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd" id="2_qhawm"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect_condition.gd" id="2_qhawm"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/modifiable_value.gd" id="4_yb8x7"]
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier.gd" id="5_jqldh"]
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/modifier/attribute_effect_modifier_array.gd" id="6_har4v"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect_modifier.gd" id="5_jqldh"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect_modifier_array.gd" id="6_har4v"]
 
 [sub_resource type="Resource" id="Resource_j8jbk"]
 script = ExtResource("1_8nfam")

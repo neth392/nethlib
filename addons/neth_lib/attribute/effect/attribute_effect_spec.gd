@@ -1,6 +1,6 @@
 ## Represents an individual instance of an [AttributeEffect] that is applied
 ## to an [Attribute].
-class_name AttributeEffectSpec extends Node
+class_name AttributeEffectSpec extends RefCounted
 
 ## The remaining duration in seconds, can not be set to less than 0.0.
 var remaining_duration: float:
@@ -23,7 +23,8 @@ var remaining_period: float = 0.0
 var pending_attribute_value: float
 
 var _effect: AttributeEffect
-var _source: WeakRef
+## The [NodePath] to the source [Node] of this [AttributeEffect].
+var _source_path: NodePath
 var _initialized: bool = false
 var _expired: bool = false
 var _is_added: bool = false
@@ -59,8 +60,9 @@ var _last_set_attribute_value: float
 func _init(effect: AttributeEffect, source: Node) -> void:
 	assert(effect != null, "effect is null")
 	assert(source != null, "source is null")
+	assert(source.is_inside_tree(), "source (%s) not inside tree" % source)
 	_effect = effect
-	_source = weakref(source)
+	_source_path = source.get_path()
 
 
 ## Returns the [AttributeEffect] instance this spec was created for.
@@ -68,11 +70,14 @@ func get_effect() -> AttributeEffect:
 	return _effect
 
 
-## The source of this [AttributeEffectSpec] (i.e. what applied it to the [Attribute]).
-## Internally, it is kept in a [WeakRef], so if the source [Node] is no longer valid then
-## this could return null.
+## Returns the [NodePath] to the source [Node] of this effect.
+func get_source_path() -> NodePath:
+	return _source_path
+
+
 func get_source() -> Node:
-	return _source.get_ref() as Node
+	if _source_path.is_empty():
+		return null
 
 
 ## Whether or not this instance has been initialized by an [Attribute].

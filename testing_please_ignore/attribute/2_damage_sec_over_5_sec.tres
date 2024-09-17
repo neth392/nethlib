@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="AttributeEffect" load_steps=12 format=3 uid="uid://damurgk5lppcq"]
 
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/tag_applier_callback.gd" id="1_3p2fs"]
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callback/attribute_effect_callback.gd" id="1_ovyuw"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/callbacks/tag_applier_callback.gd" id="1_3p2fs"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect_callback.gd" id="1_ovyuw"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect.gd" id="2_5ycyd"]
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/calculator/subtract_calculator.gd" id="3_st5yu"]
-[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/condition/attribute_effect_condition.gd" id="4_g51b4"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/calculators/subtract_calculator.gd" id="3_st5yu"]
+[ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/attribute_effect_condition.gd" id="4_g51b4"]
 [ext_resource type="Script" path="res://addons/neth_lib/attribute/effect/modifiable_value.gd" id="4_tuxff"]
 
 [sub_resource type="Resource" id="Resource_8odpc"]

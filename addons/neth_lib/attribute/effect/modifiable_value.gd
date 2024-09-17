@@ -8,15 +8,14 @@ enum ValueType {
 	ATTRIBUTE_CURRENT_VALUE,
 }
 
-
 @export var type: ValueType
 
 ## The floating point value
-@export var value: float:
+@export var _value: float:
 	get():
 		match type:
 			ValueType.STATIC:
-				return 
+				return _value
 		if type == ValueType.STATIC:
 			return value
 		return 0.0 # TODO return attribute value
@@ -26,4 +25,4 @@ enum ValueType {
 
 ## Returns [member value] modified by [member value_modifiers].
 func get_modified(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	return value_modifiers.modify_value(value, attribute, spec)
+	return value_modifiers.modify_value(_value, attribute, spec)

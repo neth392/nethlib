@@ -1,9 +1,0 @@
-[gd_resource type="Resource" script_class="JSONObjectConfigRegistry" load_steps=4 format=3 uid="uid://dw63uvt1jdmfd"]
-
-[ext_resource type="Script" path="res://addons/neth_lib/json/serialize/object/json_object_config.gd" id="1_e2xy6"]
-[ext_resource type="Resource" uid="uid://blffyy6ubcwo5" path="res://test_config.tres" id="2_e3awe"]
-[ext_resource type="Script" path="res://addons/neth_lib/json/serialize/object/json_object_config_registry.gd" id="2_jpn33"]
-
-[resource]
-script = ExtResource("2_jpn33")
-_user_configs = Array[ExtResource("1_e2xy6")]([ExtResource("2_e3awe")])

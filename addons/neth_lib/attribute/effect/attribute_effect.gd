@@ -236,9 +236,9 @@ enum DurationType {
 
 ## A simple [Dictionary] that can be used to store metadata for effects. Not
 ## used in any of the Attribute system's internals.
-@export var metadata: Dictionary
+@export var metadata: Dictionary[Variant, Variant]
 
-var _callbacks_by_function: Dictionary = {}
+var _callbacks_by_function: Dictionary[AttributeEffectCallback._Function, Array]
 
 func _init(_id: StringName = "") -> void:
 	id = _id
